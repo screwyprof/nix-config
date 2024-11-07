@@ -115,13 +115,6 @@ EOF
         fi
       fi
       
-      # Set alternative names
-      if [ "$app_name" = "Visual Studio Code" ]; then
-        xattr -w com.apple.metadata:kMDItemAlternativeNames '("vscode" "code" "visual studio code" "vs code")' "$target"
-      else
-        xattr -w com.apple.metadata:kMDItemAlternativeNames "($app_name \"Nix $app_name\" \"$app_name Nix\")" "$target"
-      fi
-      
       rm launcher.applescript
     '';
   in pkgs.lib.mkForce ''
