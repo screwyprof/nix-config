@@ -2,7 +2,11 @@
   # Add state version
   system.stateVersion = 5;
 
-  # Add this at the top of your darwin configuration
+  imports = [
+    ../common/default.nix  # Import common system configuration
+  ];
+
+  # Darwin-specific configurations
   system.activationScripts.postActivation.text = ''
     # Install Command Line Tools
     if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
@@ -37,14 +41,6 @@
 
   # System-wide environment variables
   environment = {
-    systemPackages = with pkgs; [
-      vim
-      git
-      curl
-      wget
-      tree
-    ];
-    
     pathsToLink = [ "/Applications" ];
   };
 

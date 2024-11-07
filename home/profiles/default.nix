@@ -6,23 +6,6 @@
     ../common/development.nix
     ../common/shell.nix
     ../common/git.nix
-  ];
-
-  home.packages = with pkgs; [
-    ripgrep
-    fd
-    jq
-    yq
-    curl
-    wget
-    
-    go
-    rustup
-    nodejs
-    yarn
-    
-    docker
-    kubectl
-    k9s
+    ../common/packages.nix
   ];
 } 

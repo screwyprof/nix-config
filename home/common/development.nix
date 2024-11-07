@@ -1,4 +1,12 @@
 { pkgs, ... }: {
+  # Development tools
+  home.packages = with pkgs; [
+    go
+    rustup
+    nodejs
+    yarn
+  ];
+
   # IDE configurations
   programs.vscode = {
     enable = true;
