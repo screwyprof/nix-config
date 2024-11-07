@@ -1,11 +1,11 @@
-{ pkgs, ... }: {
+{ pkgs, lib, ... }: {
+  # Base system packages that should be available on all platforms
   environment.systemPackages = with pkgs; [
-    # Core system utilities only
+    # Basic system utilities
     vim
     git
-
-    # System-level development tools
-    docker 
-    kubectl 
+    
+    # Cross-platform applications
+    vscode
   ];
 } 

@@ -20,14 +20,18 @@
       systemSettings = {
         system = "aarch64-darwin";
         hostname = "mac";
-        username = "parallels";  
+        username = "parallels";
+      };
+
+      nixpkgsConfig = {
+        config = {
+          allowUnfree = true;
+        };
       };
 
       pkgs = import nixpkgs {
         inherit (systemSettings) system;
-        config = {
-          allowUnfree = true;
-        };
+        inherit (nixpkgsConfig) config;
       };
       lib = nixpkgs.lib;
     in
@@ -35,8 +39,14 @@
       darwinConfigurations = {
         ${systemSettings.hostname} = darwin.lib.darwinSystem {
           inherit (systemSettings) system;
-          specialArgs = { inherit inputs; };
+          specialArgs = {
+            inherit inputs;
+            inherit (systemSettings) username;
+          };
           modules = [
+            {
+              nixpkgs = nixpkgsConfig;
+            }
             ./hosts/darwin/default.nix
             
             home-manager.darwinModules.home-manager
@@ -47,6 +57,7 @@
                 extraSpecialArgs = {
                   inherit pkgs;
                 };
+                backupFileExtension = "bak";
                 users.${systemSettings.username} = {
                   imports = [
                     ./home/profiles/default.nix

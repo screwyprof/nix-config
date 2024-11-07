@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, config, username, ... }: {
   # Add state version
   system.stateVersion = 5;
 
@@ -42,6 +42,9 @@
   # System-wide environment variables
   environment = {
     pathsToLink = [ "/Applications" ];
+    systemPackages = with pkgs; [
+      mkalias  # Make sure mkalias is available
+    ];
   };
 
   # Enable necessary services
@@ -63,7 +66,75 @@
   # Fonts
   fonts = {
     packages = with pkgs; [
-      (nerdfonts.override { fonts = [ "FiraCode" "DroidSansMono" ]; })
+      (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
     ];
   };
+
+  # Add the activation script for proper macOS application symlinks
+  system.activationScripts.applications.text = let
+    env = pkgs.buildEnv {
+      name = "system-applications";
+      paths = config.environment.systemPackages;
+      pathsToLink = [ "/Applications" ];
+      ignoreCollisions = true;
+    };
+    
+    createLauncherScript = pkgs.writeShellScript "create-launcher" ''
+      set -e  # Exit on error
+      
+      source_app="$1"
+      app_name=$(basename "$source_app" .app)
+      target="/Applications/Nix Apps/$app_name.app"
+      temp_app="/tmp/$app_name.app"
+      
+      # Create temporary applescript
+      cat > launcher.applescript << EOF
+      try
+          tell application "Finder"
+              open POSIX file "$source_app"
+          end tell
+      on error errMsg
+          display dialog "Error launching $app_name: " & errMsg buttons {"OK"} with icon stop
+      end try
+EOF
+      
+      # Compile to temporary location
+      osacompile -o "$temp_app" launcher.applescript
+      
+      # Move to final location
+      rm -rf "$target"
+      mv "$temp_app" "$target"
+      
+      # Copy the icon
+      icon_source="$source_app/Contents/Resources/"
+      icon_dest="$target/Contents/Resources/applet.icns"
+      if [ -d "$icon_source" ]; then
+        icon_file=$(ls "$icon_source"/*.icns 2>/dev/null | head -n 1)
+        if [ -n "$icon_file" ]; then
+          cp "$icon_file" "$icon_dest"
+        fi
+      fi
+      
+      # Set alternative names
+      if [ "$app_name" = "Visual Studio Code" ]; then
+        xattr -w com.apple.metadata:kMDItemAlternativeNames '("vscode" "code" "visual studio code" "vs code")' "$target"
+      else
+        xattr -w com.apple.metadata:kMDItemAlternativeNames "($app_name \"Nix $app_name\" \"$app_name Nix\")" "$target"
+      fi
+      
+      rm launcher.applescript
+    '';
+  in pkgs.lib.mkForce ''
+    echo "setting up /Applications..." >&2
+    rm -rf "/Applications/Nix Apps"
+    mkdir -p "/Applications/Nix Apps"
+    
+    for pkg in ${toString config.environment.systemPackages}; do
+      if [ -d "$pkg/Applications" ]; then
+        for app in "$pkg/Applications/"*.app; do
+          ${createLauncherScript} "$app"
+        done
+      fi
+    done
+  '';
 } 
