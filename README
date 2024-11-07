@@ -1,0 +1,17 @@
+# Nix Configuration
+
+Personal Nix configuration for MacOS.
+
+## Structure
+- `flake.nix`: Entry point
+- `modules/`: Configuration modules
+  - `shell/`: Shell configurations (zsh, terminal)
+  - `dev/`: Development tools
+  - `apps/`: Applications
+  - `system/`: System preferences
+
+## Setup
+1. Install Nix
+2. Enable flakes
+3. Run `nix build .#darwinConfigurations.{hostname}.system`
+4. Run `./result/sw/bin/darwin-rebuild switch --flake .`
