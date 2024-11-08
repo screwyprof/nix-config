@@ -1,4 +1,4 @@
-{ pkgs, config, username, ... }: {
+{ pkgs, config, ... }: {
   # Add state version
   system.stateVersion = 5;
 
@@ -17,28 +17,6 @@
     fi
   '';
 
-  # System configuration
-  system = {
-    defaults = {
-      dock = {
-        autohide = true;
-        mru-spaces = false;
-        minimize-to-application = true;
-      };
-      
-      finder = {
-        AppleShowAllExtensions = true;
-        FXEnableExtensionChangeWarning = false;
-      };
-      
-      NSGlobalDomain = {
-        AppleShowAllExtensions = true;
-        InitialKeyRepeat = 15;
-        KeyRepeat = 2;
-      };
-    };
-  };
-
   # System-wide environment variables
   environment = {
     pathsToLink = [ "/Applications" ];
@@ -56,7 +34,7 @@
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     build-users-group = "nixbld";
-    trusted-users = [ "root" "@admin" "parallels" ];
+    trusted-users = [ "root" "@admin" ];
     download-buffer-size = 100000000;
   };
 

@@ -5,6 +5,11 @@
     rustup
     nodejs
     yarn
+
+    # Add Nix development tools
+    nixpkgs-fmt
+    nix-prefetch-github
+    nix-prefetch-git
   ];
 
   # IDE configurations

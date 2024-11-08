@@ -1,8 +1,8 @@
-{ pkgs, ... }: {
+{ pkgs, devUser, ... }: {
   programs.git = {
     enable = true;
-    userName = "Your Name";  # TODO: Replace with your name
-    userEmail = "your.email@example.com";  # TODO: Replace with your email
+    userName = devUser.fullName;
+    userEmail = devUser.email;
     
     extraConfig = {
       init.defaultBranch = "main";
@@ -33,7 +33,6 @@
     ];
   };
 
-  # GitHub CLI configuration
   programs.gh = {
     enable = true;
     settings = {

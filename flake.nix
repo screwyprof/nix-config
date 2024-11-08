@@ -1,76 +1,95 @@
 {
-  description = "Nix system configurations";
+  description = "System configurations";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    
     darwin = {
       url = "github:lnl7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, darwin, home-manager, ... }@inputs: 
     let
-      systemSettings = {
-        system = "aarch64-darwin";
-        hostname = "mac";
-        username = "parallels";
+      # Define your development identity
+      devUser = {
+        fullName = "Happy Gopher";
+        email = "max@happygopher.nl";
       };
 
-      nixpkgsConfig = {
-        config = {
-          allowUnfree = true;
-        };
+      # Systems supported
+      supportedSystems = [ "aarch64-darwin" ];
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+
+      # Create nixpkgs config for each system
+      nixpkgsForSystem = system: import nixpkgs {
+        inherit system;
+        overlays = [
+          (final: prev: {
+            mysides = final.callPackage ./pkgs/mysides {
+              stdenv = if system == "aarch64-darwin" 
+                then final.darwin.apple_sdk.stdenv
+                else final.stdenv;
+            };
+          })
+        ];
+        config.allowUnfree = true;
       };
 
-      pkgs = import nixpkgs {
-        inherit (systemSettings) system;
-        inherit (nixpkgsConfig) config;
-      };
-      lib = nixpkgs.lib;
-    in
-    {
+    in {
       darwinConfigurations = {
-        ${systemSettings.hostname} = darwin.lib.darwinSystem {
-          inherit (systemSettings) system;
-          specialArgs = {
-            inherit inputs;
-            inherit (systemSettings) username;
+        mac = darwin.lib.darwinSystem {
+          system = "aarch64-darwin";
+          specialArgs = { 
+            inherit inputs devUser; 
+            pkgs = nixpkgsForSystem "aarch64-darwin";
           };
           modules = [
-            {
-              nixpkgs = nixpkgsConfig;
-            }
-            ./hosts/darwin/default.nix
-            
+            ./hosts/darwin
             home-manager.darwinModules.home-manager
             {
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                extraSpecialArgs = {
-                  inherit pkgs;
-                };
-                backupFileExtension = "bak";
-                users.${systemSettings.username} = {
+                extraSpecialArgs = { inherit inputs devUser; };
+                users.parallels = { ... }: {
                   imports = [
-                    ./home/profiles/default.nix
+                    ./home/users/parallels/default.nix
+                    ./home/users/parallels/darwin.nix
                   ];
-                  home = {
-                    username = lib.mkForce systemSettings.username;
-                    homeDirectory = lib.mkForce "/Users/${systemSettings.username}";
-                  };
                 };
               };
             }
           ];
         };
       };
+
+      # Add development shells
+      devShells = forAllSystems (system: let 
+        pkgs = nixpkgsForSystem system;
+      in {
+        default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            mysides
+            darwin.apple_sdk.frameworks.CoreServices
+            darwin.apple_sdk.frameworks.Foundation
+          ];
+          
+          shellHook = ''
+            echo "Development shell for macOS tools"
+            echo "Available commands:"
+            echo "  mysides - Manage Finder sidebar"
+          '';
+        };
+      });
+
+      # Add packages output
+      packages = forAllSystems (system: {
+        mysides = (nixpkgsForSystem system).mysides;
+      });
     };
 } 
