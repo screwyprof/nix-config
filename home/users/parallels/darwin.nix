@@ -71,43 +71,62 @@
       $DRY_RUN_CMD /usr/bin/killall Finder
       $DRY_RUN_CMD /usr/bin/killall Dock
 
-      # Finder Sidebar Configuration using mysides
+      # Finder Sidebar Configuration
       echo "Configuring Finder sidebar..."
-      
+
+      # Before changes
+      echo "Dumping initial states..."
+      $DRY_RUN_CMD /usr/libexec/PlistBuddy -x -c "Print" "/Users/parallels/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.FavoriteVolumes.sfl3" > volumes.before.xml
+      $DRY_RUN_CMD /usr/libexec/PlistBuddy -x -c "Print" "/Users/parallels/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.FavoriteItems.sfl3" > items.before.xml
+
       echo "Current sidebar items:"
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides list
+      $DRY_RUN_CMD ${pkgs.finder-sidebar-editor}/bin/finder-sidebar-editor --list || true
       
-      # First remove any items we want to manage
-      echo "Removing existing items..."
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Recents || true
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Applications || true
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Desktop || true
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Documents || true
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Downloads || true
+      # Remove existing items using mysides
+      echo "Removing existing favorites with mysides..."
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove "Recents" || true
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove "Applications" || true
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove "Desktop" || true
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove "Documents" || true
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove "Downloads" || true
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove "Home" || true
+      
+      # Remove volumes using finder-sidebar-editor
+      echo "Removing existing volumes..."
+      $DRY_RUN_CMD ${pkgs.finder-sidebar-editor}/bin/finder-sidebar-editor --remove "/" --volume || true
+      #$DRY_RUN_CMD ${pkgs.finder-sidebar-editor}/bin/finder-sidebar-editor --remove "/System/Volumes/Data" --volume || true
+      
+      # Add favorites using mysides
+      echo "Adding favorites with mysides..."
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Recents" "file:///System/Library/CoreServices/Finder.app/Contents/Resources/MyLibraries/myDocuments.cannedSearch"
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Home" "file://${config.home.homeDirectory}"
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Applications" "file:///Applications"
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Desktop" "file://${config.home.homeDirectory}/Desktop"
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Documents" "file://${config.home.homeDirectory}/Documents"
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Downloads" "file://${config.home.homeDirectory}/Downloads"
+      
+      # Add volumes using finder-sidebar-editor
+      echo "Adding volumes..."
+      #$DRY_RUN_CMD ${pkgs.finder-sidebar-editor}/bin/finder-sidebar-editor --add "/" --name "Hard Drive"  || true
+      
+      echo "Final sidebar configuration:"
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides list || true
 
-      # Add items in our preferred order
-      echo "Adding items to sidebar..."
-      # Add Home directory first
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Home file://${config.home.homeDirectory}/
+      # After changes
+      echo "Dumping final states..."
+      $DRY_RUN_CMD /usr/libexec/PlistBuddy -x -c "Print" "/Users/parallels/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.FavoriteVolumes.sfl3" > volumes.after.xml
+      $DRY_RUN_CMD /usr/libexec/PlistBuddy -x -c "Print" "/Users/parallels/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.FavoriteItems.sfl3" > items.after.xml
 
-      # Add standard directories
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Recents "file:///System/Library/CoreServices/Finder.app/Contents/Resources/MyLibraries/myDocuments.cannedSearch/"
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Applications file:///Applications/
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Desktop file://${config.home.homeDirectory}/Desktop/
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Documents file://${config.home.homeDirectory}/Documents/
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Downloads file://${config.home.homeDirectory}/Downloads/
-
-      # Add root level directories
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Hard Drive" file:///
-
-      # Show final configuration
-      echo "Final sidebar items:"
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides list
+      # Compare
+      echo "Comparing changes..."
+      $DRY_RUN_CMD diff -u volumes.before.xml volumes.after.xml
+      $DRY_RUN_CMD diff -u items.before.xml items.after.xml
     '';
   };
 
   # Make sure mysides is available
   home.packages = with pkgs; [
     mysides
+    finder-sidebar-editor
   ];
 }
