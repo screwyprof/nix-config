@@ -35,7 +35,6 @@
                 then final.darwin.apple_sdk.stdenv
                 else final.stdenv;
             };
-            finder-sidebar-editor = final.callPackage ./pkgs/finder-sidebar-editor {};
           })
         ];
         config.allowUnfree = true;
@@ -76,21 +75,14 @@
         default = pkgs.mkShell {
           buildInputs = with pkgs; [
             mysides
-            finder-sidebar-editor
+            darwin.apple_sdk.frameworks.CoreServices
+            darwin.apple_sdk.frameworks.Foundation
           ];
           
           shellHook = ''
             echo "Development shell for macOS tools"
             echo "Available commands:"
             echo "  mysides - Manage Finder sidebar"
-            echo "  finder-sidebar-editor - Python Finder sidebar editor"
-            
-            # Create a working directory for development
-            mkdir -p dev
-            cp ${pkgs.finder-sidebar-editor}/bin/finder-sidebar-editor.py dev/
-            chmod +w dev/finder-sidebar-editor.py
-            
-            echo "Script copied to dev/finder-sidebar-editor.py for editing"
           '';
         };
       });
