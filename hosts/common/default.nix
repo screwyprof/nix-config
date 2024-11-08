@@ -4,8 +4,12 @@
     # Basic system utilities
     vim
     git
-    
-    # Cross-platform applications
-    vscode
+    tree
+    ripgrep
+    fd
+    jq
+    yq
+    curl
+    wget
   ];
 } 

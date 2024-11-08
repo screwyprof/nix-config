@@ -27,7 +27,7 @@
       ll = "ls -la";
       ".." = "cd ..";
       "..." = "cd ../..";
-      update = "darwin-rebuild switch --flake .#mac";
+      nix-rebuild-mac = "darwin-rebuild switch --flake .#mac";
     };
   };
 

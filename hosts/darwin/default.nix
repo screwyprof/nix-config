@@ -15,14 +15,15 @@
       /usr/sbin/softwareupdate -i "$PROD" --verbose
       rm /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
     fi
+
+    # Create symlink for Cursor's rgArm
+    mkdir -p "/Users/parallels/.cursor-server/cli/servers/Stable-b1e87884330fc271d5eb589e368c35f14e76dec0/server/node_modules/@vscode/ripgrep/bin"
+    ln -sf ${pkgs.ripgrep}/bin/rg "/Users/parallels/.cursor-server/cli/servers/Stable-b1e87884330fc271d5eb589e368c35f14e76dec0/server/node_modules/@vscode/ripgrep/bin/rgArm"
   '';
 
   # System-wide environment variables
   environment = {
     pathsToLink = [ "/Applications" ];
-    systemPackages = with pkgs; [
-      mkalias  # Make sure mkalias is available
-    ];
   };
 
   # Enable necessary services
@@ -108,4 +109,8 @@ EOF
       fi
     done
   '';
+
+  environment.systemPackages = with pkgs; [
+    ripgrep
+  ];
 } 
