@@ -77,27 +77,22 @@
       echo "Current sidebar items:"
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides list
       
-      # First remove any items we want to manage
-      echo "Removing existing items..."
+      # remove favorites
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Recents || true
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Home || true
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Applications || true
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Desktop || true
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Documents || true
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove Downloads || true
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides remove "Hard Drive" || true
 
-      # Add items in our preferred order
-      echo "Adding items to sidebar..."
-      # Add Home directory first
-      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Home file://${config.home.homeDirectory}/
-
-      # Add standard directories
+      # add favorites
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Recents "file:///System/Library/CoreServices/Finder.app/Contents/Resources/MyLibraries/myDocuments.cannedSearch/"
+      $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Home file://${config.home.homeDirectory}/
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Applications file:///Applications/
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Desktop file://${config.home.homeDirectory}/Desktop/
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Documents file://${config.home.homeDirectory}/Documents/
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add Downloads file://${config.home.homeDirectory}/Downloads/
-
-      # Add root level directories
       $DRY_RUN_CMD ${pkgs.mysides}/bin/mysides add "Hard Drive" file:///
 
       # Show final configuration
