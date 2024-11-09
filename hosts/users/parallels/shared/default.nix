@@ -1,7 +1,8 @@
 { config, lib, pkgs, ... }: {
   imports = [
     ./git.nix
-    ./development.nix
+    ./shell
     ./packages.nix
+    ./development.nix
   ];
 } 

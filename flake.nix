@@ -22,7 +22,7 @@
       };
 
       # Systems supported
-      supportedSystems = [ "aarch64-darwin" ];
+      supportedSystems = [ "aarch64-darwin" "x86_64-darwin" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
       # Create nixpkgs config for each system
@@ -31,7 +31,7 @@
         overlays = [
           (final: prev: {
             mysides = final.callPackage ./pkgs/mysides {
-              stdenv = if system == "aarch64-darwin" 
+              stdenv = if final.stdenv.isDarwin
                 then final.darwin.apple_sdk.stdenv
                 else final.stdenv;
             };
@@ -40,13 +40,15 @@
         config.allowUnfree = true;
       };
 
+      system = "aarch64-darwin";
+      isDarwin = builtins.match ".*-darwin" system != null;
     in {
       darwinConfigurations = {
         mac = darwin.lib.darwinSystem {
-          system = "aarch64-darwin";
+          inherit system;
           specialArgs = { 
-            inherit inputs devUser; 
-            pkgs = nixpkgsForSystem "aarch64-darwin";
+            inherit inputs devUser isDarwin;
+            pkgs = nixpkgsForSystem system;
           };
           modules = [
             ./hosts/darwin
@@ -55,11 +57,12 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                extraSpecialArgs = { inherit inputs devUser; };
+                extraSpecialArgs = { 
+                  inherit inputs devUser isDarwin;
+                };
                 users.parallels = { ... }: {
                   imports = [
-                    ./home/users/parallels/default.nix
-                    ./home/users/parallels/darwin.nix
+                    ./hosts/users/parallels/default.nix
                   ];
                 };
               };

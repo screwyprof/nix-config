@@ -1,12 +1,10 @@
-{ pkgs, ... }: {
-  fonts.fontconfig.enable = true;  # Enable font management
-
+{ config, lib, pkgs, ... }: {
+  fonts.fontconfig.enable = true;
   home.packages = with pkgs; [
     # user fonts
     (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
 
     # User-level tools
-    mysides
     k9s
   ];
 } 

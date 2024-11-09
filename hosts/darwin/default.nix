@@ -4,8 +4,6 @@
 
   imports = [
     ../shared/default.nix  # Import shared system configuration
-    ./system              # System-wide settings
-    ./finder             # Finder configuration
   ];
 
   # Darwin-specific configurations
