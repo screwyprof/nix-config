@@ -34,24 +34,6 @@
       pkgs.vscode-extensions.hbenl.vscode-test-explorer
       
     ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-    #   {
-    #     name = "vsc-material-theme";
-    #     publisher = "equinusocio";
-    #     version = "34.7.5";
-    #     sha256 = "6YMr64MTtJrmMMMPW/s6hMh/IilDqLMrspKRPT4uSpM=";
-    #   }
-    #   {
-    #     name = "vsc-material-theme-icons";
-    #     publisher = "equinusocio";
-    #     version = "3.8.8";
-    #     sha256 = "el2hQaq1gZBn2PZ+f+S1fHM/g3V0sX7Chyre04sds8k=";
-    #   }
-    #  {
-    #     name = "material-icon-theme";
-    #     publisher = "pkief";
-    #     version = "5.12.0";
-    #     sha256 = "FLHEaWFZ9JAy8S1il10D/2qQG7aNH8n6iA+kFhUTZVs=";
-    #   }
       {
         name = "dependi";
         publisher = "fill-labs";
@@ -116,14 +98,7 @@
         "showGlobalVariables" = true;
       };
 
-      # Material Theme settings
-      #"materialTheme.accent" = "Purple";
-      #"materialTheme.accent" = "Teal";
-      #"materialTheme.autoApplyIcons" = true;
-      #"materialTheme.fixIconsRunning" = false;
-      #"materialTheme.themeVariant" = "Darker";
-      #"workbench.colorTheme" = "Material Theme";
-      #"workbench.iconTheme" = "material-icon-theme";
+      # Theme settings
       "workbench.colorTheme" = "One Dark";
       "workbench.iconTheme" = "material-icon-theme";
       "workbench.colorCustomizations" = {
@@ -132,6 +107,44 @@
         "editorWarning.border" = "#fff0";
         "editorWarning.foreground" = "#fff0";
      };
+      "editor.tokenColorCustomizations" = {
+        "textMateRules" = [
+          {
+            "name" = "One Dark italic";
+            "scope" = [
+              "comment"
+              "entity.other.attribute-name"
+              "keyword"
+              "markup.underline.link"
+              "storage.modifier"
+              "storage.type"
+              "string.url"
+              "variable.language.super"
+              "variable.language.this"
+            ];
+            "settings" = {
+              "fontStyle" = "italic";
+            };
+          }
+          {
+            "name" = "One Dark italic reset";
+            "scope" = [
+              "keyword.operator"
+              "keyword.other.type"
+              "storage.modifier.import"
+              "storage.modifier.package"
+              "storage.type.built-in"
+              "storage.type.function.arrow"
+              "storage.type.generic"
+              "storage.type.java"
+              "storage.type.primitive"
+            ];
+            "settings" = {
+              "fontStyle" = "";
+            };
+          }
+        ];
+      };
     };
   };
 } 
