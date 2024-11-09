@@ -60,7 +60,8 @@
                 extraSpecialArgs = { 
                   inherit inputs devUser isDarwin;
                 };
-                users.parallels = { ... }: {
+                backupFileExtension = "bak";
+                users.parallels = { pkgs, ... }: {
                   imports = [
                     ./hosts/users/parallels/default.nix
                   ];
