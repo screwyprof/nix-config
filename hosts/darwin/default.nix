@@ -3,7 +3,8 @@
   system.stateVersion = 5;
 
   imports = [
-    ../shared/default.nix  # Import shared system configuration
+    ../shared/default.nix 
+    ./spotlight.nix 
   ];
 
   # Darwin-specific configurations
@@ -21,11 +22,6 @@
     ln -sf ${pkgs.ripgrep}/bin/rg "/Users/parallels/.cursor-server/cli/servers/Stable-b1e87884330fc271d5eb589e368c35f14e76dec0/server/node_modules/@vscode/ripgrep/bin/rgArm"
   '';
 
-  # System-wide environment variables
-  environment = {
-    pathsToLink = [ "/Applications" ];
-  };
-
   # Enable necessary services
   services = {
     nix-daemon.enable = true;
@@ -42,79 +38,8 @@
   # Create /etc/zshrc that loads the nix-darwin environment
   programs.zsh.enable = true;
 
-  # Add the activation script for proper macOS application symlinks
-  system.activationScripts.applications.text = let
-    env = pkgs.buildEnv {
-      name = "system-applications";
-      paths = config.environment.systemPackages;
-      pathsToLink = [ "/Applications" ];
-      ignoreCollisions = true;
-    };
-    
-    createLauncherScript = pkgs.writeShellScript "create-launcher" ''
-      set -e  # Exit on error
-      
-      source_app="$1"
-      app_name=$(basename "$source_app" .app)
-      target="/Applications/Nix Apps/$app_name.app"
-      temp_app="/tmp/$app_name.app"
-      
-      # Create temporary applescript
-      cat > launcher.applescript << EOF
-      try
-          tell application "Finder"
-              open POSIX file "$source_app"
-          end tell
-      on error errMsg
-          display dialog "Error launching $app_name: " & errMsg buttons {"OK"} with icon stop
-      end try
-EOF
-      
-      # Compile to temporary location
-      osacompile -o "$temp_app" launcher.applescript
-      
-      # Move to final location
-      rm -rf "$target"
-      mv "$temp_app" "$target"
-      
-      # Copy the icon
-      icon_source="$source_app/Contents/Resources/"
-      icon_dest="$target/Contents/Resources/applet.icns"
-      if [ -d "$icon_source" ]; then
-        icon_file=$(ls "$icon_source"/*.icns 2>/dev/null | head -n 1)
-        if [ -n "$icon_file" ]; then
-          cp "$icon_file" "$icon_dest"
-        fi
-      fi
-      
-      rm launcher.applescript
-    '';
-  in pkgs.lib.mkForce ''
-    echo "setting up /Applications..." >&2
-    rm -rf "/Applications/Nix Apps"
-    mkdir -p "/Applications/Nix Apps"
-    
-    # Handle system-wide applications
-    for pkg in ${toString config.environment.systemPackages}; do
-      if [ -d "$pkg/Applications" ]; then
-        for app in "$pkg/Applications/"*.app; do
-          ${createLauncherScript} "$app"
-        done
-      fi
-    done
-
-    # Handle Home Manager applications for all users
-    for user in /Users/*; do
-      if [ -d "$user/Applications/Home Manager Apps" ]; then
-        for app in "$user/Applications/Home Manager Apps/"*.app; do
-          if [ -L "$app" ]; then  # Check if it's a symlink
-            real_app=$(readlink "$app")
-            if [ -n "$real_app" ] && [ -d "$real_app" ]; then
-              ${createLauncherScript} "$real_app"
-            fi
-          fi
-        done
-      fi
-    done
-  '';
+  # System-wide environment variables
+  environment = {
+    pathsToLink = [ "/Applications" ];  # links Home 
+  };
 } 
