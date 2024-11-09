@@ -1,9 +1,7 @@
 { config, lib, pkgs, devUser, ... }: {
   imports = [
-    ../../common/development.nix
-    ../../common/git.nix
-    ../../common/shell.nix
-    ../../common/packages.nix
+    ./shell.nix
+    ./darwin.nix
   ];
 
   home = {

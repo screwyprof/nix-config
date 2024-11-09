@@ -3,7 +3,9 @@
   system.stateVersion = 5;
 
   imports = [
-    ../common/default.nix  # Import common system configuration
+    ../shared/default.nix  # Import shared system configuration
+    ./system              # System-wide settings
+    ./finder             # Finder configuration
   ];
 
   # Darwin-specific configurations
