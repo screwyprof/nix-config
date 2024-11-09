@@ -1,6 +1,12 @@
 { pkgs, ... }: {
-  home.packages = with pkgs; [    
+  fonts.fontconfig.enable = true;  # Enable font management
+
+  home.packages = with pkgs; [
+    # user fonts
+    (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
+
     # User-level tools
-    k9s  # K8s TUI
+    mysides
+    k9s
   ];
 } 

@@ -42,13 +42,6 @@
   # Create /etc/zshrc that loads the nix-darwin environment
   programs.zsh.enable = true;
 
-  # Fonts
-  fonts = {
-    packages = with pkgs; [
-      (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
-    ];
-  };
-
   # Add the activation script for proper macOS application symlinks
   system.activationScripts.applications.text = let
     env = pkgs.buildEnv {
@@ -109,8 +102,4 @@ EOF
       fi
     done
   '';
-
-  environment.systemPackages = with pkgs; [
-    ripgrep
-  ];
 } 

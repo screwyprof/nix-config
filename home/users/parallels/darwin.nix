@@ -92,11 +92,40 @@
       # ===== Restart UI =====
       $DRY_RUN_CMD /usr/bin/killall Finder
       $DRY_RUN_CMD /usr/bin/killall Dock
+      
+      # Terminal.app Settings
+      echo "Configuring Terminal.app..."
+      $DRY_RUN_CMD /usr/bin/defaults write com.apple.Terminal "Default Window Settings" -string "Basic"
+      $DRY_RUN_CMD /usr/bin/defaults write com.apple.Terminal "Startup Window Settings" -string "Basic"
+
+      # # Set Terminal.app font using AppleScript
+      # $DRY_RUN_CMD /usr/bin/osascript -e '
+      #   tell application "Terminal"
+      #     set current settings of tabs of windows to settings set "Basic"
+      #     set font name of settings set "Basic" to "JetBrainsMono NF"
+      #     set font size of settings set "Basic" to 18
+      #     set font antialiasing of settings set "Basic" to true
+      #   end tell
+      # '
+
+      # Kill Terminal.app to apply changes
+      $DRY_RUN_CMD /usr/bin/killall Terminal || true
+    '';
+
+    terminalSettings = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      echo "Setting up Terminal.app profile..."
+      
+      # Import the profile
+      $DRY_RUN_CMD /usr/bin/plutil -replace "Window Settings.Happy Gopher" \
+        -xml "$(cat ${../../common/terminal/HappyGopher.plist.xml})" \
+        ~/Library/Preferences/com.apple.Terminal.plist
+        
+      # Set as default
+      $DRY_RUN_CMD /usr/bin/defaults write com.apple.Terminal "Default Window Settings" -string "Happy Gopher"
+      $DRY_RUN_CMD /usr/bin/defaults write com.apple.Terminal "Startup Window Settings" -string "Happy Gopher"
     '';
   };
 
-  # Required packages
-  home.packages = with pkgs; [
-    mysides
-  ];
+  # This will create the fonts in ~/.local/share/fonts
+  xdg.dataHome = "${config.home.homeDirectory}/.local/share";
 }

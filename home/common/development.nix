@@ -24,11 +24,11 @@
       golang.go
     ];
     userSettings = {
-      "editor.fontFamily" = "'JetBrainsMono Nerd Font', 'FiraCode Nerd Font', monospace";
+      "editor.fontFamily" = "'JetBrainsMono', 'FiraCode Nerd Font', monospace";
       "editor.fontLigatures" = true;
       "terminal.integrated.fontFamily" = "'JetBrainsMono Nerd Font'";
-      "editor.fontSize" = 14;
-      "terminal.integrated.fontSize" = 14;
+      "editor.fontSize" = 18;
+      "terminal.integrated.fontSize" = 18;
       "update.mode" = "none";
       "extensions.autoUpdate" = false;
     };
