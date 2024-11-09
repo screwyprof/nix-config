@@ -3,7 +3,6 @@
   system.stateVersion = 5;
 
   imports = [
-    ../shared/default.nix 
     ./spotlight.nix 
   ];
 

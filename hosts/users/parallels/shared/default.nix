@@ -1,8 +1,11 @@
 { config, lib, pkgs, ... }: {
   imports = [
+    ./path.nix 
     ./git.nix
+    ./gnu-utils.nix
+    ./fonts.nix 
     ./shell
-    ./packages.nix
     ./development.nix
+    ./node.nix
   ];
 } 

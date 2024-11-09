@@ -3,8 +3,5 @@
   home.packages = with pkgs; [
     # user fonts
     (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
-
-    # User-level tools
-    k9s
   ];
 } 

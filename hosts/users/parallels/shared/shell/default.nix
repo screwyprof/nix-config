@@ -1,4 +1,19 @@
 { config, lib, pkgs, ... }: {
+  home = {
+    sessionVariables = {
+      # Prefer GNU versions over BSD ones
+      PATH = lib.concatStringsSep ":" [
+        "${pkgs.coreutils}/bin"
+        "${pkgs.findutils}/bin"
+        "${pkgs.gnugrep}/bin"
+        "${pkgs.gnused}/bin"
+        "${pkgs.gnutar}/bin"
+        "${pkgs.gawk}/bin"
+        "$PATH"
+      ];
+    };
+  };
+
   programs = {
     zsh = {
       enable = true;
@@ -18,6 +33,18 @@
           "dotenv"
           "extract"
           "fzf"
+          "aws"
+          "cabal"
+          "gcloud"
+          "golang"
+          "grc"
+          "kubectl"
+          "npm"
+          "nvm"
+          "macos"
+          "rust"
+          "sudo"
+          "yarn"
         ] ++ lib.optionals pkgs.stdenv.isDarwin [
           "macos"
         ];
@@ -74,21 +101,25 @@
         setopt AUTO_CD
         setopt EXTENDED_GLOB
         
-        # # Use modern CLI tools
-        # alias cat='${pkgs.bat}/bin/bat'
-        # alias ls='${pkgs.eza}/bin/eza'
-        # alias ll='${pkgs.eza}/bin/eza -la'
-        # alias tree='${pkgs.eza}/bin/eza --tree'
-        # alias diff='${pkgs.delta}/bin/delta'
-        # alias du='${pkgs.du-dust}/bin/dust'
-        # alias df='${pkgs.duf}/bin/duf'
-        # alias top='${pkgs.htop}/bin/htop'
-        
         # fzf-tab configuration
         enable-fzf-tab
         # Set fzf-tab options here
         zstyle ':fzf-tab:*' fzf-command fzf
         zstyle ':fzf-tab:*' fzf-flags --height 40%
+        
+        # Docker helpers
+        docker-rm-containers() {
+          docker stop $(docker ps -aq)
+          docker rm $(docker ps -aq)
+        }
+
+        docker-rm-all() {
+          docker-rm-containers
+          docker network prune -f
+          docker rmi -f $(docker images --filter dangling=true -qa)
+          docker volume rm $(docker volume ls --filter dangling=true -q)
+          docker rmi -f $(docker images -qa)
+        }
       '';
 
       shellAliases = {
@@ -101,6 +132,32 @@
         du = "${pkgs.du-dust}/bin/dust";
         df = "${pkgs.duf}/bin/duf";
         top = "${pkgs.htop}/bin/htop";
+        
+        # GNU utils aliases
+        grep = "${pkgs.gnugrep}/bin/grep --color=auto";
+        sed = "${pkgs.gnused}/bin/sed";
+        awk = "${pkgs.gawk}/bin/awk";
+        tar = "${pkgs.gnutar}/bin/tar";
+        make = "${pkgs.gnumake}/bin/make";
+        
+        # Docker compose aliases
+        dcp = "docker-compose pull";
+        dcps = "docker-compose ps";
+        dcu = "docker-compose up -d";
+        dcd = "docker-compose down --remove-orphans --volumes";
+        dcr = "docker-compose restart";
+        dclf = "docker-compose logs -f";
+        dlf = "docker logs -f";
+        dcuf = "docker-compose up --build --force-recreate --no-deps -d";
+        dcs = "docker-compose stop";
+        drac = "docker container prune";
+        drav = "docker volume prune";
+        dra = "docker system prune --volumes";
+        
+        # Git aliases
+        fakecommit = "git commit --amend --no-edit && git push -f";
+        cherrymaster = "git cherry -v master | cut -d ' ' -f3-";
+        rmbranches = "git branch | grep -v 'master' | grep -v 'main' | xargs git branch -D";
       } // (if pkgs.stdenv.isDarwin then {
         nix-rebuild-mac = "darwin-rebuild switch --flake \".#mac\"";
       } else {});
@@ -122,6 +179,16 @@
 
   # Add required packages
   home.packages = with pkgs; [
+    # GNU Core Utilities
+    coreutils    # Basic file, shell and text manipulation utilities
+    findutils    # GNU find, locate, updatedb, and xargs
+    gnugrep     # GNU grep, egrep, and fgrep
+    gnused      # GNU sed
+    gnutar      # GNU tar
+    gawk        # GNU awk
+    gnutls      # GNU TLS library
+    gnumake     # GNU make
+    
     # Modern replacements for traditional tools
     bat         # Better cat
     eza         # Better ls
