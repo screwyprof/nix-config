@@ -94,10 +94,25 @@ EOF
     rm -rf "/Applications/Nix Apps"
     mkdir -p "/Applications/Nix Apps"
     
+    # Handle system-wide applications
     for pkg in ${toString config.environment.systemPackages}; do
       if [ -d "$pkg/Applications" ]; then
         for app in "$pkg/Applications/"*.app; do
           ${createLauncherScript} "$app"
+        done
+      fi
+    done
+
+    # Handle Home Manager applications for all users
+    for user in /Users/*; do
+      if [ -d "$user/Applications/Home Manager Apps" ]; then
+        for app in "$user/Applications/Home Manager Apps/"*.app; do
+          if [ -L "$app" ]; then  # Check if it's a symlink
+            real_app=$(readlink "$app")
+            if [ -n "$real_app" ] && [ -d "$real_app" ]; then
+              ${createLauncherScript} "$real_app"
+            fi
+          fi
         done
       fi
     done
