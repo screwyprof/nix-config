@@ -1,6 +1,7 @@
 { config, lib, pkgs, ... }: {
   home = {
     sessionVariables = {
+      POWERLEVEL9K_INSTANT_PROMPT = "quiet";
       # Prefer GNU versions over BSD ones
       PATH = lib.concatStringsSep ":" [
         "${pkgs.coreutils}/bin"
@@ -188,7 +189,7 @@
     gawk        # GNU awk
     gnutls      # GNU TLS library
     gnumake     # GNU make
-    
+
     # Modern replacements for traditional tools
     bat         # Better cat
     eza         # Better ls

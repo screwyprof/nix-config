@@ -7,5 +7,6 @@
     ./shell
     ./development.nix
     ./node.nix
+    ./vscode.nix
   ];
 } 
