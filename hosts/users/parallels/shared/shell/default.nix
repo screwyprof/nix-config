@@ -196,9 +196,7 @@
     gnumake # GNU make
 
     # Modern replacements for traditional tools
-    bat # Better cat
     eza # Better ls
-    delta # Better diff
     duf # Better df
     du-dust # Better du
     htop # Better top

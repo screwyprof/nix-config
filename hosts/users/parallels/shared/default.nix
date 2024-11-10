@@ -1,12 +1,12 @@
 { config, lib, pkgs, ... }: {
   imports = [
     ./path.nix
-    ./git.nix
-    ./vim.nix
+    ./fonts.nix
     ./bat.nix
     ./moar.nix
     ./gnu-utils.nix
-    ./fonts.nix
+    ./git.nix
+    ./vim.nix
     ./shell
     ./development.nix
     ./golang.nix
