@@ -22,6 +22,10 @@
       enableCompletion = true;
       syntaxHighlighting.enable = true;
 
+      initExtraFirst = ''
+        export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh
+      '';
+
       oh-my-zsh = {
         enable = true;
         plugins = [

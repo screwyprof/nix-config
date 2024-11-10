@@ -69,7 +69,7 @@
 
       # Editor settings
       "editor" = {
-        "fontFamily" = "'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+        "fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
         "fontLigatures" = true;
         "fontSize" = 20;
         "lineHeight" = 30;
@@ -77,7 +77,7 @@
 
       # Terminal settings
       "terminal.integrated" = {
-        "fontFamily" = "'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+        "fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
         "fontSize" = 20;
       };
 
@@ -92,8 +92,6 @@
 
       # Go settings
       "go" = {
-        "coverOnSave" = false;
-        "coverOnSingleTest" = true;
         "delveConfig" = {
           "debugAdapter" = "dlv-dap";
           "showGlobalVariables" = true;
@@ -102,6 +100,19 @@
         "testOnSave" = false;
         "toolsManagement.autoUpdate" = false;
         "useLanguageServer" = true;
+        "testFlags" = [
+          "-v"
+        ];
+        "coverOnSave" = false;
+        "coverOnSingleTest" = true;
+        "coverOnSingleTestFile" = true;
+        "coverageDecorator" = {
+          "type" = "highlight";
+          "coveredHighlightColor" = "rgba(64,128,128,0.2)";
+          "uncoveredHighlightColor" = "rgba(128,64,64,0.2)";
+          "coveredBorderColor" = "rgba(64,128,128,0.4)";
+          "uncoveredBorderColor" = "rgba(128,64,64,0.4)";
+        };
       };
 
       # Go debugger settings
@@ -113,7 +124,7 @@
       # Debug settings
       "debug" = {
         "console" = {
-          "fontFamily" = "'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+          "fontFamily" = "'MesloLGMDZ Nerd Font','JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
           "fontSize" = 20;
         };
       };
@@ -127,6 +138,18 @@
         };
         "suppressMissingSourceFiles" = true;
       };
+
+      # Remote SSH settings
+      "remote.SSH.configFile" = "~/.ssh/config";
+
+      # Window settings
+      "window" = {
+        "zoomLevel" = 1;
+        "openFilesInNewWindow" = "on";
+      };
+
+      # Editor settings
+      "editor.inlineSuggest.enabled" = true;
     };
   };
 } 
