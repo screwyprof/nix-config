@@ -25,6 +25,11 @@
       syntaxHighlighting.enable = true;
 
       initExtraFirst = ''
+        # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
+          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
+        fi
+
         export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh
       '';
 
@@ -92,11 +97,6 @@
       ];
 
       initExtra = ''
-        # Powerlevel10k instant prompt
-        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
-          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
-        fi
-
         # Terminal configuration
         export TERM=xterm-256color
 
@@ -131,7 +131,6 @@
 
       shellAliases = {
         # Modern CLI tool replacements
-        cat = "${pkgs.bat}/bin/bat";
         ls = "${pkgs.eza}/bin/eza";
         ll = "${pkgs.eza}/bin/eza -la";
         tree = "${pkgs.eza}/bin/eza --tree";

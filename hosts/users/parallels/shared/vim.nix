@@ -44,6 +44,7 @@
       dracula-vim
       vim-airline
       vim-airline-themes
+      fzf-vim
     ];
 
     extraConfig = ''
@@ -57,6 +58,35 @@
       " Airline configuration
       let g:airline_theme='luna'
       let g:airline_powerline_fonts = 1
+
+      " Use ripgrep for grep if available
+      if executable('rg')
+        set grepprg=${pkgs.ripgrep}/bin/rg\ --vimgrep\ --no-heading
+        set grepformat=%f:%l:%c:%m
+      endif
+
+      " FZF configuration
+      " Use fd for file finding
+      let $FZF_DEFAULT_COMMAND = '${pkgs.fd}/bin/fd --type f'
+      
+      " FZF key bindings
+      nnoremap <C-p> :Files<CR>
+      nnoremap <C-g> :Rg<CR>
+      
+      " Use bat for FZF preview
+      let g:fzf_preview_command = '${pkgs.bat}/bin/bat --style=numbers --color=always {}'
+      
+      " Delta for git diff
+      if executable('delta')
+        set diffexpr=DeltaDiff()
+        function! DeltaDiff()
+          let opt = ""
+          if &diffopt =~ "iwhite"
+            let opt = opt . "-w "
+          endif
+          silent execute "!${pkgs.delta}/bin/delta " . opt . v:fname_in . " " . v:fname_new . " > " . v:fname_out
+        endfunction
+      endif
     '';
   };
 

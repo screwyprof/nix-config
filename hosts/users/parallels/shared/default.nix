@@ -3,6 +3,7 @@
     ./path.nix
     ./git.nix
     ./vim.nix
+    ./bat.nix
     ./gnu-utils.nix
     ./fonts.nix
     ./shell
