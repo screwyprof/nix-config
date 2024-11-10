@@ -127,6 +127,21 @@
           docker volume rm $(docker volume ls --filter dangling=true -q)
           docker rmi -f $(docker images -qa)
         }
+
+        # Enable command correction
+        #setopt CORRECT
+        #setopt CORRECT_ALL
+        
+        # Configure correction prompt
+        #SPROMPT="Correct %R to %r? [Yes, No, Abort, Edit] "
+        
+        # Initialize thefuck
+        eval "$(thefuck --alias)"
+        # Optional: add shorter alias
+        eval "$(thefuck --alias f)"
+
+        # Enable FZF integration for cheat
+        export CHEAT_USE_FZF=true
       '';
 
       shellAliases = {
@@ -164,6 +179,9 @@
         fakecommit = "git commit --amend --no-edit && git push -f";
         cherrymaster = "git cherry -v master | cut -d ' ' -f3-";
         rmbranches = "git branch | grep -v 'master' | grep -v 'main' | xargs git branch -D";
+
+        # Man pages
+        tldr = "${pkgs.tealdeer}/bin/tldr";
       } // (if pkgs.stdenv.isDarwin then {
         nix-rebuild-mac = "nixpkgs-fmt . && nix flake check && darwin-rebuild switch --flake '.#mac'";
       } else { });
@@ -203,5 +221,28 @@
     ripgrep # Better grep
     fd # Better find
     fzf # Fuzzy finder
+    thefuck # Command correction
+    #cheat # Community cheat sheets
   ];
+
+  # Configure tealdeer (tldr)
+  programs.tealdeer = {
+    enable = true;
+    settings = {
+      updates = {
+        auto_update = true;
+      };
+      display = {
+        use_pager = false;
+        compact = false;
+      };
+      style = {
+        description = { foreground = "yellow"; };
+        command_name = { foreground = "cyan"; };
+        example_text = { foreground = "green"; };
+        example_code = { foreground = "blue"; };
+        example_variable = { foreground = "red"; };
+      };
+    };
+  };
 }

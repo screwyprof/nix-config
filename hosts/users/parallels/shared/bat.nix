@@ -18,14 +18,16 @@
     batdiff
     batgrep
     batman
-    batpipe
-    batwatch
+    #batpipe
+    #batwatch
     prettybat
   ];
 
   programs.zsh.shellAliases = {
     # Basic bat alias
     cat = "${pkgs.bat}/bin/bat";
+    man = "${pkgs.bat-extras.batman}/bin/batman";
+    rg = "${pkgs.bat-extras.batgrep}/bin/batgrep";
 
     # Bat-extras aliases
     batdiff = "${pkgs.bat-extras.batdiff}/bin/batdiff";

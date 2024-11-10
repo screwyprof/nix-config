@@ -8,6 +8,7 @@
     ./git.nix
     ./vim.nix
     ./shell
+    ./cheat.nix
     ./development.nix
     ./golang.nix
     ./node.nix
