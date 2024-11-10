@@ -1,38 +1,22 @@
 { config, lib, pkgs, ... }: {
+  programs.go = {
+    enable = true;
+    package = pkgs.go_1_23;
+    goPath = "go"; # This creates ~/go
+    goBin = "go/bin"; # This creates ~/go/bin
+  };
+
+  # Additional Go tools can be installed via home.packages
   home.packages = with pkgs; [
-    # Go itself
-    go_1_23
-
-    # Go tools
-    gopls           # Language server
-    golangci-lint   # Linter
-    delve           # Debugger
-    go-tools        # Additional tools like godoc, goimports, etc.
+    gopls
+    delve
+    go-tools
+    golangci-lint
   ];
 
-  # Go environment setup
-  home.sessionVariables = {
-    GOPATH = "$HOME/go";
-    GOBIN = "$GOPATH/bin";
+  programs.zsh.shellAliases = {
+    gob = "go build";
+    gor = "go run";
+    got = "go test ./... -v";
   };
-
-  home.sessionPath = [
-    "$GOBIN"
-  ];
-
-  programs.zsh = {
-   shellAliases = {
-      gob = "go build";
-      gor = "go run";
-      got = "go test ./... -v";
-    };
-  };
-
-  # Create necessary Go directories
-  home.activation = {
-    createGoPaths = lib.hm.dag.entryAfter ["writeBoundary"] ''
-      $DRY_RUN_CMD mkdir -p $VERBOSE_ARG \
-        ${config.home.homeDirectory}/go/{bin,pkg,src}
-    '';
-  };
-} 
+}

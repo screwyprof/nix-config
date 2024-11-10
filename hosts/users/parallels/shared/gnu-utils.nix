@@ -18,4 +18,4 @@
     gnutls
     gnumake
   ];
-} 
+}

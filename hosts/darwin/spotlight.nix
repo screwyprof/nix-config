@@ -1,7 +1,7 @@
 { pkgs, config, lib, ... }:
 let
   createLauncherScript = pkgs.writeShellScript "create-launcher" ''
-    set -e  # Exit on error
+    set -e
     
     source_app="$1"
     target_dir="$2"
@@ -9,7 +9,10 @@ let
     target="$target_dir/$app_name.app"
     temp_app="/tmp/$app_name.app"
     
-    # Create temporary applescript
+    echo "Creating launcher for $app_name" >&2
+    echo "Source: $source_app" >&2
+    echo "Target: $target" >&2
+    
     cat > launcher.applescript << EOF
     try
         tell application "Finder"
@@ -18,16 +21,12 @@ let
     on error errMsg
         display dialog "Error launching $app_name: " & errMsg buttons {"OK"} with icon stop
     end try
-EOF
+    EOF
     
-    # Compile to temporary location
     osacompile -o "$temp_app" launcher.applescript
-    
-    # Move to final location
     rm -rf "$target"
     mv "$temp_app" "$target"
     
-    # Copy the icon
     icon_source="$source_app/Contents/Resources/"
     icon_dest="$target/Contents/Resources/applet.icns"
     if [ -d "$icon_source" ]; then
@@ -39,45 +38,42 @@ EOF
     
     rm launcher.applescript
   '';
-in {
-  system.activationScripts.applications.text = pkgs.lib.mkForce ''
-    # Constants
-    SYSTEM_APPS_DIR="/Applications/Nix Apps"
-    
-    echo "setting up system-wide application launchers..." >&2
-    rm -rf "$SYSTEM_APPS_DIR"
-    mkdir -p "$SYSTEM_APPS_DIR"
-    
-    # Handle system-wide applications
-    for pkg in ${toString config.environment.systemPackages}; do
-      if [ -d "$pkg/Applications" ]; then
-        for app in "$pkg/Applications/"*.app; do
-          ${createLauncherScript} "$app" "$SYSTEM_APPS_DIR"
-        done
-      fi
-    done
 
-    # Handle Home Manager applications for all users
-    for user in /Users/*; do
-      username=$(basename "$user")
-      user_apps_dir="$user/Applications"
-      hm_apps_dir="$user_apps_dir/Home Manager Apps"
-      nix_apps_dir="$user_apps_dir/Nix Apps"
+  # Get list of home-manager users
+  hmUsers = builtins.attrNames config.home-manager.users;
+
+  # Create script for each user
+  userScripts = map
+    (username: ''
+      echo "Processing user: ${username}" >&2
+      user_home="/Users/${username}"
+      hm_apps_dir="$user_home/Applications/Home Manager Apps"
+      nix_apps_dir="$user_home/Applications/Nix Apps"
+
+      echo "Home Manager Apps Dir: $hm_apps_dir" >&2
+      echo "Nix Apps Dir: $nix_apps_dir" >&2
 
       if [ -d "$hm_apps_dir" ]; then
-        echo "setting up user application launchers for $username..." >&2
+        echo "Setting up application launchers..." >&2
         rm -rf "$nix_apps_dir"
         mkdir -p "$nix_apps_dir"
-
+  
         for app in "$hm_apps_dir/"*.app; do
-          if [ -L "$app" ]; then  # Check if it's a symlink
+          if [ -L "$app" ]; then
             real_app=$(readlink "$app")
             if [ -n "$real_app" ] && [ -d "$real_app" ]; then
               ${createLauncherScript} "$real_app" "$nix_apps_dir"
             fi
           fi
         done
+        chown -R "${username}:staff" "$nix_apps_dir"
       fi
-    done
+    '')
+    hmUsers;
+in
+{
+  system.activationScripts.applications.text = pkgs.lib.mkForce ''
+    echo "Starting application setup..." >&2
+    ${builtins.concatStringsSep "\n" userScripts}
   '';
-} 
+}

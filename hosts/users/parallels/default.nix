@@ -1,8 +1,8 @@
 { config, lib, pkgs, devUser, isDarwin, ... }: {
   imports = [
-    ./shared          # Shared user configurations 
+    ./shared # Shared user configurations 
   ] ++ lib.optionals isDarwin [
-    ./darwin          # Darwin-specific configs
+    ./darwin # Darwin-specific configs
   ];
 
   home = {
@@ -11,4 +11,4 @@
   };
 
   programs.home-manager.enable = true;
-} 
+}

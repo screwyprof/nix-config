@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }: {
   home.activation = {
-    userPreferences = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    userPreferences = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       echo "Configuring macOS preferences..."
       
       # ===== Keyboard Settings =====

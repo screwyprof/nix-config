@@ -137,14 +137,14 @@
         du = "${pkgs.du-dust}/bin/dust";
         df = "${pkgs.duf}/bin/duf";
         top = "${pkgs.htop}/bin/htop";
-        
+
         # GNU utils aliases
         grep = "${pkgs.gnugrep}/bin/grep --color=auto";
         sed = "${pkgs.gnused}/bin/sed";
         awk = "${pkgs.gawk}/bin/awk";
         tar = "${pkgs.gnutar}/bin/tar";
         make = "${pkgs.gnumake}/bin/make";
-        
+
         # Docker compose aliases
         dcp = "docker-compose pull";
         dcps = "docker-compose ps";
@@ -158,14 +158,14 @@
         drac = "docker container prune";
         drav = "docker volume prune";
         dra = "docker system prune --volumes";
-        
+
         # Git aliases
         fakecommit = "git commit --amend --no-edit && git push -f";
         cherrymaster = "git cherry -v master | cut -d ' ' -f3-";
         rmbranches = "git branch | grep -v 'master' | grep -v 'main' | xargs git branch -D";
       } // (if pkgs.stdenv.isDarwin then {
-        nix-rebuild-mac = "darwin-rebuild switch --flake \".#mac\"";
-      } else {});
+        nix-rebuild-mac = "nixpkgs-fmt . && nix flake check && darwin-rebuild switch --flake '.#mac'";
+      } else { });
     };
 
     # fzf configuration
@@ -185,24 +185,24 @@
   # Add required packages
   home.packages = with pkgs; [
     # GNU Core Utilities
-    coreutils    # Basic file, shell and text manipulation utilities
-    findutils    # GNU find, locate, updatedb, and xargs
-    gnugrep     # GNU grep, egrep, and fgrep
-    gnused      # GNU sed
-    gnutar      # GNU tar
-    gawk        # GNU awk
-    gnutls      # GNU TLS library
-    gnumake     # GNU make
+    coreutils # Basic file, shell and text manipulation utilities
+    findutils # GNU find, locate, updatedb, and xargs
+    gnugrep # GNU grep, egrep, and fgrep
+    gnused # GNU sed
+    gnutar # GNU tar
+    gawk # GNU awk
+    gnutls # GNU TLS library
+    gnumake # GNU make
 
     # Modern replacements for traditional tools
-    bat         # Better cat
-    eza         # Better ls
-    delta       # Better diff
-    duf         # Better df
-    du-dust     # Better du
-    htop        # Better top
-    ripgrep     # Better grep
-    fd          # Better find
-    fzf         # Fuzzy finder
+    bat # Better cat
+    eza # Better ls
+    delta # Better diff
+    duf # Better df
+    du-dust # Better du
+    htop # Better top
+    ripgrep # Better grep
+    fd # Better find
+    fzf # Fuzzy finder
   ];
-} 
+}

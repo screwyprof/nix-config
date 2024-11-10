@@ -13,7 +13,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, ... }@inputs: 
+  outputs = { self, nixpkgs, darwin, home-manager, ... }@inputs:
     let
       # Define your development identity
       devUser = {
@@ -31,7 +31,8 @@
         overlays = [
           (final: prev: {
             mysides = final.callPackage ./pkgs/mysides {
-              stdenv = if final.stdenv.isDarwin
+              stdenv =
+                if final.stdenv.isDarwin
                 then final.darwin.apple_sdk.stdenv
                 else final.stdenv;
             };
@@ -41,12 +42,14 @@
       };
 
       system = "aarch64-darwin";
+      pkgs = nixpkgs.legacyPackages.${system};
       isDarwin = builtins.match ".*-darwin" system != null;
-    in {
+    in
+    {
       darwinConfigurations = {
         mac = darwin.lib.darwinSystem {
           inherit system;
-          specialArgs = { 
+          specialArgs = {
             inherit inputs devUser isDarwin;
             pkgs = nixpkgsForSystem system;
           };
@@ -57,7 +60,7 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                extraSpecialArgs = { 
+                extraSpecialArgs = {
                   inherit inputs devUser isDarwin;
                 };
                 backupFileExtension = "bak";
@@ -73,27 +76,46 @@
       };
 
       # Add development shells
-      devShells = forAllSystems (system: let 
-        pkgs = nixpkgsForSystem system;
-      in {
-        default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            mysides
-            darwin.apple_sdk.frameworks.CoreServices
-            darwin.apple_sdk.frameworks.Foundation
-          ];
-          
-          shellHook = ''
-            echo "Development shell for macOS tools"
-            echo "Available commands:"
-            echo "  mysides - Manage Finder sidebar"
-          '';
-        };
-      });
+      devShells = forAllSystems (system:
+        let
+          pkgs = nixpkgsForSystem system;
+        in
+        {
+          default = pkgs.mkShell {
+            buildInputs = with pkgs; [
+              mysides
+              pkgs.darwin.apple_sdk.frameworks.CoreServices
+              pkgs.darwin.apple_sdk.frameworks.Foundation
+            ];
+
+            shellHook = ''
+              echo "Development shell for macOS tools"
+              echo "Available commands:"
+              echo "  mysides - Manage Finder sidebar"
+            '';
+          };
+        });
 
       # Add packages output
       packages = forAllSystems (system: {
-        mysides = (nixpkgsForSystem system).mysides;
+        inherit (nixpkgsForSystem system) mysides;
       });
+
+      checks.${system} = {
+        formatting = pkgs.runCommand "check-formatting"
+          {
+            buildInputs = with pkgs; [
+              nixpkgs-fmt
+              statix
+              deadnix
+            ];
+          } ''
+          cd ${self}
+          nixpkgs-fmt --check .
+          statix check .
+          deadnix .
+          touch $out
+        '';
+      };
     };
 } 

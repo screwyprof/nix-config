@@ -3,12 +3,12 @@
   home.packages = with pkgs; [
     fontconfig
     # user fonts
-    (nerdfonts.override { 
-      fonts = [ 
-        "FiraCode" 
+    (nerdfonts.override {
+      fonts = [
+        "FiraCode"
         "JetBrainsMono"
-        "Meslo" 
-      ]; 
+        "Meslo"
+      ];
     })
   ];
-} 
+}

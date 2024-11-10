@@ -53,6 +53,6 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/mosen/mysides";
     license = licenses.mit;
     platforms = [ "aarch64-darwin" ];
-    maintainers = [];
+    maintainers = [ ];
   };
-} 
+}

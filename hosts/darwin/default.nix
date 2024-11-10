@@ -3,7 +3,7 @@
   system.stateVersion = 5;
 
   imports = [
-    ./spotlight.nix 
+    ./spotlight.nix
   ];
 
   # Darwin-specific configurations
@@ -39,6 +39,6 @@
 
   # System-wide environment variables
   environment = {
-    pathsToLink = [ "/Applications" ];  # links Home 
+    pathsToLink = [ "/Applications" ]; # links Home 
   };
-} 
+}

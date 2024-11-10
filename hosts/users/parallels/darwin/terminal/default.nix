@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }: {
   home.activation = {
-    terminalSettings = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    terminalSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       echo "Setting up Terminal.app profile..."
       
       # Import the profile

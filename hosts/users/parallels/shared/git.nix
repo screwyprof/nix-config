@@ -3,7 +3,7 @@
     enable = true;
     userName = devUser.fullName;
     userEmail = devUser.email;
-    
+
     extraConfig = {
       init.defaultBranch = "main";
       pull.rebase = true;
@@ -40,4 +40,4 @@
       editor = "vim";
     };
   };
-} 
+}

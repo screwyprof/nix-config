@@ -9,26 +9,26 @@
     # Nix vscode extensions
     extensions = with pkgs.vscode-extensions; [
       # Theme and UI
-      emroussel.atomize-atom-one-dark-theme  # Color theme
-      pkief.material-icon-theme              # File icons
-      usernamehw.errorlens                   # Inline error display
+      emroussel.atomize-atom-one-dark-theme # Color theme
+      pkief.material-icon-theme # File icons
+      usernamehw.errorlens # Inline error display
 
       # Language Support
-      bbenoist.nix                           # Nix language
-      golang.go                              # Go language
+      bbenoist.nix # Nix language
+      golang.go # Go language
       #rust-lang.rust-analyzer               # Rust language (commented out)
-      tamasfe.even-better-toml               # TOML support
+      tamasfe.even-better-toml # TOML support
 
       # Development Tools
-      eamodio.gitlens                       # Git integration
-      ms-azuretools.vscode-docker           # Docker support
-      formulahendry.auto-close-tag          # HTML/XML tag closing
-      ms-vscode.makefile-tools              # Makefile support
+      eamodio.gitlens # Git integration
+      ms-azuretools.vscode-docker # Docker support
+      formulahendry.auto-close-tag # HTML/XML tag closing
+      ms-vscode.makefile-tools # Makefile support
 
       # Testing and Debugging
       #vadimcn.vscode-lldb                  # LLDB debugger (cause warnings in settings.json)
-      ms-vscode.test-adapter-converter      # Test adapter support
-      hbenl.vscode-test-explorer            # Test explorer UI
+      ms-vscode.test-adapter-converter # Test adapter support
+      hbenl.vscode-test-explorer # Test explorer UI
     ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
       # Additional Tools
       {
