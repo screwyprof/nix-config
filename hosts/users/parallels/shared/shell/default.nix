@@ -149,7 +149,6 @@
         ls = "${pkgs.eza}/bin/eza";
         ll = "${pkgs.eza}/bin/eza -la";
         tree = "${pkgs.eza}/bin/eza --tree";
-        diff = "${pkgs.delta}/bin/delta";
         du = "${pkgs.du-dust}/bin/dust";
         df = "${pkgs.duf}/bin/duf";
         top = "${pkgs.htop}/bin/htop";
@@ -179,9 +178,6 @@
         fakecommit = "git commit --amend --no-edit && git push -f";
         cherrymaster = "git cherry -v master | cut -d ' ' -f3-";
         rmbranches = "git branch | grep -v 'master' | grep -v 'main' | xargs git branch -D";
-
-        # Man pages
-        tldr = "${pkgs.tealdeer}/bin/tldr";
       } // (if pkgs.stdenv.isDarwin then {
         nix-rebuild-mac = "nixpkgs-fmt . && nix flake check && darwin-rebuild switch --flake '.#mac'";
       } else { });
@@ -222,27 +218,5 @@
     fd # Better find
     fzf # Fuzzy finder
     thefuck # Command correction
-    #cheat # Community cheat sheets
   ];
-
-  # Configure tealdeer (tldr)
-  programs.tealdeer = {
-    enable = true;
-    settings = {
-      updates = {
-        auto_update = true;
-      };
-      display = {
-        use_pager = false;
-        compact = false;
-      };
-      style = {
-        description = { foreground = "yellow"; };
-        command_name = { foreground = "cyan"; };
-        example_text = { foreground = "green"; };
-        example_code = { foreground = "blue"; };
-        example_variable = { foreground = "red"; };
-      };
-    };
-  };
 }

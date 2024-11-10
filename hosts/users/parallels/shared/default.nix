@@ -9,6 +9,7 @@
     ./vim.nix
     ./shell
     ./cheat.nix
+    ./tldr.nix
     ./development.nix
     ./golang.nix
     ./node.nix
