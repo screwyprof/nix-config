@@ -1,4 +1,8 @@
 { config, pkgs, lib, ... }: {
+  home.sessionVariables = {
+    VISUAL = "code";
+  };
+
   programs.vscode = {
     enable = true;
     package = pkgs.vscode;

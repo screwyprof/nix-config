@@ -2,6 +2,7 @@
   imports = [
     ./path.nix
     ./git.nix
+    ./vim.nix
     ./gnu-utils.nix
     ./fonts.nix
     ./shell

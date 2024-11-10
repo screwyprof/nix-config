@@ -2,6 +2,8 @@
   home = {
     sessionVariables = {
       POWERLEVEL9K_INSTANT_PROMPT = "quiet";
+      TERM = "xterm-256color";
+
       # Prefer GNU versions over BSD ones
       PATH = lib.concatStringsSep ":" [
         "${pkgs.coreutils}/bin"

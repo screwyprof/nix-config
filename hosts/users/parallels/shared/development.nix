@@ -14,11 +14,7 @@
     ];
 
     sessionVariables = {
-      EDITOR = "vim";
-      VISUAL = "code";
-      TERM = "xterm-256color";
       K9S_EDITOR = "vim";
-      CDPATH = "$CDPATH:$GOPATH/src";
       CARGO_NET_GIT_FETCH_WITH_CLI = "true";
 
       # libpq
