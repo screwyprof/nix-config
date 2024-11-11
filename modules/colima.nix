@@ -14,10 +14,9 @@
     disk: 100
     
     # VM configuration
-    vm:
-      type: "vz"
-      arch: "aarch64"
-      
+    vmType: "vz"
+    arch: "aarch64"
+    
     # Docker configuration
     docker:
       enabled: true
@@ -35,8 +34,8 @@
       cstop = "colima stop";
       cstatus = "colima status";
       cdelete = "colima delete";
-      clog = "tail -f ~/.colima/colima.log";
-      clogerr = "tail -f ~/.colima/colima.error.log";
+      clog = "bat -f ~/.colima/colima.log --style=plain";
+      clogerr = "bat -f ~/.colima/colima.error.log --style=plain";
     };
 
     initExtra = ''

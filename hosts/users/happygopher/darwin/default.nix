@@ -30,11 +30,9 @@
           echo "Date: $(date)" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "PATH: $PATH" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "Config file:" >> ${config.home.homeDirectory}/.colima/colima.log
-          cat ${config.home.homeDirectory}/.colima/default/colima.yaml >> ${config.home.homeDirectory}/.colima/colima.log
+          cat ${config.home.homeDirectory}/.config/colima/default.yaml >> ${config.home.homeDirectory}/.colima/colima.log
           echo "==================" >> ${config.home.homeDirectory}/.colima/colima.log
-          ${pkgs.colima}/bin/colima start 
-          --verbose
-          --config "${config.home.homeDirectory}/.colima/default/colima.yaml"
+          ${pkgs.colima}/bin/colima start --verbose
         ''
       ];
       RunAtLoad = true;
