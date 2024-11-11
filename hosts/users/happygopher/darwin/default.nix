@@ -42,10 +42,11 @@
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
         PATH = lib.makeBinPath [
-          pkgs.docker
+          "/usr"
           pkgs.coreutils
           pkgs.which
-          "/usr/bin"
+          pkgs.docker
+          pkgs.colima 
         ];
       };
       KeepAlive = {
