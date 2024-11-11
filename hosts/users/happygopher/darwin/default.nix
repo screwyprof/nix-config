@@ -31,6 +31,7 @@
           echo "PATH: $PATH" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "Docker location: $(which docker 2>&1)" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "Colima location: $(which colima 2>&1)" >> ${config.home.homeDirectory}/.colima/colima.log
+          echo "sw_vers location: $(which sw_vers 2>&1)" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "==================" >> ${config.home.homeDirectory}/.colima/colima.log
           
           exec ${pkgs.colima}/bin/colima start
@@ -42,7 +43,10 @@
       StandardErrorPath = "${config.home.homeDirectory}/.colima/colima.error.log";
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
-        PATH = "${lib.makeBinPath [ pkgs.docker ]}:${config.environment.systemPath}";
+        PATH = lib.makeBinPath [ 
+          pkgs.docker
+          "/usr/bin"
+        ];
       };
     };
   };
