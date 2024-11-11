@@ -8,7 +8,7 @@
       # Set moar as the default pager with all options
       export PAGER="${pkgs.moar}/bin/moar"
       export MOAR="\
-        --style=powerline \
+        --style=dracula \
         --wrap \
         --statusbar=bold \
         --colors=16m \
