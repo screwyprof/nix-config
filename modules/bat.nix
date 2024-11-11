@@ -23,17 +23,16 @@
   ];
 
   programs.zsh.shellAliases = {
-    # Smart cat that:
-    # - Preserves colors when piping to pagers
-    # - Strips colors when piping to pbcopy
-    # - Shows colors in direct usage
-    cat = "bat --style=numbers,changes,header --color=auto --paging=never";
+    # Plain cat replacement (--pp is shorthand for --plain --paging=never)
+    cat = "bat --pp";
+    
+    # History with full features (paging and syntax highlighting)
+    history = "history 1 | awk '{$1=\"\"; print substr($0,2)}' | bat --style=numbers --color=always --language=bash";
     
     # Other aliases
     man = "${pkgs.bat-extras.batman}/bin/batman";
     diff = "${pkgs.bat-extras.batdiff}/bin/batdiff";
     rg = "${pkgs.ripgrep}/bin/rg --hidden --glob '!.git'";
-    history = "history | awk '{$1=\"\"; print substr($0,2)}' | bat --style=plain --language=bash";
 
     # Bat-extras aliases
     batdiff = "${pkgs.bat-extras.batdiff}/bin/batdiff";

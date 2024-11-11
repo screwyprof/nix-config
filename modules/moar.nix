@@ -6,7 +6,6 @@
   programs.zsh = {
     initExtra = ''
       # Set moar as the default pager with all options
-      export PAGER="${pkgs.moar}/bin/moar"
       export MOAR="\
         --style=dracula \
         --wrap \
