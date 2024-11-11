@@ -23,11 +23,11 @@
   ];
 
   programs.zsh.shellAliases = {
-    # Plain cat replacement (--pp is shorthand for --plain --paging=never)
-    cat = "bat --pp";
+    # Plain cat replacement (no styling, no paging)
+    cat = "bat --plain --paging=never";
     
     # History with full features (paging and syntax highlighting)
-    history = "history 1 | awk '{$1=\"\"; print substr($0,2)}' | bat --style=numbers --color=always --language=bash";
+    history = "history 0 | awk '{$1=\"\"; print substr($0,2)}' | bat --style=numbers --color=always --language=bash";
     
     # Other aliases
     man = "${pkgs.bat-extras.batman}/bin/batman";
