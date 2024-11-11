@@ -44,7 +44,7 @@
           pkgs.coreutils
           pkgs.which
           pkgs.docker
-          pkgs.colima 
+          pkgs.colima
         ];
       };
       KeepAlive = {
