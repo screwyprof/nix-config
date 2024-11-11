@@ -29,11 +29,12 @@
           echo "=== Debug Info ===" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "Date: $(date)" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "PATH: $PATH" >> ${config.home.homeDirectory}/.colima/colima.log
-          echo "Docker location: $(${pkgs.which}/bin/which docker)" >> ${config.home.homeDirectory}/.colima/colima.log
-          echo "Colima location: $(${pkgs.which}/bin/which colima)" >> ${config.home.homeDirectory}/.colima/colima.log
-          echo "sw_vers location: $(${pkgs.which}/bin/which sw_vers)" >> ${config.home.homeDirectory}/.colima/colima.log
+          echo "Config file:" >> ${config.home.homeDirectory}/.colima/colima.log
+          cat ${config.home.homeDirectory}/.colima/default/colima.yaml >> ${config.home.homeDirectory}/.colima/colima.log
           echo "==================" >> ${config.home.homeDirectory}/.colima/colima.log
-          ${pkgs.colima}/bin/colima start
+          ${pkgs.colima}/bin/colima start 
+          --verbose
+          --config "${config.home.homeDirectory}/.colima/default/colima.yaml"
         ''
       ];
       RunAtLoad = true;
