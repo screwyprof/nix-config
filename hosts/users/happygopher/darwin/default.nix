@@ -34,7 +34,7 @@
           echo "sw_vers location: $(which sw_vers 2>&1)" >> ${config.home.homeDirectory}/.colima/colima.log
           echo "==================" >> ${config.home.homeDirectory}/.colima/colima.log
           
-          exec ${pkgs.colima}/bin/colima start
+          ${pkgs.colima}/bin/colima start
         ''
       ];
       RunAtLoad = true;
@@ -44,6 +44,7 @@
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
         PATH = lib.makeBinPath [
+          pkgs.coreutils 
           pkgs.docker
           "/usr/bin"
         ];
