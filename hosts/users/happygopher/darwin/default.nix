@@ -32,7 +32,13 @@
           echo "Config file:" >> ${config.home.homeDirectory}/.colima/colima.log
           cat ${config.home.homeDirectory}/.config/colima/default.yaml >> ${config.home.homeDirectory}/.colima/colima.log
           echo "==================" >> ${config.home.homeDirectory}/.colima/colima.log
-          ${pkgs.colima}/bin/colima start --verbose
+
+          # Stop and delete if exists
+          ${pkgs.colima}/bin/colima stop || true
+    ${pkgs.colima}/bin/colima delete || true
+
+          # Start Colima
+          ${pkgs.colima}/bin/colima --verbose start
         ''
       ];
       RunAtLoad = true;

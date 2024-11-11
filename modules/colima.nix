@@ -4,8 +4,8 @@
     docker
   ];
 
-  # Colima config file
-  xdg.configFile."colima/default.yaml".text = ''
+  # User-specific Colima config
+  xdg.configFile."colima/colima.yaml".text = ''
     # CPU configuration
     cpu: 4
     # Memory configuration (in GiB)
