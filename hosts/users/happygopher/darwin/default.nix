@@ -26,16 +26,9 @@
         "/bin/sh"
         "-c"
         ''
-          echo "=== Debug Info ===" >> ${config.home.homeDirectory}/.colima/colima.log
-          echo "Date: $(date)" >> ${config.home.homeDirectory}/.colima/colima.log
-          echo "PATH: $PATH" >> ${config.home.homeDirectory}/.colima/colima.log
-          echo "Config file:" >> ${config.home.homeDirectory}/.colima/colima.log
-          cat ${config.home.homeDirectory}/.config/colima/default.yaml >> ${config.home.homeDirectory}/.colima/colima.log
-          echo "==================" >> ${config.home.homeDirectory}/.colima/colima.log
-
           # Stop and delete if exists
           ${pkgs.colima}/bin/colima stop || true
-    ${pkgs.colima}/bin/colima delete || true
+          ${pkgs.colima}/bin/colima delete -f|| true
 
           # Start Colima
           ${pkgs.colima}/bin/colima --verbose start

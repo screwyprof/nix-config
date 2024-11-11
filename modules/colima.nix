@@ -5,22 +5,44 @@
   ];
 
   # User-specific Colima config
-  xdg.configFile."colima/colima.yaml".text = ''
+  home.file.".colima/default/colima.yaml".text = ''
     # CPU configuration
     cpu: 4
-    # Memory configuration (in GiB)
-    memory: 8
-    # Disk configuration (in GiB)
+    memory: 16
     disk: 100
     
     # VM configuration
-    vmType: "vz"
-    arch: "aarch64"
+    vmType: vz
+    arch: aarch64
+    rosetta: true
+    mountType: virtiofs
+    mountInotify: true
+    
+    # Kubernetes configuration
+    kubernetes:
+      enabled: true
+      version: v1.31.2+k3s1
+      k3sArgs:
+        - --disable=traefik
     
     # Docker configuration
-    docker:
-      enabled: true
-      socket: "${config.home.homeDirectory}/.colima/default/docker.sock"
+    runtime: docker
+    autoActivate: false
+    
+    # Network configuration
+    network:
+      address: false
+      dns: []
+      dnsHosts: {}
+      hostAddresses: false
+    
+    # Advanced settings
+    forwardAgent: false
+    docker: {}
+    sshConfig: true
+    sshPort: 0
+    mounts: []
+    env: {}
   '';
 
   # Create required directories
