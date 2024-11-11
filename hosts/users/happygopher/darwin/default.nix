@@ -43,7 +43,7 @@
       StandardErrorPath = "${config.home.homeDirectory}/.colima/colima.error.log";
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
-        PATH = lib.makeBinPath [ 
+        PATH = lib.makeBinPath [
           pkgs.docker
           "/usr/bin"
         ];
