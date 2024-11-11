@@ -2,7 +2,6 @@
   programs.bat = {
     enable = true;
     config = {
-      pager = "moar";
       theme = "Dracula";
       style = "numbers,changes,header";
       map-syntax = [
@@ -19,18 +18,21 @@
     batdiff
     batgrep
     batman
-    #batpipe
-    #batwatch
     prettybat
   ];
 
   programs.zsh.shellAliases = {
-    # Basic bat alias
-    cat = "${pkgs.bat}/bin/bat --color=always --style=plain";
+    # Plain output, no pager, auto-detects pipes
+    cat = "bat --pp";
+    
+    # Rich output but still pipe-aware
+    batcat = "bat --style=numbers,changes,header --paging=auto"; 
+    
+    # Other aliases
     man = "${pkgs.bat-extras.batman}/bin/batman";
     diff = "${pkgs.bat-extras.batdiff}/bin/batdiff";
     rg = "${pkgs.ripgrep}/bin/rg --hidden --glob '!.git'";
-    history = "history | awk '{$1=\"\"; print substr($0,2)}' | bat --color=always --style=plain --language=bash";
+    history = "history | awk '{$1=\"\"; print substr($0,2)}' | bat --style=plain --language=bash";
 
     # Bat-extras aliases
     batdiff = "${pkgs.bat-extras.batdiff}/bin/batdiff";
