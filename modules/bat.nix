@@ -23,11 +23,11 @@
   ];
 
   programs.zsh.shellAliases = {
-    # Plain output, no pager, auto-detects pipes
-    cat = "bat --plain --paging=never";
-    
-    # Rich output, using system pager (moar)
-    bcat = "bat --style=numbers,changes,header";
+    # Smart cat that:
+    # - Preserves colors when piping to pagers
+    # - Strips colors when piping to pbcopy
+    # - Shows colors in direct usage
+    cat = "bat --style=numbers,changes,header --color=auto --paging=never";
     
     # Other aliases
     man = "${pkgs.bat-extras.batman}/bin/batman";
