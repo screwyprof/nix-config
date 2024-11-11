@@ -21,12 +21,10 @@
   launchd.agents.colima = {
     enable = true;
     config = {
-      Label = "com.github.colima";
+      Label = "com.github.colima.nix";
       ProgramArguments = [
         "${pkgs.colima}/bin/colima"
         "start"
-        "--runtime"
-        "docker"
       ];
       RunAtLoad = true;
       KeepAlive = false;
