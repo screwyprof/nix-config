@@ -13,7 +13,8 @@
         --colors=16m \
         --quit-if-one-screen \
         --no-clear-on-exit \
-        --mousemode=scroll"
+        --mousemode=scroll \
+        --no-linenumbers"
     '';
 
     shellAliases = {
