@@ -44,38 +44,49 @@
       system = "aarch64-darwin";
       pkgs = nixpkgs.legacyPackages.${system};
       isDarwin = builtins.match ".*-darwin" system != null;
+
+      # Common darwin configuration
+      mkDarwinConfig = { username }: darwin.lib.darwinSystem {
+        inherit system;
+        specialArgs = {
+          inherit inputs devUser isDarwin;
+          pkgs = nixpkgsForSystem system;
+        };
+        modules = [
+          ./hosts/darwin
+          home-manager.darwinModules.home-manager
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = {
+                inherit inputs devUser isDarwin;
+              };
+              backupFileExtension = "bak";
+              users.${username} = { pkgs, ... }: {
+                imports = [
+                  ./hosts/users/${username}/default.nix
+                ];
+              };
+            };
+          }
+        ];
+      };
     in
     {
       darwinConfigurations = {
-        mac = darwin.lib.darwinSystem {
-          inherit system;
-          specialArgs = {
-            inherit inputs devUser isDarwin;
-            pkgs = nixpkgsForSystem system;
-          };
-          modules = [
-            ./hosts/darwin
-            home-manager.darwinModules.home-manager
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = {
-                  inherit inputs devUser isDarwin;
-                };
-                backupFileExtension = "bak";
-                users.parallels = { pkgs, ... }: {
-                  imports = [
-                    ./hosts/users/parallels/default.nix
-                  ];
-                };
-              };
-            }
-          ];
+        # Configuration for Parallels VM
+        parallels = mkDarwinConfig {
+          username = "parallels";
+        };
+
+        # Configuration for host MacBook
+        macbook = mkDarwinConfig {
+          username = "happygopher";
         };
       };
 
-      # Add development shells
+      # Rest of the configuration remains the same
       devShells = forAllSystems (system:
         let
           pkgs = nixpkgsForSystem system;
@@ -96,7 +107,6 @@
           };
         });
 
-      # Add packages output
       packages = forAllSystems (system: {
         inherit (nixpkgsForSystem system) mysides;
       });

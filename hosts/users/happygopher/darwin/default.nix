@@ -6,8 +6,8 @@
 
   # Group all home settings together
   home = {
-    username = lib.mkForce "parallels";
-    homeDirectory = lib.mkForce "/Users/parallels";
+    username = lib.mkForce "happygopher";
+    homeDirectory = lib.mkForce "/Users/happygopher";
 
     # Darwin-specific packages
     packages = with pkgs; [
