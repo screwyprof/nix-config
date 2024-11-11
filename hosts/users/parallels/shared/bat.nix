@@ -27,8 +27,8 @@
     # Basic bat alias
     cat = "${pkgs.bat}/bin/bat";
     man = "${pkgs.bat-extras.batman}/bin/batman";
-    rg = "${pkgs.bat-extras.batgrep}/bin/batgrep";
     diff = "${pkgs.bat-extras.batdiff}/bin/batdiff";
+    rg = "${pkgs.ripgrep}/bin/rg --hidden --glob '!.git'";
 
     # Bat-extras aliases
     batdiff = "${pkgs.bat-extras.batdiff}/bin/batdiff";
