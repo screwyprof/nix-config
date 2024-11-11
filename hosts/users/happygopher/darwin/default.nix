@@ -48,6 +48,11 @@
           "/usr/bin"
         ];
       };
+      KeepAlive = {
+        Crashed = true;
+        SuccessfulExit = false;
+      };
+      ThrottleInterval = 30;
     };
   };
 }
