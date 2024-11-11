@@ -1,54 +1,56 @@
 { config, lib, pkgs, ... }: {
-  home.packages = with pkgs; [
-    colima
-    docker
-  ];
+  home = {
+    packages = with pkgs; [
+      colima
+      docker
+    ];
 
-  # User-specific Colima config
-  home.file.".colima/default/colima.yaml".text = ''
-    # CPU configuration
-    cpu: 4
-    memory: 16
-    disk: 100
-    
-    # VM configuration
-    vmType: vz
-    arch: aarch64
-    rosetta: true
-    mountType: virtiofs
-    mountInotify: true
-    
-    # Kubernetes configuration
-    kubernetes:
-      enabled: true
-      version: v1.31.2+k3s1
-      k3sArgs:
-        - --disable=traefik
-    
-    # Docker configuration
-    runtime: docker
-    autoActivate: false
-    
-    # Network configuration
-    network:
-      address: false
-      dns: []
-      dnsHosts: {}
-      hostAddresses: false
-    
-    # Advanced settings
-    forwardAgent: false
-    docker: {}
-    sshConfig: true
-    sshPort: 0
-    mounts: []
-    env: {}
-  '';
+    # User-specific Colima config
+    file.".colima/default/colima.yaml".text = ''
+      # CPU configuration
+      cpu: 4
+      memory: 16
+      disk: 100
+      
+      # VM configuration
+      vmType: vz
+      arch: aarch64
+      rosetta: true
+      mountType: virtiofs
+      mountInotify: true
+      
+      # Kubernetes configuration
+      kubernetes:
+        enabled: true
+        version: v1.31.2+k3s1
+        k3sArgs:
+          - --disable=traefik
+      
+      # Docker configuration
+      runtime: docker
+      autoActivate: false
+      
+      # Network configuration
+      network:
+        address: false
+        dns: []
+        dnsHosts: {}
+        hostAddresses: false
+      
+      # Advanced settings
+      forwardAgent: false
+      docker: {}
+      sshConfig: true
+      sshPort: 0
+      mounts: []
+      env: {}
+    '';
 
-  # Create required directories
-  home.activation.createColimaDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    mkdir -p ${config.home.homeDirectory}/.colima
-  '';
+    # Create required directories
+    activation.createColimaDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      mkdir -p ${config.home.homeDirectory}/.colima
+    '';
+  };
 
   programs.zsh = {
     shellAliases = {
@@ -56,8 +58,8 @@
       cstop = "colima stop";
       cstatus = "colima status";
       cdelete = "colima delete";
-      clog = "bat -f ~/.colima/colima.log --style=plain";
-      clogerr = "bat -f ~/.colima/colima.error.log --style=plain";
+      clog = "bat -f ~/.colima/colima.log";
+      clogerr = "bat -f ~/.colima/colima.error.log";
     };
 
     initExtra = ''
