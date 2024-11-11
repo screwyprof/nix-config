@@ -27,7 +27,7 @@
     cat = "bat --plain --paging=never";
     
     # History with full features (paging and syntax highlighting)
-    history = "history 0 | awk '{$1=\"\"; print substr($0,2)}' | bat --style=numbers --color=always --language=bash";
+    history = "history 0 | awk '{$1=\"\"; print substr($0,2)}' | bat --style=header,changes --color=always --language=bash";
     
     # Other aliases
     man = "${pkgs.bat-extras.batman}/bin/batman";
