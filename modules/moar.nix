@@ -5,17 +5,16 @@
 
   programs.zsh = {
     initExtra = ''
-      # Set moar as the default pager
+      # Set moar as the default pager with all options
       export PAGER="${pkgs.moar}/bin/moar"
-      
-      # Configure moar options
       export MOAR="\
-        --style=dracula \
+        --style=powerline \
         --wrap \
         --statusbar=bold \
         --colors=16m \
         --quit-if-one-screen \
-        --mousemode=scroll"  # Fixed mousemode option
+        --no-clear-on-exit \
+        --mousemode=scroll"
     '';
 
     shellAliases = {

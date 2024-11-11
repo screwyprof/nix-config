@@ -4,6 +4,7 @@
     config = {
       theme = "Dracula";
       style = "numbers,changes,header";
+      pager = "moar";
       map-syntax = [
         "*.vim:VimL"
         ".vimrc:VimL"
@@ -23,10 +24,10 @@
 
   programs.zsh.shellAliases = {
     # Plain output, no pager, auto-detects pipes
-    cat = "bat --pp";
+    cat = "bat --plain --paging=never";
     
-    # Rich output but still pipe-aware
-    batcat = "bat --style=numbers,changes,header --paging=auto"; 
+    # Rich output, using system pager (moar)
+    bcat = "bat --style=numbers,changes,header";
     
     # Other aliases
     man = "${pkgs.bat-extras.batman}/bin/batman";
