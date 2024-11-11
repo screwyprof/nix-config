@@ -161,8 +161,6 @@
         du = "${pkgs.du-dust}/bin/dust";
         df = "${pkgs.duf}/bin/duf";
         top = "${pkgs.htop}/bin/htop";
-        history = "history | awk '{$1=\"\"; print substr($0,2)}' | bat --color=always --style=plain --language=bash";
-
         # GNU utils aliases
         grep = "${pkgs.gnugrep}/bin/grep --color=auto";
         sed = "${pkgs.gnused}/bin/sed";
@@ -220,6 +218,7 @@
     gnumake # GNU make
 
     # Modern replacements for traditional tools
+    procs # Modern process viewer (ps replacement)
     eza # Better ls
     duf # Better df
     du-dust # Better du

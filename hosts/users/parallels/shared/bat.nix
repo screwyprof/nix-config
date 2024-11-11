@@ -2,6 +2,7 @@
   programs.bat = {
     enable = true;
     config = {
+      pager = "moar";
       theme = "Dracula";
       style = "numbers,changes,header";
       map-syntax = [
@@ -25,10 +26,11 @@
 
   programs.zsh.shellAliases = {
     # Basic bat alias
-    cat = "${pkgs.bat}/bin/bat";
+    cat = "${pkgs.bat}/bin/bat --color=always --style=plain";
     man = "${pkgs.bat-extras.batman}/bin/batman";
     diff = "${pkgs.bat-extras.batdiff}/bin/batdiff";
     rg = "${pkgs.ripgrep}/bin/rg --hidden --glob '!.git'";
+    history = "history | awk '{$1=\"\"; print substr($0,2)}' | bat --color=always --style=plain --language=bash";
 
     # Bat-extras aliases
     batdiff = "${pkgs.bat-extras.batdiff}/bin/batdiff";

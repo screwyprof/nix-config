@@ -9,7 +9,10 @@
     ./vim.nix
     ./shell
     ./cheat.nix
+    ./neofetch.nix
     ./tldr.nix
+    ./docker.nix
+    ./colima.nix
     ./development.nix
     ./golang.nix
     ./node.nix
