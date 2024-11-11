@@ -1,9 +1,6 @@
 { pkgs, ... }: {
   programs.bat = {
     enable = true;
-    package = pkgs.bat.overrideAttrs (oldAttrs: {
-      pname = "batcat"; # link as batcat instead of bat to avoid conflicts
-    });
     config = {
       theme = "Dracula";
       style = "numbers,changes,header";
@@ -27,10 +24,10 @@
 
   programs.zsh.shellAliases = {
     # Plain cat replacement (no styling, no paging)
-    cat = "batcat --plain --paging=never";
+    cat = "bat --plain --paging=never";
 
     # Last 80 lines of history, newest first
-    history = "history 0 | tail -n 80 | tac | awk '{$1=\"\"; print substr($0,2)}' | batcat --file-name 'Shell History' --language=bash";
+    history = "history 0 | tail -n 80 | tac | awk '{$1=\"\"; print substr($0,2)}' | bat --file-name 'Shell History' --language=bash";
 
     # Other aliases
     man = "${pkgs.bat-extras.batman}/bin/batman";
