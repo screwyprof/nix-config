@@ -42,10 +42,6 @@
         "/bin/sh"
         "-c"
         ''
-          # Stop and delete if exists
-          ${pkgs.colima}/bin/colima stop || true
-          ${pkgs.colima}/bin/colima delete -f|| true
-
           # Start Colima
           ${pkgs.colima}/bin/colima --verbose start
         ''
