@@ -4,33 +4,42 @@
       colima
     ];
 
-    file.".colima/default/colima.yaml".text = ''
-      # CPU configuration
+    # Default profile for Docker
+    file.".colima/docker/colima.yaml".text = ''
       cpu: 4
       memory: 16
       disk: 100
       
-      # VM configuration
       vmType: vz
       arch: aarch64
       rosetta: true
       mountType: virtiofs
       mountInotify: true
       
-      # Kubernetes configuration
+      runtime: docker
+      autoActivate: true
+    '';
+
+    # K8s profile with Kubernetes enabled
+    file.".colima/k8s/colima.yaml".text = ''
+      cpu: 8
+      memory: 32
+      disk: 100
+      
+      vmType: vz
+      arch: aarch64
+      rosetta: true
+      mountType: virtiofs
+      mountInotify: true
+      
       kubernetes:
         enabled: true
         version: v1.31.2+k3s1
         k3sArgs:
           - --disable=traefik
       
-      # Docker configuration
       runtime: docker
-      autoActivate: false
-    '';
-
-    activation.createColimaDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      mkdir -p ${config.home.homeDirectory}/.colima
+      autoActivate: true
     '';
   };
 
@@ -42,8 +51,8 @@
         "/bin/sh"
         "-c"
         ''
-          # Start Colima
-          ${pkgs.colima}/bin/colima --verbose start
+          # Start Colima with default profile (Docker only)
+          ${pkgs.colima}/bin/colima --verbose -p k8s start
         ''
       ];
       RunAtLoad = true;
@@ -69,12 +78,20 @@
 
   programs.zsh = {
     shellAliases = {
+      # Default profile commands (Docker)
       cstart = "colima start";
       cstop = "colima stop";
       cstatus = "colima status";
       cdelete = "colima delete";
+      clist = "colima list";
       clog = "bat -f ~/.colima/colima.log";
       clogerr = "bat -f ~/.colima/colima.error.log";
+
+      # K8s profile commands
+      ckstart = "colima start -p k8s";
+      ckstop = "colima stop -p k8s";
+      ckstatus = "colima status -p k8s";
+      ckdelete = "colima delete -p k8s";
     };
 
     initExtra = ''
