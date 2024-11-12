@@ -41,13 +41,9 @@
     };
 
     aliases = {
-      st = "status";
-      ci = "commit";
-      co = "checkout";
-      br = "branch";
-      unstage = "reset HEAD --";
-      last = "log -1 HEAD";
-      visual = "!gitk";
+      fakecommit = "git commit --amend --no-edit && git push -f";
+      cherrymaster = "git cherry -v master | cut -d ' ' -f3-";
+      rmbranches = "git branch | grep -v 'master' | grep -v 'main' | xargs git branch -D";
     };
 
     ignores = [

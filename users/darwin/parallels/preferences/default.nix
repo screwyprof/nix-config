@@ -59,6 +59,9 @@
       # ===== Restart UI =====
       $DRY_RUN_CMD /usr/bin/killall Dock || true
       $DRY_RUN_CMD /usr/bin/killall Finder || true
+
+      # Following line should allow us to avoid a logout/login cycle
+      $DRY_RUN_CMD /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     '';
   };
 }

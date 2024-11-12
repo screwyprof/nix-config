@@ -1,6 +1,11 @@
 { config, lib, pkgs, ... }: {
+  imports = [
+    ./path.nix
+  ];
+
   home = {
     sessionVariables = {
+      NOSYSZSHRC = "1"; # Prevent loading of /etc/zshrc
       POWERLEVEL9K_INSTANT_PROMPT = "quiet";
       TERM = "xterm-256color";
 
@@ -20,23 +25,41 @@
   programs = {
     zsh = {
       enable = true;
+      enableCompletion = false; # will be handled by oh-my-zsh
       autosuggestion.enable = true;
-      enableCompletion = true;
       syntaxHighlighting.enable = true;
 
+      # And we can use the built-in history options
+      history = {
+        size = 50000;
+        save = 50000;
+        path = "$HOME/.zsh_history";
+        extended = true;
+        ignoreDups = true;
+        ignoreAllDups = true;
+        ignoreSpace = true;
+        expireDuplicatesFirst = true;
+        share = true;
+      };
+
       initExtraFirst = ''
+        # Disable oh-my-zsh's compfix
+        ZSH_DISABLE_COMPFIX=true
+
+        # Disable instant prompt warnings for Powerlevel10k
+        #POWERLEVEL9K_INSTANT_PROMPT="quiet"
+
         # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
         if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
           source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
         fi
-
-        export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh
       '';
 
       oh-my-zsh = {
         enable = true;
         plugins = [
           "git"
+          "fzf"
           "gitfast"
           "alias-finder"
           "command-not-found"
@@ -72,16 +95,6 @@
           name = "powerlevel10k-config";
           src = ./p10k;
           file = "p10k.zsh";
-        }
-        {
-          name = "zsh-autosuggestions";
-          src = pkgs.zsh-autosuggestions;
-          file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
-        }
-        {
-          name = "zsh-syntax-highlighting";
-          src = pkgs.zsh-syntax-highlighting;
-          file = "share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh";
         }
         {
           name = "fzf-tab";
@@ -122,20 +135,6 @@
         # Set fzf-tab options here
         zstyle ':fzf-tab:*' fzf-command fzf
         zstyle ':fzf-tab:*' fzf-flags --height 40%
-        
-        # Docker helpers
-        docker-rm-containers() {
-          docker stop $(docker ps -aq)
-          docker rm $(docker ps -aq)
-        }
-
-        docker-rm-all() {
-          docker-rm-containers
-          docker network prune -f
-          docker rmi -f $(docker images --filter dangling=true -qa)
-          docker volume rm $(docker volume ls --filter dangling=true -q)
-          docker rmi -f $(docker images -qa)
-        }
 
         # Enable command correction
         #setopt CORRECT
@@ -167,20 +166,6 @@
         awk = "${pkgs.gawk}/bin/awk";
         tar = "${pkgs.gnutar}/bin/tar";
         make = "${pkgs.gnumake}/bin/make";
-
-        # Docker compose aliases
-        dcp = "docker-compose pull";
-        dcps = "docker-compose ps";
-        dcu = "docker-compose up -d";
-        dcd = "docker-compose down --remove-orphans --volumes";
-        dcr = "docker-compose restart";
-        dclf = "docker-compose logs -f";
-        dlf = "docker logs -f";
-        dcuf = "docker-compose up --build --force-recreate --no-deps -d";
-        dcs = "docker-compose stop";
-        drac = "docker container prune";
-        drav = "docker volume prune";
-        dra = "docker system prune --volumes";
 
         # Git aliases
         fakecommit = "git commit --amend --no-edit && git push -f";
