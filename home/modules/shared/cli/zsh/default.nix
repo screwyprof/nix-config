@@ -168,6 +168,9 @@
         fakecommit = "git commit --amend --no-edit && git push -f";
         cherrymaster = "git cherry -v master | cut -d ' ' -f3-";
         rmbranches = "git branch | grep -v 'master' | grep -v 'main' | xargs git branch -D";
+
+        # nix aliases
+        nix-cleanup = "nix-collect-garbage -d && nix store optimise";
       } // (if pkgs.stdenv.isDarwin then {
         nix-rebuild-host = "nixpkgs-fmt . && nix flake check && darwin-rebuild switch --flake '.#macbook'";
         nix-rebuild-mac = "nixpkgs-fmt . && nix flake check && darwin-rebuild switch --flake '.#parallels'";

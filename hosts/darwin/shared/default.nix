@@ -35,7 +35,7 @@
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     build-users-group = "nixbld";
-    trusted-users = [ "root" "@admin" ];
+    trusted-users = [ "root" "happygopher" ];
     download-buffer-size = 100000000;
   };
 

@@ -37,12 +37,11 @@ let
     fi
     
     rm launcher.applescript
+    echo "launcher for $app_name created" >&2
   '';
 
-  # Get list of home-manager users
   hmUsers = builtins.attrNames config.home-manager.users;
 
-  # Create script for each user
   userScripts = map
     (username: ''
       echo "Processing user: ${username}" >&2
@@ -50,14 +49,10 @@ let
       hm_apps_dir="$user_home/Applications/Home Manager Apps"
       nix_apps_dir="$user_home/Applications/Nix Apps"
 
-      echo "Home Manager Apps Dir: $hm_apps_dir" >&2
-      echo "Nix Apps Dir: $nix_apps_dir" >&2
-
       if [ -d "$hm_apps_dir" ]; then
-        echo "Setting up application launchers..." >&2
         rm -rf "$nix_apps_dir"
         mkdir -p "$nix_apps_dir"
-  
+        
         for app in "$hm_apps_dir/"*.app; do
           if [ -L "$app" ]; then
             real_app=$(readlink "$app")
@@ -73,7 +68,6 @@ let
 in
 {
   system.activationScripts.applications.text = pkgs.lib.mkForce ''
-    echo "Starting application setup..." >&2
     ${builtins.concatStringsSep "\n" userScripts}
   '';
 }

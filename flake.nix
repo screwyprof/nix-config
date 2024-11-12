@@ -58,8 +58,8 @@
           imports =
             # Add platform-specific configs
             if builtins.match ".*-darwin" system != null
-            then [ ./users/darwin/${username} ]
-            else [ ./users/linux/${username} ];
+            then [ ./home/users/darwin/${username} ]
+            else [ ./home/users/linux/${username} ];
         };
       };
 
@@ -96,7 +96,7 @@
                   (username: {
                     name = username;
                     value = { pkgs, ... }: {
-                      imports = [ ./users/darwin/${username} ];
+                      imports = [ ./home/users/darwin/${username} ];
                     };
                   })
                   users);

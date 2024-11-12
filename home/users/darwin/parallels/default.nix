@@ -1,13 +1,13 @@
 { config, lib, pkgs, ... }: {
   imports = [
-    #./terminal
+    ./terminal
     ./preferences
-    ../../../home-modules/shared
+    ../../../modules/shared
   ];
 
   home = {
-    username = "testuser";
-    homeDirectory = lib.mkForce "/Users/testuser";
+    username = "parallels";
+    homeDirectory = lib.mkForce "/Users/parallels";
     stateVersion = "24.05";
 
     # Darwin-specific packages

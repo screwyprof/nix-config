@@ -2,8 +2,8 @@
   imports = [
     ./terminal
     ./preferences
-    ../../../home-modules/shared
-    ../../../home-modules/darwin/containers/colima.nix
+    ../../../modules/shared
+    ../../../modules/darwin/colima.nix
   ];
 
   # Group all home settings together

@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }: {
   imports = [
-    ../../../home-modules/shared
-    ../../../home-modules/linux/containers/colima.nix
+    ../../../home/modules/shared
+    ../../../home/modules/linux/colima.nix
   ];
 
   home = {
