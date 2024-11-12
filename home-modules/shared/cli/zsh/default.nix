@@ -1,8 +1,4 @@
 { config, lib, pkgs, ... }: {
-  imports = [
-    ./path.nix
-  ];
-
   home = {
     sessionVariables = {
       NOSYSZSHRC = "1"; # Prevent loading of /etc/zshrc
@@ -17,6 +13,7 @@
         "${pkgs.gnused}/bin"
         "${pkgs.gnutar}/bin"
         "${pkgs.gawk}/bin"
+        "$HOME/.local/bin" # Local user binaries
         "$PATH"
       ];
     };

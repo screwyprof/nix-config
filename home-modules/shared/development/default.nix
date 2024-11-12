@@ -1,6 +1,10 @@
 { config, lib, pkgs, ... }: {
   imports = [
     ./git.nix
+    ./containers
+    ./golang.nix
+    ./node.nix
+    ./vscode.nix
   ];
 
   programs.direnv = {

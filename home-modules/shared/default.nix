@@ -1,8 +1,7 @@
 { config, lib, pkgs, ... }: {
   imports = [
-    ./fonts
-    ./zsh
-    ./containers
+    ./core
+    ./cli
     ./development
   ];
 }
