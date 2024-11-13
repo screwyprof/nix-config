@@ -30,12 +30,12 @@
         "-c"
         ''
           # Start Colima with default profile (Docker only)
-          ${pkgs.colima}/bin/colima --verbose -p docker start
+          ${pkgs.colima}/bin/colima --very-verbose -p docker start
         ''
       ];
       RunAtLoad = true;
-      StandardOutPath = "${config.home.homeDirectory}/.colima/docker/colima.log";
-      StandardErrorPath = "${config.home.homeDirectory}/.colima/docker/colima.error.log";
+      StandardOutPath = "${config.home.homeDirectory}/.colima/colima.log";
+      StandardErrorPath = "${config.home.homeDirectory}/.colima/colima.error.log";
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
         PATH = lib.makeBinPath [

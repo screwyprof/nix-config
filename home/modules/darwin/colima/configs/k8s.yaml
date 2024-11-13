@@ -2,18 +2,31 @@ cpu: 8
 memory: 32
 disk: 100
 
-cpuType: host
 vmType: vz
 arch: aarch64
 rosetta: true
 mountType: virtiofs
 mountInotify: true
 
-runtime: docker
-autoActivate: true 
+# Simplified network config
+dns:
+  - 1.1.1.1
+  - 8.8.8.8
+
+# Resource limits
+cpuLimits:
+  quota: 8000
+  period: 1000
+memoryLimits:
+  swap: 4
+
+cpuType: host
 
 kubernetes:
   enabled: true
   version: v1.31.2+k3s1
   k3sArgs:
     - --disable=traefik
+
+runtime: docker
+autoActivate: true
