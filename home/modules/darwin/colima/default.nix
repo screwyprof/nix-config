@@ -31,7 +31,7 @@ in
           pkgs.docker
           pkgs.coreutils
         ]}:$PATH"
-        
+
         echo "Checking initial state..."
         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
 
@@ -47,7 +47,8 @@ in
         export PATH="${lib.makeBinPath [
           pkgs.colima
           pkgs.docker
-        }
+          pkgs.coreutils
+        ]}:$PATH"
         
         if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
           echo "Loading Colima agent..."
