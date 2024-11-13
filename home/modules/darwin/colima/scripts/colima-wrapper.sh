@@ -1,11 +1,36 @@
 #!/bin/sh
 
-PROFILE=${1:-$COLIMA_PROFILE}
-PROFILE=${PROFILE:-docker}
+show_help() {
+  echo "Usage: $0 <profile> <command>"
+  echo "Commands:"
+  echo "  daemon    - run as agent daemon"
+  echo "  start     - start colima"
+  echo "  stop      - stop colima"
+  echo "  status    - check status"
+  echo "  clean     - stop colima and clean state"
+  echo "  help      - show this help"
+}
+
+# Check argument count
+if [ $# -lt 2 ]; then
+  echo "Error: Not enough arguments"
+  show_help
+  exit 1
+fi
+
+PROFILE=$1
+MODE=$2
+
+# Debug output
+echo "DEBUG: PROFILE='$PROFILE' MODE='$MODE'"
+
 LOCK_FILE="/tmp/colima-${PROFILE}.lock"
 AGENT_PLIST="${HOME}/Library/LaunchAgents/com.github.colima.nix.plist"
 
 MODE=${2:-help}
+
+# Add debug output
+echo "DEBUG: MODE='$MODE'"
 
 check_state() {
   # Check if colima is running
@@ -115,21 +140,27 @@ clean_state() {
 
 case "$MODE" in
   "daemon")
+    echo "Running daemon mode"
     run_daemon
     ;;
   "start")
+    echo "Running start mode"
     start_colima
     ;;
   "stop")
+    echo "Running stop mode"
     stop_colima
     ;;
   "status")
+    echo "Running status mode"
     check_state
     ;;
   "clean")
+    echo "Running clean mode"
     clean_state
     ;;
   *)
+    echo "Unknown mode: '$MODE'"
     show_help
     ;;
 esac 
