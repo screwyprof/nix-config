@@ -5,7 +5,9 @@
 
   xdg.configFile."fastfetch/config.jsonc".source = ./config.jsonc;
 
-  # Create actual file during activation, handling permissions and idempotency
+  # Create actual logo file as fastfech doesn't follow symlynks
+  # Gopher logo borrowed from:
+  #   https://gist.githubusercontent.com/belbomemo/b5e7dad10fa567a5fe8a/raw/4ed0c8a82a8d1b836e2de16a597afca714a36606/gistfile1.txt
   home.activation.copyFastfetchLogo = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     $DRY_RUN_CMD rm -f ~/.config/fastfetch/gopher.ascii
     $DRY_RUN_CMD mkdir -p ~/.config/fastfetch
