@@ -31,6 +31,9 @@
       text = ''
         #!/bin/sh
         
+        # Ensure system_profiler is in PATH
+        export PATH="/usr/sbin:$PATH"
+        
         cleanup() {
           ${pkgs.colima}/bin/colima stop -p docker
           exit 0
@@ -60,13 +63,14 @@
       StandardErrorPath = "${config.home.homeDirectory}/.colima/colima.error.log";
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
-        PATH = lib.makeBinPath [
-          "/usr"
+        PATH = lib.concatStringsSep ":" [
           "/usr/sbin"
-          pkgs.coreutils
-          pkgs.which
-          pkgs.docker
-          pkgs.colima
+          "/usr/bin"
+          "/usr/local/bin"
+          "${pkgs.coreutils}/bin"
+          "${pkgs.which}/bin"
+          "${pkgs.docker}/bin"
+          "${pkgs.colima}/bin"
         ];
         COLIMA_LOG_ROTATE = "true";
         COLIMA_LOG_SIZE = "10M";
