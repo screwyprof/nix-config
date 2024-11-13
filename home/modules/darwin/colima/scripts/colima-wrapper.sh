@@ -35,6 +35,15 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT SIGQUIT
 
+# Check if already running
+if colima status -p $PROFILE >/dev/null 2>&1; then
+  echo "Colima already running for profile $PROFILE"
+  # Keep the process running to handle signals
+  while true; do
+    sleep 1
+  done
+fi
+
 # Start Colima
 echo "Starting Colima..."
 colima --verbose -p $PROFILE start
