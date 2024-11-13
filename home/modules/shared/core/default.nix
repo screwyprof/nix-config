@@ -2,7 +2,7 @@
   imports = [
     ./fonts.nix
     ./gnu-utils.nix
-    ./neofetch.nix
+    ./neofetch
     ./vim.nix
   ];
 }

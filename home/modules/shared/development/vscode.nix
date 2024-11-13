@@ -79,6 +79,8 @@
         "lineHeight" = 30;
       };
 
+      "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+
       # Terminal settings
       "terminal.integrated" = {
         "fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
