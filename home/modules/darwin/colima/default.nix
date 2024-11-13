@@ -5,6 +5,11 @@
     ];
 
     activation.createColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      # First stop and unload the agent if it exists
+      if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
+        $DRY_RUN_CMD launchctl unload ~/Library/LaunchAgents/com.github.colima.nix.plist || true
+      fi
+
       # Create directories
       $DRY_RUN_CMD mkdir -p ~/.colima/docker ~/.colima/k8s
 
