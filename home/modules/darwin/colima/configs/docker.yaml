@@ -27,7 +27,7 @@ runtime: docker
 # Set custom hostname for the virtual machine.
 # Default: colima
 #          colima-profile_name for other profiles
-hostname: ""
+hostname: colima-docker
 
 # Kubernetes configuration for the virtual machine.
 kubernetes:
@@ -57,7 +57,7 @@ network:
   # Assign reachable IP address to the virtual machine.
   # NOTE: this is currently macOS only and ignored on Linux.
   # Default: false
-  address: "unix://~/.colima/docker/docker.sock"
+  address: false
   
   # Custom DNS resolvers for the virtual machine.
   #
@@ -208,10 +208,3 @@ mounts: []
 #
 # Default: {}
 env: {}
-
-# Resource limits for the virtual machine.
-cpuLimits:
-  quota: 6000
-  period: 1000
-memoryLimits:
-  swap: 2
