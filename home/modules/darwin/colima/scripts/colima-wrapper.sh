@@ -109,7 +109,7 @@ show_help() {
 
 clean_state() {
   stop_colima
-  colima --verbose -p docker delete -f
+  colima --verbose -p $PROFILE delete -f
   rm -f "$LOCK_FILE"
 }
 
@@ -129,7 +129,7 @@ case "$MODE" in
   "clean")
     clean_state
     ;;
-  "help"|*)
+  *)
     show_help
     ;;
 esac 
