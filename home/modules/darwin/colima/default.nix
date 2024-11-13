@@ -2,19 +2,6 @@
 
 let
   defaultProfile = "docker";
-
-  # Helper to create profile configs
-  mkProfileConfig = profile: {
-    ".colima/${profile}/colima.yaml" = {
-      text = builtins.readFile ./configs/${profile}.yaml;
-      onChange = ''
-        if /bin/launchctl list | grep -q "com.github.colima.nix"; then
-          /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
-        fi
-        rm -rf ~/.colima/${profile}/*
-      '';
-    };
-  };
 in
 {
   home = {
@@ -22,16 +9,14 @@ in
       colima
     ];
 
-    file = lib.mkMerge [
-      (mkProfileConfig "docker")
-      (mkProfileConfig "k8s")
-      {
-        ".local/bin/colima-wrapper.sh" = {
-          executable = true;
-          source = ./scripts/colima-wrapper.sh;
-        };
-      }
-    ];
+    file = {
+      ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
+      ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
+      ".local/bin/colima-wrapper.sh" = {
+        executable = true;
+        source = ./scripts/colima-wrapper.sh;
+      };
+    };
   };
 
   launchd.agents.colima = {
@@ -75,11 +60,4 @@ in
     clog = "tail -f ~/.colima/colima.log";
     clogerr = "tail -f ~/.colima/colima.error.log";
   };
-
-  home.activation.loadColimaAgent = lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
-    if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
-      echo "Loading Colima agent..."
-      $DRY_RUN_CMD /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist || true
-    fi
-  '';
 }

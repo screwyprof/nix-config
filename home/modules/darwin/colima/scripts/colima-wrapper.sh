@@ -8,42 +8,27 @@ cleanup() {
 }
 
 stop_colima() {
-  if [ -d "$LOCK_FILE" ]; then
-    echo "Stopping Colima..."
-    docker context use default || true
-    colima stop -p $PROFILE
-    wait_for_colima stop
-  fi
+  echo "Stopping Colima..."
+  docker context use default || true
+  colima stop -p $PROFILE
+  wait_for_colima stop
 }
 
 # Ensure lock is removed on any exit
 trap cleanup EXIT
 
-# Only stop colima on explicit termination signals
+# Handle termination signals
 trap 'stop_colima; exit 0' SIGTERM SIGINT SIGQUIT
 
-wait_for_colima() {
-  local action=$1
-  local timeout=10
-  
-  for i in $(seq 1 $timeout); do
-    case $action in
-      "start")
-        if colima status -p $PROFILE >/dev/null 2>&1; then
-          return 0
-        fi
-        ;;
-      "stop")
-        if ! colima status -p $PROFILE >/dev/null 2>&1; then
-          return 0
-        fi
-        ;;
-    esac
-    echo "Waiting for Colima to $action... ($i/$timeout)"
+# Try to acquire lock
+if ! mkdir "$LOCK_FILE" 2>/dev/null; then
+  echo "Another instance is running for profile $PROFILE"
+  # Monitor the lock file
+  while [ -d "$LOCK_FILE" ]; do
     sleep 1
   done
-  return 1
-}
+  exit 0
+fi
 
 # Check if already running
 if colima status -p $PROFILE >/dev/null 2>&1; then
@@ -56,7 +41,7 @@ fi
 
 # Start Colima
 echo "Starting Colima..."
-colima --verbose -p $PROFILE start
+colima --verbose -p $PROFILE start --save-config=false
 
 if ! wait_for_colima start; then
   echo "Failed to start Colima"
