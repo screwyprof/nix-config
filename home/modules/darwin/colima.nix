@@ -4,10 +4,10 @@
       colima
     ];
 
-    # Default profile for Docker
+    # Default profile for Docker (lighter resources for regular development)
     file.".colima/docker/colima.yaml".text = ''
-      cpu: 4
-      memory: 16
+      cpu: 6         # Half of total cores (using mostly P-cores)
+      memory: 16     # 25% of total RAM
       disk: 100
       
       vmType: vz
@@ -18,12 +18,17 @@
       
       runtime: docker
       autoActivate: true
+      
+      # CPU configuration
+      cpuType: host  # Use host CPU type for better performance
+      kubernetes:
+        enabled: false
     '';
 
-    # K8s profile with Kubernetes enabled
+    # K8s profile with more resources for container orchestration
     file.".colima/k8s/colima.yaml".text = ''
-      cpu: 8
-      memory: 32
+      cpu: 8         # Use more cores for k8s workloads
+      memory: 32     # 50% of total RAM
       disk: 100
       
       vmType: vz
@@ -31,6 +36,9 @@
       rosetta: true
       mountType: virtiofs
       mountInotify: true
+      
+      # CPU configuration
+      cpuType: host
       
       kubernetes:
         enabled: true
