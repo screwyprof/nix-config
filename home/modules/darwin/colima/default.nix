@@ -26,7 +26,7 @@ in
     activation = {
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         # Set up PATH to include necessary binaries
-        export PATH="${lib.makeBinPath [
+        export PATH="/usr/bin:/usr/sbin:${lib.makeBinPath [
           pkgs.colima
           pkgs.docker
           pkgs.coreutils
@@ -44,7 +44,7 @@ in
 
       loadColimaAgent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         # Set up PATH to include necessary binaries
-        export PATH="${lib.makeBinPath [
+        export PATH="/usr/bin:/usr/sbin:${lib.makeBinPath [
           pkgs.colima
           pkgs.docker
           pkgs.coreutils
