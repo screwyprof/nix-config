@@ -21,21 +21,10 @@ in
     activation = {
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         echo "Cleaning up Colima..."
-        
-        # 1. Bootout agent (this triggers wrapper's cleanup)
-        if /bin/launchctl list | grep -q "com.github.colima.nix"; then
-          echo "Unloading agent..."
-          /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
-          sleep 5  # Give it time for graceful shutdown
-        fi
-
-        # 2. Clean state completely
-        echo "Removing Colima state..."
-        rm -rf ~/.colima/*
+        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} clean
       '';
 
-      # load agent if
-      loadColimaAgent = lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
+      loadColimaAgent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
           echo "Loading Colima agent..."
           /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist || true
@@ -84,6 +73,5 @@ in
     clist = "colima list";
     clog = "tail -f ~/.colima/colima.log";
     clogerr = "tail -f ~/.colima/colima.error.log";
-    cfix = "colima-state.sh";
   };
 }

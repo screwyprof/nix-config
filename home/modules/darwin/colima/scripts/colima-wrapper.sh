@@ -5,12 +5,7 @@ PROFILE=${PROFILE:-docker}
 LOCK_FILE="/tmp/colima-${PROFILE}.lock"
 AGENT_PLIST="${HOME}/Library/LaunchAgents/com.github.colima.nix.plist"
 
-# Operation modes:
-# daemon: run as agent daemon (default when no args)
-# start: start colima
-# stop: stop colima
-# status: check status
-MODE=${2:-daemon}
+MODE=${2:-help}
 
 check_state() {
   # Check if colima is running
@@ -81,10 +76,7 @@ run_daemon() {
   # Try to acquire lock
   if ! mkdir "$LOCK_FILE" 2>/dev/null; then
     echo "Another instance is running for profile $PROFILE"
-    while [ -d "$LOCK_FILE" ]; do
-      sleep 1
-    done
-    exit 0
+    exit 1
   fi
 
   trap cleanup EXIT
@@ -99,10 +91,26 @@ run_daemon() {
     start_colima
   fi
 
-  # Keep running to handle signals
   while true; do
     sleep 1
   done
+}
+
+show_help() {
+  echo "Usage: $0 [profile] <command>"
+  echo "Commands:"
+  echo "  daemon    - run as agent daemon"
+  echo "  start     - start colima"
+  echo "  stop      - stop colima"
+  echo "  status    - check status"
+  echo "  clean     - stop colima and clean state"
+  echo "  help      - show this help"
+}
+
+clean_state() {
+  stop_colima
+  colima --verbose -p docker delete -f
+  rm -f "$LOCK_FILE"
 }
 
 case "$MODE" in
@@ -118,8 +126,10 @@ case "$MODE" in
   "status")
     check_state
     ;;
-  *)
-    echo "Unknown mode: $MODE"
-    exit 1
+  "clean")
+    clean_state
+    ;;
+  "help"|*)
+    show_help
     ;;
 esac 
