@@ -34,8 +34,8 @@
         ''
       ];
       RunAtLoad = true;
-      StandardOutPath = "${config.home.homeDirectory}/.colima/colima.log";
-      StandardErrorPath = "${config.home.homeDirectory}/.colima/colima.error.log";
+      StandardOutPath = "${config.home.homeDirectory}/.colima/docker/colima.log";
+      StandardErrorPath = "${config.home.homeDirectory}/.colima/docker/colima.error.log";
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
         PATH = lib.makeBinPath [
@@ -45,6 +45,8 @@
           pkgs.docker
           pkgs.colima
         ];
+        COLIMA_LOG_ROTATE = "true";
+        COLIMA_LOG_SIZE = "10M";
       };
       KeepAlive = {
         Crashed = true;
