@@ -32,21 +32,33 @@
         #!/bin/sh
         
         cleanup() {
-          ${pkgs.colima}/bin/colima stop -p docker
+          # Switch to default context before stopping
+          ${pkgs.docker}/bin/docker context use default || true
+          ${pkgs.colima}/bin/colima stop -f -p docker
           exit 0
         }
         
         trap cleanup SIGTERM SIGINT SIGQUIT
-        
+
         # Ensure profile exists before starting
         if [ ! -f "$COLIMA_HOME/docker/colima.yaml" ]; then
           echo "Error: Docker profile config not found at $COLIMA_HOME/docker/colima.yaml"
           exit 1
         fi
-        
-        ${pkgs.colima}/bin/colima --verbose -p docker start
-        
-        # Keep the script running to handle signals
+
+        # Start Colima
+        ${pkgs.colima}/bin/colima --very-verbose -p docker start
+
+
+        # Check if it started successfully
+        sleep 5
+
+        if ! ${pkgs.colima}/bin/colima status -p docker; then
+          echo "Failed to start Colima"
+          exit 1
+        fi
+
+        # Keep the process running to handle signals
         while true; do
           sleep 1
         done
@@ -88,10 +100,10 @@
   programs.zsh = {
     shellAliases = {
       # Default profile commands (Docker)
-      cstart = "colima start";
-      cstop = "colima stop";
-      cstatus = "colima status";
-      cdelete = "colima delete";
+      cstart = "colima start -p docker";
+      cstop = "colima stop -p docker";
+      cstatus = "colima status -p docker";
+      cdelete = "colima delete -p";
       clist = "colima list";
       clog = "bat -f ~/.colima/colima.log";
       clogerr = "bat -f ~/.colima/colima.error.log";
@@ -104,10 +116,10 @@
     };
 
     initExtra = ''
-      # Set DOCKER_HOST when Colima is running
-      if command -v colima >/dev/null 2>&1; then
-        if colima status >/dev/null 2>&1; then
-          export DOCKER_HOST="unix://${config.home.homeDirectory}/.colima/default/docker.sock"
+      # More robust Docker context handling
+      if command -v docker >/dev/null 2>&1; then
+        if [ -S "$HOME/.colima/docker/docker.sock" ] && docker info >/dev/null 2>&1; then
+          docker context use colima-docker >/dev/null 2>&1
         fi
       fi
     '';
