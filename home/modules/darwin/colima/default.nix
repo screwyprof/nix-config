@@ -24,13 +24,6 @@ in
     };
 
     activation = {
-      debugColima = lib.hm.dag.entryBefore [ "cleanupColima" ] ''
-        echo "Debug: Checking colima wrapper..."
-        ls -l ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh || true
-        echo "Debug: Checking shellcheck..."
-        which shellcheck || true
-      '';
-
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         echo "Checking initial state..."
         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
@@ -48,7 +41,7 @@ in
           /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist || true
          
          echo "Checking state after loading agent..."
-        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
+         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
         fi
 
         echo "Checking final state..."

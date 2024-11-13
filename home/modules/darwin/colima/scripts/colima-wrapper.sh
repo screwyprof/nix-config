@@ -108,13 +108,14 @@ clean_state() {
 }
 
 run_daemon() {
-    # Try to acquire lock
-    if ! mkdir "${LOCK_FILE}" 2>/dev/null; then
+    # Use proper file locking
+    exec 9>"${LOCK_FILE}"
+    if ! flock -n 9; then
         log_error "Another instance is running for profile ${PROFILE}"
         exit 1
     fi
 
-    trap 'rm -rf "${LOCK_FILE}"' EXIT
+    trap 'flock -u 9' EXIT
     trap 'stop_colima; exit 0' TERM INT QUIT
 
     state=$(check_state)
