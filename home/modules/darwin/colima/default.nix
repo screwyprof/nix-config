@@ -6,18 +6,18 @@
 
     activation.createColimaConfigs = lib.hm.dag.entryAfter ["writeBoundary"] ''
       # Create directories
-      $DRY_RUN_CMD mkdir -p ~/.colima
+      $DRY_RUN_CMD mkdir -p ~/.colima/docker ~/.colima/k8s
 
       # Docker profile
-      rm -rf ~/.colima/docker.yaml
-      $DRY_RUN_CMD cat ${./configs/docker.yaml} > ~/.colima/docker.yaml
+      rm -rf ~/.colima/docker/colima.yaml
+      $DRY_RUN_CMD cat ${./configs/docker.yaml} > ~/.colima/docker/colima.yaml
 
       # K8s profile
-      rm -rf ~/.colima/k8s.yaml
-      $DRY_RUN_CMD cat ${./configs/k8s.yaml} > ~/.colima/k8s.yaml
+      rm -rf ~/.colima/k8s/colima.yaml
+      $DRY_RUN_CMD cat ${./configs/k8s.yaml} > ~/.colima/k8s/colima.yaml
 
       # Set proper permissions
-      $DRY_RUN_CMD chmod 644 ~/.colima/docker.yaml ~/.colima/k8s.yaml
+      $DRY_RUN_CMD chmod 644 ~/.colima/docker/colima.yaml ~/.colima/k8s/colima.yaml
     '';
   };
 
