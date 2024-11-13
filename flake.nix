@@ -47,7 +47,8 @@
         };
         backupFileExtension = "bak";
         users.${username} = { pkgs, ... }: {
-          imports = if builtins.match ".*-darwin" system != null
+          imports =
+            if builtins.match ".*-darwin" system != null
             then [ ./home/users/darwin/${username} ]
             else [ ./home/users/linux/${username} ];
         };
@@ -75,18 +76,20 @@
                   inherit inputs devUser;
                   isDarwin = true;
                 };
-                users = builtins.listToAttrs (map (username: {
-                  name = username;
-                  value = { pkgs, ... }: {
-                    imports = [ ./home/users/darwin/${username} ];
-                  };
-                }) users);
+                users = builtins.listToAttrs (map
+                  (username: {
+                    name = username;
+                    value = { pkgs, ... }: {
+                      imports = [ ./home/users/darwin/${username} ];
+                    };
+                  })
+                  users);
               };
             }
           ];
         };
 
-      mkLinuxConfig = { username, hostname, system ? "x86_64-linux" }: 
+      mkLinuxConfig = { username, hostname, system ? "x86_64-linux" }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = {
@@ -145,9 +148,10 @@
       });
 
       checks.${system} = {
-        formatting = pkgs.runCommand "check-formatting" {
-          buildInputs = with pkgs; [ nixpkgs-fmt statix deadnix ];
-        } ''
+        formatting = pkgs.runCommand "check-formatting"
+          {
+            buildInputs = with pkgs; [ nixpkgs-fmt statix deadnix ];
+          } ''
           cd ${self}
           nixpkgs-fmt --check .
           statix check .
