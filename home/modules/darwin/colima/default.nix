@@ -24,18 +24,22 @@ in
 
     activation = {
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        echo "BINGO!"
-
-        # Set up PATH to include GNU coreutils first
+        # Set up PATH
         export PATH="${lib.makeBinPath [
-          pkgs.coreutils    # Make sure GNU coreutils comes first
-          pkgs.findutils    # GNU find
+          pkgs.coreutils
+          pkgs.findutils
           pkgs.colima
           pkgs.docker
         ]}:/usr/bin:/usr/sbin:$PATH"
 
         echo "Checking initial state..."
         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
+
+        echo "Unloading existing Colima agent..."
+        /bin/launchctl bootout gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist 2>/dev/null || true
+
+        # Clean up any remaining agent files
+        rm -f ~/Library/LaunchAgents/com.github.colima.nix.plist || true
 
         echo "Cleaning up Colima..."
         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} clean
@@ -45,20 +49,25 @@ in
       '';
 
       loadColimaAgent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        # Set up PATH to include GNU coreutils first
+        # Set up PATH
         export PATH="${lib.makeBinPath [
-          pkgs.coreutils    # Make sure GNU coreutils comes first
-          pkgs.findutils    # GNU find
+          pkgs.coreutils
+          pkgs.findutils
           pkgs.colima
           pkgs.docker
         ]}:/usr/bin:/usr/sbin:$PATH"
         
         if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
-          echo "Loading Colima agent..."
-          /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist || true
+          echo "WTF? WHY IT EXISTS?"
+          
+          #echo "Loading Colima agent..."
+          # # Make sure it's not loaded before trying to load it
+          # /bin/launchctl bootout gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist 2>/dev/null || true
+          # sleep 1
+          # /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist
          
-         echo "Checking state after loading agent..."
-         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
+          # echo "Checking state after loading agent..."
+          # ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
         fi
 
         echo "Checking final state..."
