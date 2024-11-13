@@ -68,39 +68,46 @@
         let
           pkgs = nixpkgsForSystem system;
         in
-        darwin.lib.darwinSystem {
-          inherit system;
-          specialArgs = {
-            inherit inputs devUser;
-            isDarwin = true;
-            pkgs = nixpkgsForSystem system;
-          };
-          modules = [
-            # Shared Darwin system settings
-            ./hosts/darwin/shared
-            # Machine-specific configuration
-            ./hosts/darwin/${hostname}
+        builtins.trace "Creating Darwin configuration for ${hostname} with users: ${toString users}" (
+          darwin.lib.darwinSystem {
+            inherit system;
+            specialArgs = {
+              inherit inputs devUser;
+              isDarwin = true;
+              pkgs = nixpkgsForSystem system;
+            };
+            modules = [
+              # Debug output
+              { config._module.args = builtins.trace "Loading Darwin modules" {}; }
+              
+              ./hosts/darwin/shared
+              ./hosts/darwin/${hostname}
 
-            home-manager.darwinModules.home-manager
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                backupFileExtension = "bak";
-                extraSpecialArgs = {
-                  inherit inputs devUser;
-                  isDarwin = true;
-                };
-                users = builtins.listToAttrs (map (username: {
-                  name = username;
-                  value = { pkgs, ... }: {
-                    imports = [ ./home/users/darwin/${username} ];
+              home-manager.darwinModules.home-manager
+              {
+                home-manager = builtins.trace "Configuring home-manager" {
+                  useGlobalPkgs = true;
+                  useUserPackages = true;
+                  backupFileExtension = "bak";
+                  extraSpecialArgs = {
+                    inherit inputs devUser;
+                    isDarwin = true;
                   };
-                }) users);
-              };
-            }
-          ];
-        };
+                  users = builtins.trace "Setting up home-manager users" (
+                    builtins.listToAttrs (map (username: {
+                      name = username;
+                      value = { pkgs, ... }: {
+                        imports = builtins.trace "Loading config for user ${username}" [ 
+                          ./home/users/darwin/${username}
+                        ];
+                      };
+                    }) users)
+                  );
+                };
+              }
+            ];
+          }
+        );
 
       # Linux configuration
       mkLinuxConfig = { username, hostname, system ? "x86_64-linux" }: nixpkgs.lib.nixosSystem {
