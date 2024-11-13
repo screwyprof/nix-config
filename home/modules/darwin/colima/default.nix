@@ -2,7 +2,7 @@
 
 let
   defaultProfile = "docker";
-  
+
   # Helper to create profile configs
   mkProfileConfig = profile: {
     ".colima/${profile}/colima.yaml" = {

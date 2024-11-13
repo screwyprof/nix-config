@@ -3,18 +3,24 @@
 PROFILE=${COLIMA_PROFILE:-docker}
 LOCK_FILE="/tmp/colima-${PROFILE}.lock"
 
-# Try to acquire lock
-if ! mkdir "$LOCK_FILE" 2>/dev/null; then
-  echo "Another instance is running for profile $PROFILE"
-  # Monitor the lock file
-  while [ -d "$LOCK_FILE" ]; do
-    sleep 1
-  done
-  exit 0
-fi
+cleanup() {
+  rm -rf "$LOCK_FILE"
+}
 
-# Ensure lock is removed on exit
-trap 'rm -rf "$LOCK_FILE"' EXIT
+stop_colima() {
+  if [ -d "$LOCK_FILE" ]; then
+    echo "Stopping Colima..."
+    docker context use default || true
+    colima stop -p $PROFILE
+    wait_for_colima stop
+  fi
+}
+
+# Ensure lock is removed on any exit
+trap cleanup EXIT
+
+# Only stop colima on explicit termination signals
+trap 'stop_colima; exit 0' SIGTERM SIGINT SIGQUIT
 
 wait_for_colima() {
   local action=$1
@@ -38,19 +44,6 @@ wait_for_colima() {
   done
   return 1
 }
-
-cleanup() {
-  # Only stop colima if we're the main instance
-  if [ -d "$LOCK_FILE" ]; then
-    echo "Stopping Colima..."
-    docker context use default || true
-    colima stop -p $PROFILE
-    wait_for_colima stop
-  fi
-  exit 0
-}
-
-trap cleanup SIGTERM SIGINT SIGQUIT
 
 # Check if already running
 if colima status -p $PROFILE >/dev/null 2>&1; then
