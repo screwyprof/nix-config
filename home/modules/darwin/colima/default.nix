@@ -24,6 +24,15 @@ in
       if /bin/launchctl list | grep -q "com.github.colima.nix"; then
         echo "Stopping existing Colima agent..."
         $DRY_RUN_CMD /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
+        
+        # Wait for agent to fully unload
+        for i in $(seq 1 10); do
+          if ! /bin/launchctl list | grep -q "com.github.colima.nix"; then
+            break
+          fi
+          echo "Waiting for agent to unload... ($i/10)"
+          sleep 1
+        done
       fi
 
       # Check and stop colima if running
