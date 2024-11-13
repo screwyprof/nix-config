@@ -20,15 +20,27 @@ in
 
     activation = {
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        echo "Checking initial state..."
+        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
+
         echo "Cleaning up Colima..."
         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} clean
+
+        echo "Checking post-cleanup state..."
+        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
       '';
 
       loadColimaAgent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
           echo "Loading Colima agent..."
           /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist || true
+         
+         echo "Checking state after loading agent..."
+        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
         fi
+
+        echo "Checking final state..."
+        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
       '';
     };
   };
@@ -39,6 +51,8 @@ in
       Label = "com.github.colima.nix";
       ProgramArguments = [
         "${config.home.homeDirectory}/.local/bin/colima-wrapper.sh"
+        "${defaultProfile}"
+        "daemon"
       ];
       RunAtLoad = true;
       StandardOutPath = "${config.home.homeDirectory}/.colima/colima.log";
