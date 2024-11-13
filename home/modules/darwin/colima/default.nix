@@ -19,6 +19,28 @@
       # Set proper permissions
       $DRY_RUN_CMD chmod 644 ~/.colima/docker/colima.yaml ~/.colima/k8s/colima.yaml
     '';
+
+    # Create a wrapper script for colima start/stop
+    file.".local/bin/colima-wrapper.sh" = {
+      executable = true;
+      text = ''
+        #!/bin/sh
+        
+        cleanup() {
+          ${pkgs.colima}/bin/colima stop -p docker
+          exit 0
+        }
+        
+        trap cleanup SIGTERM SIGINT SIGQUIT
+        
+        ${pkgs.colima}/bin/colima --very-verbose -p docker start
+        
+        # Keep the script running to handle signals
+        while true; do
+          sleep 1
+        done
+      '';
+    };
   };
 
   launchd.agents.colima = {
@@ -26,12 +48,7 @@
     config = {
       Label = "com.github.colima.nix";
       ProgramArguments = [
-        "/bin/sh"
-        "-c"
-        ''
-          # Start Colima with default profile (Docker only)
-          ${pkgs.colima}/bin/colima --very-verbose -p docker start
-        ''
+        "${config.home.homeDirectory}/.local/bin/colima-wrapper.sh"
       ];
       RunAtLoad = true;
       StandardOutPath = "${config.home.homeDirectory}/.colima/colima.log";
