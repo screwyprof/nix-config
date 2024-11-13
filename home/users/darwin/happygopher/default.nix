@@ -3,7 +3,7 @@
     ./terminal
     ./preferences
     ../../../modules/shared
-    ../../../modules/darwin/colima.nix
+    ../../../modules/darwin/colima
   ];
 
   # Group all home settings together
