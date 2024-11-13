@@ -75,4 +75,11 @@ in
     clog = "tail -f ~/.colima/colima.log";
     clogerr = "tail -f ~/.colima/colima.error.log";
   };
+
+  home.activation.loadColimaAgent = lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
+    if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
+      echo "Loading Colima agent..."
+      $DRY_RUN_CMD /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist || true
+    fi
+  '';
 }
