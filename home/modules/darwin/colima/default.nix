@@ -31,9 +31,6 @@
       text = ''
         #!/bin/sh
         
-        # Ensure system_profiler is in PATH
-        export PATH="/usr/sbin:$PATH"
-        
         cleanup() {
           ${pkgs.colima}/bin/colima stop -p docker
           exit 0
@@ -41,7 +38,13 @@
         
         trap cleanup SIGTERM SIGINT SIGQUIT
         
-        ${pkgs.colima}/bin/colima --very-verbose -p docker start
+        # Ensure profile exists before starting
+        if [ ! -f "$COLIMA_HOME/docker/colima.yaml" ]; then
+          echo "Error: Docker profile config not found at $COLIMA_HOME/docker/colima.yaml"
+          exit 1
+        fi
+        
+        ${pkgs.colima}/bin/colima --verbose -p docker start
         
         # Keep the script running to handle signals
         while true; do
@@ -63,12 +66,11 @@
       StandardErrorPath = "${config.home.homeDirectory}/.colima/colima.error.log";
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
+        COLIMA_HOME = "${config.home.homeDirectory}/.colima";
         PATH = lib.concatStringsSep ":" [
-          "/usr/sbin"
           "/usr/bin"
-          "/usr/local/bin"
+          "/usr/sbin"
           "${pkgs.coreutils}/bin"
-          "${pkgs.which}/bin"
           "${pkgs.docker}/bin"
           "${pkgs.colima}/bin"
         ];
