@@ -16,17 +16,32 @@ in
         executable = true;
         source = ./scripts/colima-wrapper.sh;
       };
-      ".local/bin/colima-state.sh" = {
-        executable = true;
-        source = ./scripts/colima-state.sh;
-      };
     };
 
-    # Add activation script to check/fix state
-    activation.checkColimaState = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      echo "Checking Colima state..."
-      $DRY_RUN_CMD ${config.home.homeDirectory}/.local/bin/colima-state.sh ${defaultProfile}
-    '';
+    activation = {
+      cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        echo "Cleaning up Colima..."
+        
+        # 1. Bootout agent (this triggers wrapper's cleanup)
+        if /bin/launchctl list | grep -q "com.github.colima.nix"; then
+          echo "Unloading agent..."
+          /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
+          sleep 5  # Give it time for graceful shutdown
+        fi
+
+        # 2. Clean state completely
+        echo "Removing Colima state..."
+        rm -rf ~/.colima/*
+      '';
+
+      # load agent if
+      loadColimaAgent = lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
+        if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
+          echo "Loading Colima agent..."
+          /bin/launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.github.colima.nix.plist || true
+        fi
+      '';
+    };
   };
 
   launchd.agents.colima = {
