@@ -15,26 +15,20 @@
 
   outputs = { self, nixpkgs, darwin, home-manager, ... }@inputs:
     let
-      # Define your development identity
       devUser = {
         fullName = "Happy Gopher";
         email = "max@happygopher.nl";
       };
 
-      # Systems supported
       supportedSystems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      # Create nixpkgs config for each system
       nixpkgsForSystem = system: import nixpkgs {
         inherit system;
         overlays = [
           (final: prev: {
             mysides = final.callPackage ./pkgs/mysides {
-              stdenv =
-                if final.stdenv.isDarwin
-                then final.darwin.apple_sdk.stdenv
-                else final.stdenv;
+              stdenv = if final.stdenv.isDarwin then final.darwin.apple_sdk.stdenv else final.stdenv;
             };
           })
         ];
@@ -43,9 +37,7 @@
 
       system = "aarch64-darwin";
       pkgs = nixpkgs.legacyPackages.${system};
-      isDarwin = builtins.match ".*-darwin" system != null;
 
-      #  home-manager configuration
       mkHomeConfig = { username, system }: {
         useGlobalPkgs = true;
         useUserPackages = true;
@@ -55,112 +47,84 @@
         };
         backupFileExtension = "bak";
         users.${username} = { pkgs, ... }: {
-          imports =
-            # Add platform-specific configs
-            if builtins.match ".*-darwin" system != null
+          imports = if builtins.match ".*-darwin" system != null
             then [ ./home/users/darwin/${username} ]
             else [ ./home/users/linux/${username} ];
         };
       };
 
-      # Darwin configuration
       mkDarwinConfig = { hostname, system ? "aarch64-darwin", users }:
-        let
-          pkgs = nixpkgsForSystem system;
-        in
-        builtins.trace "Creating Darwin configuration for ${hostname} with users: ${toString users}" (
-          darwin.lib.darwinSystem {
-            inherit system;
-            specialArgs = {
-              inherit inputs devUser;
-              isDarwin = true;
-              pkgs = nixpkgsForSystem system;
-            };
-            modules = [
-              # Debug output
-              { config._module.args = builtins.trace "Loading Darwin modules" {}; }
-              
-              ./hosts/darwin/shared
-              ./hosts/darwin/${hostname}
+        darwin.lib.darwinSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs devUser;
+            isDarwin = true;
+            pkgs = nixpkgsForSystem system;
+          };
+          modules = [
+            ./hosts/darwin/shared
+            ./hosts/darwin/${hostname}
 
-              home-manager.darwinModules.home-manager
-              {
-                home-manager = builtins.trace "Configuring home-manager" {
-                  useGlobalPkgs = true;
-                  useUserPackages = true;
-                  backupFileExtension = "bak";
-                  extraSpecialArgs = {
-                    inherit inputs devUser;
-                    isDarwin = true;
-                  };
-                  users = builtins.trace "Setting up home-manager users" (
-                    builtins.listToAttrs (map (username: {
-                      name = username;
-                      value = { pkgs, ... }: {
-                        imports = builtins.trace "Loading config for user ${username}" [ 
-                          ./home/users/darwin/${username}
-                        ];
-                      };
-                    }) users)
-                  );
+            home-manager.darwinModules.home-manager
+            {
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                backupFileExtension = "bak";
+                extraSpecialArgs = {
+                  inherit inputs devUser;
+                  isDarwin = true;
                 };
-              }
-            ];
-          }
-        );
-
-      # Linux configuration
-      mkLinuxConfig = { username, hostname, system ? "x86_64-linux" }: nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = {
-          inherit inputs devUser;
-          isDarwin = false;
-          pkgs = nixpkgsForSystem system;
+                users = builtins.listToAttrs (map (username: {
+                  name = username;
+                  value = { pkgs, ... }: {
+                    imports = [ ./home/users/darwin/${username} ];
+                  };
+                }) users);
+              };
+            }
+          ];
         };
-        modules = [
-          # System-wide modules
-          ./modules/linux
-          # Machine-specific configuration
-          ./hosts/linux/${hostname}
 
-          home-manager.nixosModules.home-manager
-          {
-            home-manager = mkHomeConfig {
-              inherit username system;
-            };
-          }
-        ];
-      };
+      mkLinuxConfig = { username, hostname, system ? "x86_64-linux" }: 
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs devUser;
+            isDarwin = false;
+            pkgs = nixpkgsForSystem system;
+          };
+          modules = [
+            ./modules/linux
+            ./hosts/linux/${hostname}
+
+            home-manager.nixosModules.home-manager
+            {
+              home-manager = mkHomeConfig {
+                inherit username system;
+              };
+            }
+          ];
+        };
     in
     {
       darwinConfigurations = {
-        # Configuration for Parallels VM with multiple users
         parallels = mkDarwinConfig {
           hostname = "parallels-vm";
           system = "aarch64-darwin";
-          users = [ "parallels" "testuser" ]; # Support multiple users
+          users = [ "parallels" "testuser" ];
         };
 
-        # Configuration for host MacBook
         macbook = mkDarwinConfig {
           hostname = "macbook";
           system = "aarch64-darwin";
           users = [ "happygopher" ];
         };
-
-        test = mkDarwinConfig {
-          username = "testuser";
-          hostname = "test";
-          system = "aarch64-darwin";
-        };
       };
 
-      # Rest of the configuration remains the same
       devShells = forAllSystems (system:
-        let
-          pkgs = nixpkgsForSystem system;
-        in
-        {
+        let pkgs = nixpkgsForSystem system;
+        in {
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
               mysides
@@ -181,14 +145,9 @@
       });
 
       checks.${system} = {
-        formatting = pkgs.runCommand "check-formatting"
-          {
-            buildInputs = with pkgs; [
-              nixpkgs-fmt
-              statix
-              deadnix
-            ];
-          } ''
+        formatting = pkgs.runCommand "check-formatting" {
+          buildInputs = with pkgs; [ nixpkgs-fmt statix deadnix ];
+        } ''
           cd ${self}
           nixpkgs-fmt --check .
           statix check .

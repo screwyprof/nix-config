@@ -1,11 +1,18 @@
-#!/bin/sh
-set -euo pipefail  # Strict mode
-[ "${TRACE:-0}" = "1" ] && set -x  # Debug mode when TRACE=1
+#!/bin/bash
+set -euo pipefail
 
-# Constants
-readonly SCRIPT_NAME=$(basename "$0")
-readonly LOCK_FILE="/tmp/colima-${1:-unknown}.lock"
-readonly AGENT_PLIST="${HOME}/Library/LaunchAgents/com.github.colima.nix.plist"
+# Constants - initialize after arguments are checked
+SCRIPT_NAME=""
+LOCK_FILE=""
+AGENT_PLIST=""
+PROFILE=""
+MODE=""
+
+init_constants() {
+    SCRIPT_NAME="$(basename "$0")"
+    LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
+    AGENT_PLIST="${HOME}/Library/LaunchAgents/com.github.colima.nix.plist"
+}
 
 # Functions
 show_help() {
@@ -22,10 +29,6 @@ Commands:
 EOF
 }
 
-log_debug() {
-    echo "DEBUG: $*" >&2
-}
-
 log_info() {
     echo "INFO: $*" >&2
 }
@@ -36,19 +39,19 @@ log_error() {
 
 check_state() {
     # Check if colima is running
-    local colima_running=0
+    colima_running=0
     if colima status -p "${PROFILE}" >/dev/null 2>&1; then
         colima_running=1
     fi
 
     # Check if agent plist exists
-    local agent_exists=0
+    agent_exists=0
     if [ -f "${AGENT_PLIST}" ]; then
         agent_exists=1
     fi
 
     # Check if agent is loaded
-    local agent_loaded=0
+    agent_loaded=0
     if /bin/launchctl list | grep -q "com.github.colima.nix"; then
         agent_loaded=1
     fi
@@ -71,11 +74,10 @@ stop_colima() {
 }
 
 wait_for_colima() {
-    local action=$1
-    local timeout=30
-    local i
+    action="$1"
+    timeout=30
 
-    for i in $(seq 1 "${timeout}"); do
+    for ((i=1; i<=timeout; i++)); do
         case "${action}" in
             "start")
                 if colima status -p "${PROFILE}" >/dev/null 2>&1; then
@@ -90,7 +92,6 @@ wait_for_colima() {
                 fi
                 ;;
         esac
-        log_debug "Waiting for Colima to ${action}... (${i}/${timeout})"
         sleep 1
     done
     log_error "Timeout waiting for Colima to ${action}"
@@ -101,7 +102,7 @@ clean_state() {
     log_info "Cleaning Colima state..."
     stop_colima || true
     colima delete -p "${PROFILE}" -f || true
-    rm -rf "${HOME}/.colima/*"
+    rm -rf "${HOME}/.colima/${PROFILE}"
     rm -f "${LOCK_FILE}"
     log_info "Cleanup complete"
 }
@@ -114,11 +115,9 @@ run_daemon() {
     fi
 
     trap 'rm -rf "${LOCK_FILE}"' EXIT
-    trap 'stop_colima; exit 0' SIGTERM SIGINT SIGQUIT
+    trap 'stop_colima; exit 0' TERM INT QUIT
 
-    local state
     state=$(check_state)
-    local colima_running
     colima_running=$(echo "${state}" | tail -n1 | cut -d: -f1)
 
     if [ "${colima_running}" = "1" ]; then
@@ -140,11 +139,11 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
-readonly PROFILE=$1
-readonly MODE=$2
+PROFILE="$1"
+MODE="$2"
 
-log_debug "SCRIPT_NAME='${SCRIPT_NAME}' PROFILE='${PROFILE}' MODE='${MODE}'"
-log_debug "LOCK='${LOCK_FILE}' AGENT_PLIST='${AGENT_PLIST}'"
+# Initialize constants after arguments are set
+init_constants
 
 # Main
 case "${MODE}" in
@@ -164,7 +163,7 @@ case "${MODE}" in
         clean_state
         ;;
     *)
-        log_error "Unknown mode: '${MODE}'"
+        log_error "Unknown mode: ${MODE}"
         show_help
         exit 1
         ;;
