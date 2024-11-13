@@ -7,7 +7,6 @@ in
   home = {
     packages = with pkgs; [
       colima
-      shellcheck
     ];
 
     file = {
@@ -25,6 +24,8 @@ in
 
     activation = {
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        echo "BINGO!"
+
         # Set up PATH to include GNU coreutils first
         export PATH="${lib.makeBinPath [
           pkgs.coreutils    # Make sure GNU coreutils comes first

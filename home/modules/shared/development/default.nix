@@ -19,6 +19,7 @@
       nixpkgs-fmt
       statix
       deadnix
+      shellcheck
     ];
 
     sessionVariables = {

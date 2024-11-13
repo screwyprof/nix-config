@@ -102,8 +102,7 @@ clean_state() {
     log_info "Cleaning Colima state..."
     stop_colima || true
     colima delete -p "${PROFILE}" -f || true
-    rm -rf "${HOME}/.colima/${PROFILE}"
-    rm -f "${LOCK_FILE}"
+    rm -f "${LOCK_FILE}" || true
     log_info "Cleanup complete"
 }
 
