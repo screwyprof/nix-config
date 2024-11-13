@@ -9,22 +9,22 @@ in
       colima
     ];
 
-    file = {
-      ".local/bin/colima-wrapper.sh" = {
-        executable = true;
-        source = ./scripts/colima-wrapper.sh;
-      };
-      # Install configs directly to where they'll be used
-      ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
-      ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
+    file.".local/bin/colima-wrapper.sh" = {
+      executable = true;
+      source = ./scripts/colima-wrapper.sh;
     };
 
-    activation.createColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      # Stop and unload the agent if it exists
-      if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
-        echo "Stopping existing Colima agent..."
-        $DRY_RUN_CMD /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
-      fi
+    # Create actual config files, not nix symlinks
+    activation.copyColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      $DRY_RUN_CMD mkdir -p ~/.colima/docker ~/.colima/k8s
+      
+      $DRY_RUN_CMD rm -f ~/.colima/docker/colima.yaml
+      $DRY_RUN_CMD cp ${./configs/docker.yaml} ~/.colima/docker/colima.yaml
+      $DRY_RUN_CMD chmod 644 ~/.colima/docker/colima.yaml
+      
+      $DRY_RUN_CMD rm -f ~/.colima/k8s/colima.yaml
+      $DRY_RUN_CMD cp ${./configs/k8s.yaml} ~/.colima/k8s/colima.yaml
+      $DRY_RUN_CMD chmod 644 ~/.colima/k8s/colima.yaml
     '';
   };
 
