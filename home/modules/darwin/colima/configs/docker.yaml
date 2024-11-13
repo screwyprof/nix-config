@@ -1,0 +1,16 @@
+cpu: 6
+memory: 16
+disk: 100
+
+cpuType: host
+vmType: vz
+arch: aarch64
+rosetta: true
+mountType: virtiofs
+mountInotify: true
+
+runtime: docker
+autoActivate: true
+
+kubernetes:
+  enabled: false 

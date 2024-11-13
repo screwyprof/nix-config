@@ -1,0 +1,19 @@
+cpu: 8
+memory: 32
+disk: 100
+
+cpuType: host
+vmType: vz
+arch: aarch64
+rosetta: true
+mountType: virtiofs
+mountInotify: true
+
+runtime: docker
+autoActivate: true 
+
+kubernetes:
+  enabled: true
+  version: v1.31.2+k3s1
+  k3sArgs:
+    - --disable=traefik
