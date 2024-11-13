@@ -10,8 +10,12 @@ MODE=""
 
 init_constants() {
     SCRIPT_NAME="$(basename "$0")"
-    LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
-    AGENT_PLIST="${HOME}/Library/LaunchAgents/com.github.colima.nix.plist"
+    if command -v flock >/dev/null 2>&1; then
+        LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
+    else
+        LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock.d"
+    fi
+    AGENT_PLIST="${HOME}/Library/LaunchAgents/org.nix-community.home.colima.plist"
 }
 
 # Functions
@@ -107,14 +111,24 @@ clean_state() {
 }
 
 run_daemon() {
-    # Use proper file locking
-    exec 9>"${LOCK_FILE}"
-    if ! flock -n 9; then
-        log_error "Another instance is running for profile ${PROFILE}"
-        exit 1
+    # Try to use flock if available, otherwise fallback to mkdir
+    if command -v flock >/dev/null 2>&1; then
+        # Use flock for locking
+        exec 9>"${LOCK_FILE}"
+        if ! flock -n 9; then
+            log_error "Another instance is running for profile ${PROFILE}"
+            exit 1
+        fi
+        trap 'flock -u 9' EXIT
+    else
+        # Fallback to mkdir for locking
+        if ! mkdir "${LOCK_FILE}" 2>/dev/null; then
+            log_error "Another instance is running for profile ${PROFILE}"
+            exit 1
+        fi
+        trap 'rm -rf "${LOCK_FILE}"' EXIT
     fi
 
-    trap 'flock -u 9' EXIT
     trap 'stop_colima; exit 0' TERM INT QUIT
 
     state=$(check_state)
