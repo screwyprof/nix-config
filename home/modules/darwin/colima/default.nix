@@ -25,12 +25,13 @@ in
 
     activation = {
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        # Set up PATH to include necessary binaries
-        export PATH="/usr/bin:/usr/sbin:${lib.makeBinPath [
+        # Set up PATH to include GNU coreutils first
+        export PATH="${lib.makeBinPath [
+          pkgs.coreutils    # Make sure GNU coreutils comes first
+          pkgs.findutils    # GNU find
           pkgs.colima
           pkgs.docker
-          pkgs.coreutils
-        ]}:$PATH"
+        ]}:/usr/bin:/usr/sbin:$PATH"
 
         echo "Checking initial state..."
         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
@@ -43,12 +44,13 @@ in
       '';
 
       loadColimaAgent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        # Set up PATH to include necessary binaries
-        export PATH="/usr/bin:/usr/sbin:${lib.makeBinPath [
+        # Set up PATH to include GNU coreutils first
+        export PATH="${lib.makeBinPath [
+          pkgs.coreutils    # Make sure GNU coreutils comes first
+          pkgs.findutils    # GNU find
           pkgs.colima
           pkgs.docker
-          pkgs.coreutils
-        ]}:$PATH"
+        ]}:/usr/bin:/usr/sbin:$PATH"
         
         if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
           echo "Loading Colima agent..."
