@@ -4,7 +4,7 @@
       colima
     ];
 
-    activation.createColimaConfigs = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    activation.createColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       # Create directories
       $DRY_RUN_CMD mkdir -p ~/.colima/docker ~/.colima/k8s
 
@@ -83,4 +83,4 @@
       fi
     '';
   };
-} 
+}
