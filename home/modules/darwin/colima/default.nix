@@ -16,10 +16,21 @@ in
       ".local/bin/colima-wrapper.sh" = {
         executable = true;
         source = ./scripts/colima-wrapper.sh;
+        onChange = ''
+          echo "Colima wrapper updated!"
+          ${pkgs.shellcheck}/bin/shellcheck "$HOME/.local/bin/colima-wrapper.sh" || true
+        '';
       };
     };
 
     activation = {
+      debugColima = lib.hm.dag.entryBefore [ "cleanupColima" ] ''
+        echo "Debug: Checking colima wrapper..."
+        ls -l ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh || true
+        echo "Debug: Checking shellcheck..."
+        which shellcheck || true
+      '';
+
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         echo "Checking initial state..."
         ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
