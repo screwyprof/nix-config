@@ -16,20 +16,25 @@ in
 
     # Create actual config files, not nix symlinks
     activation.copyColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      # First stop and unload the agent if it exists
-      if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
+      # Case 1: Fresh system - nothing to clean
+      # Case 2 & 3: Existing colima needs cleanup
+      # Case 4: Running agent without colima needs cleanup
+
+      # Check and stop agent if running
+      if /bin/launchctl list | grep -q "com.github.colima.nix"; then
         echo "Stopping existing Colima agent..."
         $DRY_RUN_CMD /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
       fi
 
-      # Clean up existing Colima state
-      echo "Cleaning up Colima state..."
+      # Check and stop colima if running
       if ${pkgs.colima}/bin/colima status >/dev/null 2>&1; then
+        echo "Stopping running Colima instance..."
         $DRY_RUN_CMD ${pkgs.colima}/bin/colima stop -f || true
       fi
 
-      # Remove colima home directory if it exists
+      # Clean up colima directory if exists
       if [ -n "${config.home.homeDirectory}/.colima" ] && [ -d "${config.home.homeDirectory}/.colima" ]; then
+        echo "Cleaning up Colima state..."
         $DRY_RUN_CMD rm -rf "${config.home.homeDirectory}/.colima"
       fi
 
