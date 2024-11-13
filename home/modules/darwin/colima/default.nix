@@ -16,13 +16,30 @@ in
 
     # Create actual config files, not nix symlinks
     activation.copyColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      # First stop and unload the agent if it exists
+      if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
+        echo "Stopping existing Colima agent..."
+        $DRY_RUN_CMD /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
+      fi
+
+      # Clean up existing Colima state
+      echo "Cleaning up Colima state..."
+      if ${pkgs.colima}/bin/colima status >/dev/null 2>&1; then
+        $DRY_RUN_CMD ${pkgs.colima}/bin/colima stop -f || true
+      fi
+
+      # Remove colima home directory if it exists
+      if [ -n "${config.home.homeDirectory}/.colima" ] && [ -d "${config.home.homeDirectory}/.colima" ]; then
+        $DRY_RUN_CMD rm -rf "${config.home.homeDirectory}/.colima"
+      fi
+
+      # Create fresh config
+      echo "Creating fresh Colima config..."
       $DRY_RUN_CMD mkdir -p ~/.colima/docker ~/.colima/k8s
       
-      $DRY_RUN_CMD rm -f ~/.colima/docker/colima.yaml
       $DRY_RUN_CMD cp ${./configs/docker.yaml} ~/.colima/docker/colima.yaml
       $DRY_RUN_CMD chmod 644 ~/.colima/docker/colima.yaml
       
-      $DRY_RUN_CMD rm -f ~/.colima/k8s/colima.yaml
       $DRY_RUN_CMD cp ${./configs/k8s.yaml} ~/.colima/k8s/colima.yaml
       $DRY_RUN_CMD chmod 644 ~/.colima/k8s/colima.yaml
     '';
