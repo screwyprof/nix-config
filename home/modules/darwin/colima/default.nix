@@ -1,7 +1,6 @@
 { config, lib, pkgs, ... }:
 
 let
-  # Default profile configuration
   defaultProfile = "docker";
 in
 {
@@ -10,65 +9,23 @@ in
       colima
     ];
 
+    file = {
+      ".local/bin/colima-wrapper.sh" = {
+        executable = true;
+        source = ./scripts/colima-wrapper.sh;
+      };
+      # Install configs directly to where they'll be used
+      ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
+      ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
+    };
+
     activation.createColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      # First stop and unload the agent if it exists
+      # Stop and unload the agent if it exists
       if [ -f ~/Library/LaunchAgents/com.github.colima.nix.plist ]; then
+        echo "Stopping existing Colima agent..."
         $DRY_RUN_CMD /bin/launchctl bootout gui/$UID/com.github.colima.nix || true
       fi
-
-      # Create directories
-      $DRY_RUN_CMD mkdir -p ~/.colima/docker ~/.colima/k8s
-
-      # Docker profile
-      rm -rf ~/.colima/docker/colima.yaml
-      $DRY_RUN_CMD cat ${./configs/docker.yaml} > ~/.colima/docker/colima.yaml
-
-      # K8s profile
-      rm -rf ~/.colima/k8s/colima.yaml
-      $DRY_RUN_CMD cat ${./configs/k8s.yaml} > ~/.colima/k8s/colima.yaml
-
-      # Set proper permissions
-      $DRY_RUN_CMD chmod 644 ~/.colima/docker/colima.yaml ~/.colima/k8s/colima.yaml
     '';
-
-    file.".local/bin/colima-wrapper.sh" = {
-      executable = true;
-      text = ''
-        #!/bin/sh
-        
-        PROFILE=''${COLIMA_PROFILE:-${defaultProfile}}
-        
-        cleanup() {
-          ${pkgs.docker}/bin/docker context use default || true
-          ${pkgs.colima}/bin/colima stop -f -p $PROFILE
-          exit 0
-        }
-        
-        trap cleanup SIGTERM SIGINT SIGQUIT
-
-        # Ensure profile exists before starting
-        if [ ! -f "$COLIMA_HOME/$PROFILE/colima.yaml" ]; then
-          echo "Error: Profile config not found at $COLIMA_HOME/$PROFILE/colima.yaml"
-          exit 1
-        fi
-
-        # Start Colima
-        ${pkgs.colima}/bin/colima --verbose -p $PROFILE start
-
-        # Check if it started successfully
-        sleep 5
-
-        if ! ${pkgs.colima}/bin/colima status -p $PROFILE; then
-          echo "Failed to start Colima with profile $PROFILE"
-          exit 1
-        fi
-
-        # Keep the process running to handle signals
-        while true; do
-          sleep 1
-        done
-      '';
-    };
   };
 
   launchd.agents.colima = {
@@ -105,24 +62,13 @@ in
 
   programs.zsh = {
     shellAliases = {
-      # Profile-agnostic commands
       cstart = "colima start -p";
       cstop = "colima stop -p";
       cstatus = "colima status -p";
       cdelete = "colima delete -p";
       clist = "colima list";
-      clog = "tail -f ~/.colima/colima.log | bat --paging=never -l log";
-      clogerr = "tail -f ~/.colima/colima.error.log | bat --paging=never -l log";
+      clog = "tail -f ~/.colima/colima.log";
+      clogerr = "tail -f ~/.colima/colima.error.log";
     };
-
-    initExtra = ''
-      # More robust Docker context handling
-      if command -v docker >/dev/null 2>&1; then
-        if [ -S "$HOME/.colima/''${COLIMA_PROFILE:-${defaultProfile}}/docker.sock" ] && \
-           docker info >/dev/null 2>&1; then
-          docker context use colima-''${COLIMA_PROFILE:-${defaultProfile}} >/dev/null 2>&1
-        fi
-      fi
-    '';
   };
 }
