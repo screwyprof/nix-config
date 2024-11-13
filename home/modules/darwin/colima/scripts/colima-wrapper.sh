@@ -27,8 +27,6 @@ echo "DEBUG: PROFILE='$PROFILE' MODE='$MODE'"
 LOCK_FILE="/tmp/colima-${PROFILE}.lock"
 AGENT_PLIST="${HOME}/Library/LaunchAgents/com.github.colima.nix.plist"
 
-MODE=${2:-help}
-
 # Add debug output
 echo "DEBUG: MODE='$MODE'"
 
