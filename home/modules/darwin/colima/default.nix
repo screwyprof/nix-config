@@ -53,7 +53,7 @@ in
   launchd.agents.colima = {
     enable = true;
     config = {
-      #Label = "org.nix-community.home.colima";
+      Label = "org.nix-community.home.colima";
       ProgramArguments = [
         "${config.home.homeDirectory}/.local/bin/colima-wrapper.sh"
         "${defaultProfile}"
