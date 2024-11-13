@@ -16,7 +16,17 @@ in
         executable = true;
         source = ./scripts/colima-wrapper.sh;
       };
+      ".local/bin/colima-state.sh" = {
+        executable = true;
+        source = ./scripts/colima-state.sh;
+      };
     };
+
+    # Add activation script to check/fix state
+    activation.checkColimaState = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      echo "Checking Colima state..."
+      $DRY_RUN_CMD ${config.home.homeDirectory}/.local/bin/colima-state.sh ${defaultProfile}
+    '';
   };
 
   launchd.agents.colima = {
@@ -59,5 +69,6 @@ in
     clist = "colima list";
     clog = "tail -f ~/.colima/colima.log";
     clogerr = "tail -f ~/.colima/colima.error.log";
+    cfix = "colima-state.sh";
   };
 }

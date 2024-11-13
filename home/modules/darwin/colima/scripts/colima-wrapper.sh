@@ -1,10 +1,46 @@
 #!/bin/sh
 
-PROFILE=${COLIMA_PROFILE:-docker}
+PROFILE=${1:-$COLIMA_PROFILE}
+PROFILE=${PROFILE:-docker}
 LOCK_FILE="/tmp/colima-${PROFILE}.lock"
+AGENT_PLIST="${HOME}/Library/LaunchAgents/com.github.colima.nix.plist"
 
-cleanup() {
-  rm -rf "$LOCK_FILE"
+# Operation modes:
+# daemon: run as agent daemon (default when no args)
+# start: start colima
+# stop: stop colima
+# status: check status
+MODE=${2:-daemon}
+
+check_state() {
+  # Check if colima is running
+  COLIMA_RUNNING=0
+  if colima status -p $PROFILE >/dev/null 2>&1; then
+    COLIMA_RUNNING=1
+  fi
+
+  # Check if agent plist exists
+  AGENT_EXISTS=0
+  if [ -f "$AGENT_PLIST" ]; then
+    AGENT_EXISTS=1
+  fi
+
+  # Check if agent is loaded
+  AGENT_LOADED=0
+  if /bin/launchctl list | grep -q "com.github.colima.nix"; then
+    AGENT_LOADED=1
+  fi
+
+  echo "State: Colima=$COLIMA_RUNNING Agent_exists=$AGENT_EXISTS Agent_loaded=$AGENT_LOADED"
+  
+  # Return state for external use
+  echo "$COLIMA_RUNNING:$AGENT_EXISTS:$AGENT_LOADED"
+}
+
+start_colima() {
+  echo "Starting Colima..."
+  colima --verbose -p $PROFILE start --save-config=false
+  wait_for_colima start
 }
 
 stop_colima() {
@@ -14,43 +50,76 @@ stop_colima() {
   wait_for_colima stop
 }
 
-# Ensure lock is removed on any exit
-trap cleanup EXIT
-
-# Handle termination signals
-trap 'stop_colima; exit 0' SIGTERM SIGINT SIGQUIT
-
-# Try to acquire lock
-if ! mkdir "$LOCK_FILE" 2>/dev/null; then
-  echo "Another instance is running for profile $PROFILE"
-  # Monitor the lock file
-  while [ -d "$LOCK_FILE" ]; do
+wait_for_colima() {
+  local action=$1
+  local timeout=30
+  
+  for i in $(seq 1 $timeout); do
+    case $action in
+      "start")
+        if colima status -p $PROFILE >/dev/null 2>&1; then
+          return 0
+        fi
+        ;;
+      "stop")
+        if ! colima status -p $PROFILE >/dev/null 2>&1; then
+          return 0
+        fi
+        ;;
+    esac
+    echo "Waiting for Colima to $action... ($i/$timeout)"
     sleep 1
   done
-  exit 0
-fi
+  return 1
+}
 
-# Check if already running
-if colima status -p $PROFILE >/dev/null 2>&1; then
-  echo "Colima already running for profile $PROFILE"
-  # Keep the process running to handle signals
+cleanup() {
+  rm -rf "$LOCK_FILE"
+}
+
+run_daemon() {
+  # Try to acquire lock
+  if ! mkdir "$LOCK_FILE" 2>/dev/null; then
+    echo "Another instance is running for profile $PROFILE"
+    while [ -d "$LOCK_FILE" ]; do
+      sleep 1
+    done
+    exit 0
+  fi
+
+  trap cleanup EXIT
+  trap 'stop_colima; exit 0' SIGTERM SIGINT SIGQUIT
+
+  STATE=$(check_state)
+  COLIMA_RUNNING=$(echo "$STATE" | cut -d: -f1)
+
+  if [ "$COLIMA_RUNNING" = "1" ]; then
+    echo "Colima already running for profile $PROFILE"
+  else
+    start_colima
+  fi
+
+  # Keep running to handle signals
   while true; do
     sleep 1
   done
-fi
+}
 
-# Start Colima
-echo "Starting Colima..."
-colima --verbose -p $PROFILE start --save-config=false
-
-if ! wait_for_colima start; then
-  echo "Failed to start Colima"
-  exit 1
-fi
-
-echo "Colima started successfully"
-
-# Keep the process running to handle signals
-while true; do
-  sleep 1
-done 
+case "$MODE" in
+  "daemon")
+    run_daemon
+    ;;
+  "start")
+    start_colima
+    ;;
+  "stop")
+    stop_colima
+    ;;
+  "status")
+    check_state
+    ;;
+  *)
+    echo "Unknown mode: $MODE"
+    exit 1
+    ;;
+esac 
