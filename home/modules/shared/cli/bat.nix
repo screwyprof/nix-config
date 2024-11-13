@@ -22,7 +22,8 @@
     prettybat
   ];
 
-  programs.zsh.shellAliases = {
+  programs.zsh {
+  shellAliases = {
     # Plain cat replacement (no styling, no paging)
     cat = "bat --plain --paging=never";
 
@@ -39,4 +40,17 @@
     batman = "${pkgs.bat-extras.batman}/bin/batman";
     prettybat = "${pkgs.bat-extras.prettybat}/bin/prettybat";
   };
+
+  initBatFunctions = ''
+    # Enhanced tail -f with bat
+    tail() {
+      if [[ "$1" == "-f" ]]; then
+        command tail "$@" | bat --paging=never -l log
+      else
+        command tail "$@"
+      fi
+    }
+  '';
+}
+
 }

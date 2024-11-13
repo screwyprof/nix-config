@@ -1,4 +1,10 @@
-{ config, lib, pkgs, ... }: {
+{ config, lib, pkgs, ... }:
+
+let
+  # Default profile configuration
+  defaultProfile = "docker";
+in
+{
   home = {
     packages = with pkgs; [
       colima
@@ -25,36 +31,35 @@
       $DRY_RUN_CMD chmod 644 ~/.colima/docker/colima.yaml ~/.colima/k8s/colima.yaml
     '';
 
-    # Create a wrapper script for colima start/stop
     file.".local/bin/colima-wrapper.sh" = {
       executable = true;
       text = ''
         #!/bin/sh
         
+        PROFILE=''${COLIMA_PROFILE:-${defaultProfile}}
+        
         cleanup() {
-          # Switch to default context before stopping
           ${pkgs.docker}/bin/docker context use default || true
-          ${pkgs.colima}/bin/colima stop -f -p docker
+          ${pkgs.colima}/bin/colima stop -f -p $PROFILE
           exit 0
         }
         
         trap cleanup SIGTERM SIGINT SIGQUIT
 
         # Ensure profile exists before starting
-        if [ ! -f "$COLIMA_HOME/docker/colima.yaml" ]; then
-          echo "Error: Docker profile config not found at $COLIMA_HOME/docker/colima.yaml"
+        if [ ! -f "$COLIMA_HOME/$PROFILE/colima.yaml" ]; then
+          echo "Error: Profile config not found at $COLIMA_HOME/$PROFILE/colima.yaml"
           exit 1
         fi
 
         # Start Colima
-        ${pkgs.colima}/bin/colima --very-verbose -p docker start
-
+        ${pkgs.colima}/bin/colima --verbose -p $PROFILE start
 
         # Check if it started successfully
         sleep 5
 
-        if ! ${pkgs.colima}/bin/colima status -p docker; then
-          echo "Failed to start Colima"
+        if ! ${pkgs.colima}/bin/colima status -p $PROFILE; then
+          echo "Failed to start Colima with profile $PROFILE"
           exit 1
         fi
 
@@ -79,6 +84,7 @@
       EnvironmentVariables = {
         HOME = "${config.home.homeDirectory}";
         COLIMA_HOME = "${config.home.homeDirectory}/.colima";
+        COLIMA_PROFILE = defaultProfile;
         PATH = lib.concatStringsSep ":" [
           "/usr/bin"
           "/usr/sbin"
@@ -99,27 +105,22 @@
 
   programs.zsh = {
     shellAliases = {
-      # Default profile commands (Docker)
-      cstart = "colima start -p docker";
-      cstop = "colima stop -p docker";
-      cstatus = "colima status -p docker";
+      # Profile-agnostic commands
+      cstart = "colima start -p";
+      cstop = "colima stop -p";
+      cstatus = "colima status -p";
       cdelete = "colima delete -p";
       clist = "colima list";
-      clog = "bat -f ~/.colima/colima.log";
-      clogerr = "bat -f ~/.colima/colima.error.log";
-
-      # K8s profile commands
-      ckstart = "colima start -p k8s";
-      ckstop = "colima stop -p k8s";
-      ckstatus = "colima status -p k8s";
-      ckdelete = "colima delete -p k8s";
+      clog = "tail -f ~/.colima/colima.log | bat --paging=never -l log";
+      clogerr = "tail -f ~/.colima/colima.error.log | bat --paging=never -l log";
     };
 
     initExtra = ''
       # More robust Docker context handling
       if command -v docker >/dev/null 2>&1; then
-        if [ -S "$HOME/.colima/docker/docker.sock" ] && docker info >/dev/null 2>&1; then
-          docker context use colima-docker >/dev/null 2>&1
+        if [ -S "$HOME/.colima/''${COLIMA_PROFILE:-${defaultProfile}}/docker.sock" ] && \
+           docker info >/dev/null 2>&1; then
+          docker context use colima-''${COLIMA_PROFILE:-${defaultProfile}} >/dev/null 2>&1
         fi
       fi
     '';
