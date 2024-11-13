@@ -86,20 +86,17 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
+                backupFileExtension = "bak";
                 extraSpecialArgs = {
                   inherit inputs devUser;
-                  isDarwin = builtins.match ".*-darwin" system != null;
+                  isDarwin = true;
                 };
-                backupFileExtension = "bak";
-                # Configure multiple users
-                users = builtins.listToAttrs (map
-                  (username: {
-                    name = username;
-                    value = { pkgs, ... }: {
-                      imports = [ ./home/users/darwin/${username} ];
-                    };
-                  })
-                  users);
+                users = builtins.listToAttrs (map (username: {
+                  name = username;
+                  value = { pkgs, ... }: {
+                    imports = [ ./home/users/darwin/${username} ];
+                  };
+                }) users);
               };
             }
           ];
