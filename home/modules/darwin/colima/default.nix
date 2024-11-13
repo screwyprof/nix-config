@@ -40,6 +40,7 @@
         HOME = "${config.home.homeDirectory}";
         PATH = lib.makeBinPath [
           "/usr"
+          "/usr/sbin"
           pkgs.coreutils
           pkgs.which
           pkgs.docker

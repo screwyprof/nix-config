@@ -57,7 +57,7 @@ network:
   # Assign reachable IP address to the virtual machine.
   # NOTE: this is currently macOS only and ignored on Linux.
   # Default: false
-  address: "unix://${config.home.homeDirectory}/.colima/docker/docker.sock"
+  address: "unix://~/.colima/docker/docker.sock"
   
   # Custom DNS resolvers for the virtual machine.
   #
