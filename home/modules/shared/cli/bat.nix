@@ -30,7 +30,6 @@
     history = "history 0 | tail -n 80 | tac | awk '{$1=\"\"; print substr($0,2)}' | bat --file-name 'Shell History' --language=bash";
 
     # Other aliases
-    man = "${pkgs.bat-extras.batman}/bin/batman";
     diff = "${pkgs.bat-extras.batdiff}/bin/batdiff";
     rg = "${pkgs.ripgrep}/bin/rg --hidden --glob '!.git'";
 
