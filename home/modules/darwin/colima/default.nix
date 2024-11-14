@@ -7,7 +7,7 @@ let
 
   # Required packages for the PATH
   requiredPackages = with pkgs; [
-    coreutils
+    #coreutils
     findutils
     flock
     bash
