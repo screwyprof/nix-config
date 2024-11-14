@@ -54,17 +54,24 @@ in
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         export PATH="${paths.systemPath}:$PATH"
 
-        verboseEcho "Checking agent status..."
         if /bin/launchctl list "${agent.label}" >/dev/null 2>&1; then
-          verboseEcho "Agent exists, removing..."
+          verboseEcho "Colima agent exists, removing..."
           run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
           run /bin/launchctl remove "${agent.label}" 2>/dev/null || true
-
-          verboseEcho "Cleaning up Colima..."
-          run "${paths.wrapperScript}" ${defaultProfile} clean
         else
-          verboseEcho "No existing agent found"
+          verboseEcho "No existing colima agent found"
         fi
+
+        verboseEcho "Cleaning up Colima..."
+        run "${paths.wrapperScript}" ${defaultProfile} clean
+      '';
+
+      # Ensure the agent is loaded after setup
+      activation.setupColimaAgent = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+        verboseEcho "Bootstrapping Colima agent..."
+        run /bin/launchctl bootstrap gui/$UID "${agent.plist}" || {
+          verboseEcho "Failed to bootstrap agent"
+        }
       '';
     };
 
