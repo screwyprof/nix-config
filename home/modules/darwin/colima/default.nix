@@ -5,11 +5,14 @@ let
   defaultProfile = "docker";
   homeDir = config.home.homeDirectory;
 
+  # Create the wrapper script
+  wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
+
   # Centralize paths
   paths = {
     logDir = "${homeDir}/.colima/${defaultProfile}";
     configDir = "${homeDir}/.colima";
-    wrapperScript = "${homeDir}/.local/bin/colima-wrapper.sh";
+    wrapperScript = lib.getExe wrapperScript;
   };
 
   # LaunchAgent configuration
@@ -39,16 +42,10 @@ let
     COLIMA_LOG_SIZE = "10M";
     PATH = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin";
   };
-
-  # Create the wrapper script
-  wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
 in
 {
   home = {
-    packages = with pkgs; [
-      colima
-      wrapperScript
-    ];
+    packages = [ pkgs.colima wrapperScript ];
 
     # File management
     file = {
