@@ -7,8 +7,8 @@ readonly PROFILE="${1:-unknown}"
 readonly CMD="${2:-help}"
 readonly LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
 
-readonly SCRIPT_NAME
-SCRIPT_NAME="$(basename "$0")"
+_script_name="$(basename "$0")"
+readonly SCRIPT_NAME="${_script_name}"
 
 docker() {
     command docker "${VERBOSE_ARG:-}" "$@"
