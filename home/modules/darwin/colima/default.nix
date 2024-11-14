@@ -8,10 +8,8 @@ let
   # Required packages for the PATH
   requiredPackages = with pkgs; [
     coreutils
-    #findutils
-    #gnugrep
+    findutils
     flock
-    #util-linux    # for flock
     bash
     docker
     colima
