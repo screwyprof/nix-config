@@ -16,11 +16,6 @@
 
     # Darwin-specific configurations
     activationScripts.postActivation.text = ''
-    echo "Debug: darwin-rebuild flags:"
-    echo "HOME_MANAGER_VERBOSE=$HOME_MANAGER_VERBOSE"
-    echo "VERBOSE=$VERBOSE"
-    echo "DRY_RUN=$DRY_RUN"
-
       # Install Command Line Tools
       if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
         touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress

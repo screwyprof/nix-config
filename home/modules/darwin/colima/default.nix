@@ -54,18 +54,8 @@ in
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         export PATH="${paths.systemPath}:$PATH"
 
-        # Debug output for all environment variables
-        echo "Debug: All environment variables:"
-        env | sort
-
         # Set verbose mode based on VERBOSE_ARG
-        [[ -n "$VERBOSE_ARG" ]] && export VERBOSE=1
-
-        # Debug output for variables
-        echo "Debug: VERBOSE_ARG = ''${VERBOSE_ARG:-<unset>}"
-        echo "Debug: VERBOSE value = ''${VERBOSE:-<unset>}"
-        echo "Debug: DRY_RUN value = ''${DRY_RUN:-<unset>}"
-        echo "Debug: HOME_MANAGER_VERBOSE = ''${HOME_MANAGER_VERBOSE:-<unset>}"
+        #[[ -n "$VERBOSE_ARG" ]] && export VERBOSE=1
 
         verboseEcho "Unloading existing Colima agent..."
         run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
