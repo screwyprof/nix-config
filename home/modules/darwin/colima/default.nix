@@ -54,15 +54,11 @@ in
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         export PATH="${paths.systemPath}:$PATH"
 
-        # Set verbose mode based on VERBOSE_ARG
-        #[[ -n "$VERBOSE_ARG" ]] && export VERBOSE=1
-
         verboseEcho "Unloading existing Colima agent..."
         run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
-        run rm --verbose -f "${agent.plist}" || true
 
         verboseEcho "Cleaning up Colima..."
-        run env "VERBOSE=''${VERBOSE:-}" "${paths.wrapperScript}" ${defaultProfile} clean
+        run "${paths.wrapperScript}" ${defaultProfile} clean
       '';
     };
 
