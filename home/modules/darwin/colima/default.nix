@@ -52,8 +52,8 @@ in
 
       # Activation script
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        echo "Activation Debug: VERBOSE_ARG=${VERBOSE_ARG:-}"
-        echo "Activation Debug: DRY_RUN_CMD=${DRY_RUN_CMD:-}"
+        echo "Activation Debug: VERBOSE_ARG=''${VERBOSE_ARG:-}"
+        echo "Activation Debug: DRY_RUN_CMD=''${DRY_RUN_CMD:-}"
         
         export PATH="${paths.systemPath}:$PATH"
 
