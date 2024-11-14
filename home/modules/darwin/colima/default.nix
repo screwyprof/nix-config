@@ -75,7 +75,9 @@ in
         RunAtLoad = true;
         StandardOutPath = "${paths.logDir}/colima.log";
         StandardErrorPath = "${paths.logDir}/colima.error.log";
-        EnvironmentVariables = envVars;
+        EnvironmentVariables = envVars // {
+          VERBOSE_ARG = "--verbose";  # Always run daemon in verbose mode
+        };
         KeepAlive = {
           Crashed = true;
           SuccessfulExit = false;
