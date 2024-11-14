@@ -27,9 +27,7 @@ let
     findutils
     gnugrep
     flock
-    #gettext
     bash
-    #nix
     docker
     colima
   ];
@@ -41,7 +39,6 @@ let
     COLIMA_PROFILE = defaultProfile;
     COLIMA_LOG_ROTATE = "true";
     COLIMA_LOG_SIZE = "10M";
-    PATH = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin";
   };
 in
 {
@@ -56,7 +53,7 @@ in
 
     # Activation script
     activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      export PATH="${envVars.PATH}"
+      export PATH="${lib.makeBinPath requiredPackages}:/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
 
       echo "Checking initial state..."
       "${paths.wrapperScript}" ${defaultProfile} status
