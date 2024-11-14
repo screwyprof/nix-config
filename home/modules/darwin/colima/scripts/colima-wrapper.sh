@@ -3,6 +3,11 @@ set -euo pipefail
 
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
+readonly VERBOSE="${VERBOSE:-}"  # Get VERBOSE from environment, empty if not set
+
+# Create aliases for commands with verbose flag
+alias docker="docker ${VERBOSE:+--verbose}"
+alias colima="colima ${VERBOSE:+--verbose} -p ${PROFILE:-unknown}"
 
 # Variables - initialized after argument checking
 declare SCRIPT_NAME=""
@@ -22,12 +27,17 @@ log_error() { log "ERROR" "$@"; }
 
 # Helper functions
 is_colima_running() {
-    colima status -p "${PROFILE}" >/dev/null 2>&1
+    if [[ -n "${VERBOSE}" ]]; then
+        colima status
+    else
+        colima status >/dev/null 2>&1
+    fi
 }
 
 init_constants() {
     SCRIPT_NAME="$(basename "$0")"
     LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
+    [[ -n "${VERBOSE}" ]] && log_info "Initialized constants: SCRIPT_NAME=${SCRIPT_NAME}, LOCK_FILE=${LOCK_FILE}"
 }
 
 acquire_lock() {
@@ -86,21 +96,21 @@ wait_for_colima() {
 
 start_colima() {
     log_info "Starting Colima..."
-    colima --verbose -p "${PROFILE}" start --save-config=false
+    colima start --save-config=false
     wait_for_colima start
 }
 
 stop_colima() {
     log_info "Stopping Colima..."
     docker context use default >/dev/null 2>&1 || true
-    colima stop -p "${PROFILE}"
+    colima stop
     wait_for_colima stop
 }
 
 clean_state() {
     log_info "Cleaning Colima state..."
     stop_colima || true
-    colima delete -p "${PROFILE}" -f || true
+    colima delete -f || true
     log_info "Cleanup complete"
 }
 

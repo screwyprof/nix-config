@@ -40,64 +40,72 @@ let
   };
 in
 {
-  home = {
-    packages = [ pkgs.colima wrapperScript ];
+  config = {
+    home = {
+      packages = [ pkgs.colima wrapperScript ];
 
-    # File management
-    file = {
-      ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
-      ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
-    };
-
-    # Activation script
-    activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      export PATH="${paths.systemPath}:$PATH"
-
-      echo "Unloading existing Colima agent..."
-      /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
-      rm -f "${agent.plist}" || true
-
-      echo "Cleaning up Colima..."
-      "${paths.wrapperScript}" ${defaultProfile} clean
-    '';
-  };
-
-  launchd.agents.colima = {
-    enable = true;
-    config = {
-      Label = agent.label;
-      ProgramArguments = [
-        paths.wrapperScript
-        defaultProfile
-        "daemon"
-      ];
-      RunAtLoad = true;
-      StandardOutPath = "${paths.logDir}/colima.log";
-      StandardErrorPath = "${paths.logDir}/colima.error.log";
-      EnvironmentVariables = envVars;
-      KeepAlive = {
-        Crashed = true;
-        SuccessfulExit = false;
+      # File management
+      file = {
+        ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
+        ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
       };
-      ThrottleInterval = 30;
-      # Additional recommended LaunchAgent settings
-      ProcessType = "Interactive";
-      LimitLoadToSessionType = "Aqua";
-      Nice = 0;
-    };
-  };
 
-  programs.zsh.shellAliases =
-    let
-      mkColimaAlias = cmd: "colima ${cmd} -p";
-    in
-    {
-      cstart = mkColimaAlias "start";
-      cstop = mkColimaAlias "stop";
-      cstatus = mkColimaAlias "status";
-      cdelete = mkColimaAlias "delete";
-      clist = "colima list";
-      clog = "tail -f ${paths.logDir}/colima.log";
-      clogerr = "tail -f ${paths.logDir}/colima.error.log";
+      # Activation script
+      activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        ${lib.optionalString "$VERBOSE" ''
+          set -x
+          echo "PATH: $PATH"
+          echo "Running in verbose mode"
+        ''}
+
+        export PATH="${paths.systemPath}:$PATH"
+
+        $DRY_RUN_CMD echo "Unloading existing Colima agent..."
+        $DRY_RUN_CMD /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
+        $DRY_RUN_CMD rm $VERBOSE -f "${agent.plist}" || true
+
+        $DRY_RUN_CMD echo "Cleaning up Colima..."
+        $DRY_RUN_CMD "${paths.wrapperScript}" ${defaultProfile} clean
+      '';
     };
+
+    launchd.agents.colima = {
+      enable = true;
+      config = {
+        Label = agent.label;
+        ProgramArguments = [
+          paths.wrapperScript
+          defaultProfile
+          "daemon"
+        ];
+        RunAtLoad = true;
+        StandardOutPath = "${paths.logDir}/colima.log";
+        StandardErrorPath = "${paths.logDir}/colima.error.log";
+        EnvironmentVariables = envVars;
+        KeepAlive = {
+          Crashed = true;
+          SuccessfulExit = false;
+        };
+        ThrottleInterval = 30;
+        # Additional recommended LaunchAgent settings
+        ProcessType = "Interactive";
+        LimitLoadToSessionType = "Aqua";
+        Nice = 0;
+      };
+    };
+
+    programs.zsh.shellAliases =
+      let
+        mkColimaAlias = cmd: "colima ${cmd} -p";
+      in
+      {
+        cstart = mkColimaAlias "start";
+        cstop = mkColimaAlias "stop";
+        cstatus = mkColimaAlias "status";
+        cdelete = mkColimaAlias "delete";
+        clist = "colima list";
+        clog = "tail -f ${paths.logDir}/colima.log";
+        clogerr = "tail -f ${paths.logDir}/colima.error.log";
+      };
+  };
 }
