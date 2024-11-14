@@ -19,7 +19,7 @@ let
   wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
 
   paths = {
-    logDir = "${homeDir}/.colima/${defaultProfile}";
+    profileDir = "${homeDir}/.colima/${defaultProfile}";
     configDir = "${homeDir}/.colima";
     wrapperScript = lib.getExe wrapperScript;
     systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin:/bin:/sbin";
@@ -54,11 +54,17 @@ in
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         export PATH="${paths.systemPath}:$PATH"
 
-        verboseEcho "Unloading existing Colima agent..."
-        run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
+        verboseEcho "Checking agent status..."
+        if /bin/launchctl list "${agent.label}" >/dev/null 2>&1; then
+          verboseEcho "Agent exists, removing..."
+          run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
+          run /bin/launchctl remove "${agent.label}" 2>/dev/null || true
 
-        verboseEcho "Cleaning up Colima..."
-        run "${paths.wrapperScript}" ${defaultProfile} clean
+          verboseEcho "Cleaning up Colima..."
+          run "${paths.wrapperScript}" ${defaultProfile} clean
+        else
+          verboseEcho "No existing agent found"
+        fi
       '';
     };
 
@@ -72,8 +78,9 @@ in
           "daemon"
         ];
         RunAtLoad = true;
-        StandardOutPath = "${paths.logDir}/colima.log";
-        StandardErrorPath = "${paths.logDir}/colima.error.log";
+        WorkingDirectory = paths.configDir;
+        StandardOutPath = "${paths.profileDir}/colima.log";
+        StandardErrorPath = "${paths.profileDir}/colima.error.log";
         KeepAlive = {
           Crashed = true;
           SuccessfulExit = false;
@@ -96,8 +103,8 @@ in
         cstatus = mkColimaAlias "status";
         cdelete = mkColimaAlias "delete";
         clist = "colima list";
-        clog = "tail -f ${paths.logDir}/colima.log";
-        clogerr = "tail -f ${paths.logDir}/colima.error.log";
+        clog = "tail -f ${paths.profileDir}/colima.log";
+        clogerr = "tail -f ${paths.profileDir}/colima.error.log";
       };
   };
 }
