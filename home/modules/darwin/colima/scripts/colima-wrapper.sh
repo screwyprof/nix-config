@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
-readonly VERBOSE_FLAG="$([[ -v VERBOSE ]] && [[ $VERBOSE -eq 1 ]] && echo '--verbose')"
+readonly VERBOSE_FLAG="${VERBOSE_ARG:+--verbose}"
 readonly PROFILE="${1:-unknown}"
 readonly CMD="${2:-help}"
 
