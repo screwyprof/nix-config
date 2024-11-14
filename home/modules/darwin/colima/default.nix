@@ -29,6 +29,7 @@ let
       pkgs.gnugrep
       pkgs.gettext
       pkgs.bash
+      pkgs.nix
       pkgs.docker
       pkgs.colima
     ] + ":/usr/bin:/usr/sbin";  # System commands from macOS
@@ -48,6 +49,7 @@ in
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         export PATH="${envVars.PATH}"
 
+        echo "PATH: $PATH"
         echo "Checking initial state..."
         "${paths.wrapperScript}" ${defaultProfile} status
 
