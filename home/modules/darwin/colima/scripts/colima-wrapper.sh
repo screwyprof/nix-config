@@ -101,7 +101,7 @@ stop_colima() {
     log_info "Stopping Colima..."
     if is_colima_running; then
         docker context use default >/dev/null 2>&1 || true
-        colima stop
+        colima stop 2>/dev/null || true
         wait_for_colima stop
     else
         log_info "Colima is not running, no need to stop"
