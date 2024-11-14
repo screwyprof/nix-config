@@ -1,49 +1,138 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# Strict mode
 set -euo pipefail
+set -E  # inherit ERR trap by shell functions
 
-echo "Debug: Starting script with PROFILE=${1:-unknown} CMD=${2:-help}" >&2
-
-# Constants and defaults
-readonly DEFAULT_TIMEOUT=30
+# Constants - General
+SCRIPT_NAME="$(basename "$0")"
+readonly SCRIPT_NAME
 readonly PROFILE="${1:-unknown}"
 readonly CMD="${2:-help}"
-readonly LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
+readonly LOCK_FILE="/tmp/colima-${PROFILE}.lock"
+readonly LOG_PREFIX="colima-wrapper[$$]"
 
-_script_name="$(basename "$0")"
-readonly SCRIPT_NAME="${_script_name}"
+# Constants - Return codes
+declare -i RC_OK=0
+declare -i RC_ERROR=1
 
-# Always use profile and verbose flags with colima
-shopt -s expand_aliases
-alias colima='command colima ${VERBOSE_ARG:-} -p ${PROFILE}'
-alias docker='command docker ${VERBOSE_ARG:-}'
+# Constants - Timeouts (in seconds)
+readonly TIMEOUT_STATUS=3      # How long to wait for status check
+readonly TIMEOUT_STATE=5       # How long to wait for state changes
+readonly TIMEOUT_HEALTH=30     # How long to wait between health checks
 
-# Logging functions
+# Logging with return codes
 log() {
-    local level="$1"
-    shift
-    echo "${level}: $*" >&2
+    echo "${LOG_PREFIX} $1: $2" >&2
+    return ${RC_OK}
 }
 
-log_info() { log "INFO" "$@"; }
-log_error() { log "ERROR" "$@"; }
+info() { log "INFO" "$*"; }
+error() { log "ERROR" "$*"; }
+debug() { [[ -n "${VERBOSE_FLAG:-}" ]] && log "DEBUG" "$*"; }
+
+# Error handling
+trap 'error "Failed at line $LINENO. Exit code: $?"' ERR
+trap 'cleanup' EXIT
 
 # Helper functions
+cleanup() {
+    flock -u 9 2>/dev/null || true
+    rm -f "${LOCK_FILE}" || true
+}
+
+# Status checking with proper error handling
+check_colima_status() {
+    debug "Checking Colima status" || true
+    timeout ${TIMEOUT_STATUS} colima "${VERBOSE_FLAG:-}" -p "${PROFILE}" status >/dev/null 2>&1
+}
+
 is_colima_running() {
-    colima status >/dev/null 2>&1
+    if check_colima_status; then
+        debug "Colima is running" || true
+        return ${RC_OK}
+    else
+        debug "Colima is not running" || true
+        return ${RC_ERROR}
+    fi
+}
+
+wait_for_state() {
+    local desired_state="$1"
+    local -i timeout="${TIMEOUT_STATE}"
+    local check_cmd="is_colima_running"
+    [[ "${desired_state}" == "stopped" ]] && check_cmd="! is_colima_running"
+
+    info "Waiting for Colima to be ${desired_state}..."
+    for ((i=1; i<=timeout; i++)); do
+        if eval "${check_cmd}"; then
+            info "Colima is ${desired_state}"
+            return ${RC_OK}
+        fi
+        sleep 1
+    done
+    error "Timeout waiting for Colima to be ${desired_state}"
+    return ${RC_ERROR}
 }
 
 acquire_lock() {
     exec 9>"${LOCK_FILE}"
     if ! flock -n 9; then
-        log_error "Another instance is running for profile ${PROFILE}"
-        exit 1
+        error "Another instance is running for profile ${PROFILE}"
+        return 1
     fi
-    trap 'release_lock' EXIT
 }
 
-release_lock() {
-    flock -u 9 2>/dev/null || true
-    rm -f "${LOCK_FILE}" || true
+# Core functions
+start_colima() {
+    info "Starting Colima..."
+    colima "${VERBOSE_FLAG:-}" -p "${PROFILE}" start --save-config=false
+    wait_for_state "running"
+}
+
+stop_colima() {
+    info "Stopping Colima..."
+    docker context use default >/dev/null 2>&1 || true
+    colima "${VERBOSE_FLAG:-}" -p "${PROFILE}" stop >/dev/null 2>&1 || true
+    wait_for_state "stopped"
+    colima "${VERBOSE_FLAG:-}" -p "${PROFILE}" stop -f >/dev/null 2>&1 || true
+}
+
+clean_state() {
+    info "Cleaning up Colima state..."
+    stop_colima || true
+    colima "${VERBOSE_FLAG:-}" -p "${PROFILE}" delete -f 2>/dev/null || true
+}
+
+run_daemon() {
+    info "Starting daemon mode" || true
+    acquire_lock || exit ${RC_ERROR}
+
+    # Handle signals
+    trap 'info "Received stop signal" || true; stop_colima; exit ${RC_OK}' TERM INT QUIT
+
+    # Initial state check and startup
+    if is_colima_running; then
+        info "Colima already running" || true
+    else
+        info "Starting Colima" || true
+        start_colima || exit ${RC_ERROR}
+    fi
+
+    # Main monitoring loop
+    info "Entering monitoring loop" || true
+    while true; do
+        if is_colima_running; then
+            debug "Health check passed" || true
+        else
+            error "Colima stopped unexpectedly, restarting..." || true
+            start_colima || {
+                error "Failed to restart Colima" || true
+                exit ${RC_ERROR}
+            }
+        fi
+        sleep ${TIMEOUT_HEALTH}
+    done
 }
 
 show_help() {
@@ -57,75 +146,15 @@ Commands:
   status    - check status
   clean     - clean state
   help      - show this help
+
+Environment:
+  VERBOSE_FLAG  - set by home-manager for verbose output
 EOF
-}
-
-check_status() {
-    local -i colima_running=0
-    is_colima_running && colima_running=1
-    log_info "State: Colima=${colima_running}"
-}
-
-wait_for_colima() {
-    local action="$1"
-    local -i timeout="${DEFAULT_TIMEOUT}"
-
-    log_info "Waiting for Colima to ${action}..."
-    for ((i=1; i<=timeout; i++)); do
-        case "${action}" in
-            "start")
-                is_colima_running && { log_info "Colima started"; return 0; }
-                ;;
-            "stop")
-                ! is_colima_running && { log_info "Colima stopped"; return 0; }
-                ;;
-        esac
-        sleep 1
-    done
-    log_error "Timeout waiting for Colima to ${action}"
-    return 1
-}
-
-start_colima() {
-    log_info "Starting Colima..."
-    colima start --save-config=false
-    wait_for_colima start
-}
-
-stop_colima() {
-    log_info "Stopping Colima..."
-
-    docker context use default >/dev/null 2>&1 || true
-    colima stop >/dev/null 2>&1 || true
-    wait_for_colima stop
-    colima stop -f >/dev/null 2>&1 || true
-}
-
-clean_state() {
-    log_info "Cleaning Colima state..."
-
-    stop_colima || true
-    log_info "Running delete for profile: ${PROFILE}"
-    colima delete -f 2>/dev/null || true
-    rm -f "${LOCK_FILE}" || true
-}
-
-run_daemon() {
-    acquire_lock
-    trap 'stop_colima; exit 0' TERM INT QUIT
-
-    if is_colima_running; then
-        log_info "Colima already running for profile ${PROFILE}"
-    else
-        start_colima
-    fi
-
-    while true; do sleep 1; done
 }
 
 main() {
     if [[ $# -lt 2 ]]; then
-        log_error "Not enough arguments"
+        error "Not enough arguments"
         show_help
         exit 1
     fi
@@ -134,15 +163,15 @@ main() {
         "daemon") run_daemon ;;
         "start") start_colima ;;
         "stop") stop_colima ;;
-        "status") check_status ;;
+        "status") is_colima_running ;;
         "clean") clean_state ;;
         "help") show_help ;;
         *)
-            log_error "Unknown command: ${CMD}"
+            error "Unknown command: ${CMD}"
             show_help
             exit 1
             ;;
-    esac 
+    esac
 }
 
 main "$@" 

@@ -5,7 +5,10 @@ let
   defaultProfile = "docker";
   homeDir = config.home.homeDirectory;
 
-  # Required packages for the PATH
+  # Create the wrapper script
+  wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
+
+  # Required packages
   requiredPackages = with pkgs; [
     coreutils
     findutils
@@ -13,16 +16,14 @@ let
     bash
     docker
     colima
+    wrapperScript
   ];
-
-  # Create the wrapper script
-  wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
 
   paths = {
     profileDir = "${homeDir}/.colima/${defaultProfile}";
     configDir = "${homeDir}/.colima";
     wrapperScript = lib.getExe wrapperScript;
-    systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin:/bin:/sbin";
+    systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin";
   };
 
   agent = {
@@ -42,23 +43,22 @@ in
 {
   config = {
     home = {
-      packages = [ pkgs.colima wrapperScript ];
+      # Install all required packages
+      packages = requiredPackages;
 
-      # File management
+      # Install configuration files
       file = {
         ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
         ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
       };
 
-      # Activation script
-      activation.cleanupColima = lib.hm.dag.entryBefore [ "setupLaunchAgents" ] ''
+      # Clean up previous installation
+      activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLaunchAgents" ] ''
         export PATH="${paths.systemPath}:$PATH"
-
-        # Clean stale lock file
-        rm -f "/tmp/colima-${defaultProfile}.lock" || true
 
         verboseEcho "Cleaning up Colima..."
         run "${paths.wrapperScript}" ${defaultProfile} clean
+        run rm -f "/tmp/colima-${defaultProfile}.lock" || true
       '';
     };
 
@@ -67,8 +67,8 @@ in
       config = {
         Label = agent.label;
         ProgramArguments = [
-          paths.wrapperScript
-          defaultProfile
+          "${paths.wrapperScript}"
+          "${defaultProfile}"
           "daemon"
         ];
         EnvironmentVariables = envVars;
@@ -80,6 +80,8 @@ in
           Crashed = true;
           SuccessfulExit = false;
         };
+        ProcessType = "Interactive";
+        ThrottleInterval = 30;
       };
     };
 
@@ -96,13 +98,5 @@ in
         clog = "tail -f ~/.colima/${defaultProfile}/colima.log";
         clogerr = "tail -f ~/.colima/${defaultProfile}/colima.error.log";
       };
-
-    # Add debug output
-    home.activation.debugLaunchd = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      echo "Debug: LaunchAgents config:"
-      echo "Enable: ${toString config.launchd.agents.colima.enable}"
-      echo "Label: ${config.launchd.agents.colima.config.Label}"
-      echo "Plist path: ${agent.plist}"
-    '';
   };
 }
