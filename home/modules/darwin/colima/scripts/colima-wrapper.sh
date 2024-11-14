@@ -10,8 +10,13 @@ readonly LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
 readonly SCRIPT_NAME
 SCRIPT_NAME="$(basename "$0")"
 
-alias docker='docker ${VERBOSE_ARG:-}'
-alias colima='colima ${VERBOSE_ARG:-} -p ${PROFILE}'
+docker() {
+    command docker "${VERBOSE_ARG:-}" "$@"
+}
+
+colima() {
+    command colima "${VERBOSE_ARG:-}" -p "${PROFILE}" "$@"
+}
 
 # Logging functions
 log() {
