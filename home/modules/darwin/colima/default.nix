@@ -68,10 +68,12 @@ in
 
       # Ensure the agent is loaded after setup
       activation.setupColimaAgent = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-        verboseEcho "Bootstrapping Colima agent..."
+        verboseEcho "Star Colima agent..."
         run /bin/launchctl bootstrap gui/$UID "${agent.plist}" || {
           errorEcho "Failed to bootstrap agent"
         }
+
+        run /bin/launchctl kickstart -k gui/$UID/org.nix-community.home.colima
       '';
     };
 
