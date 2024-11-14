@@ -51,15 +51,12 @@ in
       };
 
       # Activation script
-      activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+      activation.cleanupColima = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         export PATH="${paths.systemPath}:$PATH"
 
         if /bin/launchctl list "${agent.label}" >/dev/null 2>&1; then
           verboseEcho "Colima agent exists, removing..."
           run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
-          run /bin/launchctl remove "${agent.label}" 2>/dev/null || true
-        else
-          verboseEcho "No existing colima agent found"
         fi
 
         verboseEcho "Cleaning up Colima..."
