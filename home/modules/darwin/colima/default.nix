@@ -56,7 +56,7 @@ in
 
         $DRY_RUN_CMD echo "Unloading existing Colima agent..."
         $DRY_RUN_CMD /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
-        $DRY_RUN_CMD rm $VERBOSE -f "${agent.plist}" || true
+        $DRY_RUN_CMD rm $VERBOSE_ARG -f "${agent.plist}" || true
 
         $DRY_RUN_CMD echo "Cleaning up Colima..."
         $DRY_RUN_CMD "${paths.wrapperScript}" ${defaultProfile} clean

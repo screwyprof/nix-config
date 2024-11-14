@@ -3,17 +3,13 @@ set -euo pipefail
 
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
-readonly VERBOSE="${VERBOSE:-}"  # Get VERBOSE from environment, empty if not set
+readonly VERBOSE_ARG="${VERBOSE_ARG:-}"
+readonly PROFILE="${1:-unknown}"  # Get profile from first argument
+readonly CMD="${2:-help}"         # Get command from second argument, default to help
 
 # Create aliases for commands with verbose flag
-alias docker="docker ${VERBOSE:+--verbose}"
-alias colima="colima ${VERBOSE:+--verbose} -p ${PROFILE:-unknown}"
-
-# Variables - initialized after argument checking
-declare SCRIPT_NAME=""
-declare LOCK_FILE=""
-declare PROFILE=""
-declare MODE=""
+alias docker="docker $VERBOSE_ARG"
+alias colima="colima $VERBOSE_ARG -p ${PROFILE}"
 
 # Logging functions
 log() {
@@ -27,7 +23,7 @@ log_error() { log "ERROR" "$@"; }
 
 # Helper functions
 is_colima_running() {
-    if [[ -n "${VERBOSE}" ]]; then
+    if [[ -n "${VERBOSE_ARG}" ]]; then
         colima status
     else
         colima status >/dev/null 2>&1
@@ -37,7 +33,7 @@ is_colima_running() {
 init_constants() {
     SCRIPT_NAME="$(basename "$0")"
     LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
-    [[ -n "${VERBOSE}" ]] && log_info "Initialized constants: SCRIPT_NAME=${SCRIPT_NAME}, LOCK_FILE=${LOCK_FILE}"
+    [[ -n "${VERBOSE_ARG}" ]] && log_info "Initialized constants: SCRIPT_NAME=${SCRIPT_NAME}, LOCK_FILE=${LOCK_FILE}"
 }
 
 acquire_lock() {
@@ -51,7 +47,7 @@ acquire_lock() {
 
 release_lock() {
     flock -u 9 2>/dev/null || true
-    rm -f "${LOCK_FILE}" || true
+    rm -f$VERBOSE_ARG "${LOCK_FILE}" || true
 }
 
 show_help() {
@@ -68,7 +64,7 @@ Commands:
 EOF
 }
 
-check_state() {
+check_status() {
     local -i colima_running=0
     is_colima_running && colima_running=1
     log_info "State: Colima=${colima_running}"
@@ -134,20 +130,17 @@ main() {
         exit 1
     fi
 
-    PROFILE="$1"
-    MODE="$2"
-    
     init_constants
 
-    case "${MODE}" in
+    case "${CMD}" in
         "daemon") run_daemon ;;
         "start") start_colima ;;
         "stop") stop_colima ;;
-        "status") check_state ;;
+        "status") check_status ;;
         "clean") clean_state ;;
         "help") show_help ;;
         *)
-            log_error "Unknown mode: ${MODE}"
+            log_error "Unknown command: ${CMD}"
             show_help
             exit 1
             ;;
