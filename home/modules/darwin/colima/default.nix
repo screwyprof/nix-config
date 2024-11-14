@@ -52,7 +52,7 @@ in
 
       # Activation script
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        ${lib.optionalString "$VERBOSE" ''
+        ${lib.optionalString (config.home.enableVerboseOperation or false) ''
           set -x
           echo "PATH: $PATH"
           echo "Running in verbose mode"
