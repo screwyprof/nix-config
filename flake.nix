@@ -72,7 +72,7 @@
                 useGlobalPkgs = true;
                 useUserPackages = true;
                 backupFileExtension = "bak";
-                verbose = true;
+                #verbose = true;
                 extraSpecialArgs = {
                   inherit inputs devUser;
                   isDarwin = true;
