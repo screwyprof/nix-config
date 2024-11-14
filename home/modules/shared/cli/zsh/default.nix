@@ -172,8 +172,8 @@
         # nix aliases
         nix-cleanup = "nix-collect-garbage -d && nix store optimise";
       } // (if pkgs.stdenv.isDarwin then {
-        nix-rebuild-host = "nixpkgs-fmt . && nix flake check && HOME_MANAGER_VERBOSE=1 darwin-rebuild switch --flake '.#macbook' --verbose";
-        nix-rebuild-mac = "nixpkgs-fmt . && nix flake check && HOME_MANAGER_VERBOSE=1 darwin-rebuild switch --flake '.#parallels' --verbose";
+        nix-rebuild-host = "nixpkgs-fmt . && nix flake check && HOME_MANAGER_VERBOSE=1 darwin-rebuild switch --flake '.#macbook'";
+        nix-rebuild-mac = "nixpkgs-fmt . && nix flake check && HOME_MANAGER_VERBOSE=1 darwin-rebuild switch --flake '.#parallels'";
       } else { });
     };
 

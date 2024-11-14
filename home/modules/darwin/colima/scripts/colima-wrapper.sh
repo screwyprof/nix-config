@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Debug info
-echo "Debug: VERBOSE_ARG='${VERBOSE_ARG:-}'" >&2
-echo "Debug: DRY_RUN_CMD='${DRY_RUN_CMD:-}'" >&2
+echo "Debug: All environment variables:" >&2
+env | sort >&2
 
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
