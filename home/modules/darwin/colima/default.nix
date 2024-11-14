@@ -5,6 +5,21 @@ let
   defaultProfile = "docker";
   homeDir = config.home.homeDirectory;
 
+  # Required packages for the PATH
+  requiredPackages = with pkgs; [
+    coreutils
+    #findutils
+    #gnugrep
+    flock
+    #util-linux    # for flock
+    bash
+    docker
+    colima
+  ];
+
+  # Define PATH once
+  systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin:/bin:/sbin";
+
   # Create the wrapper script
   wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
 
@@ -21,17 +36,6 @@ let
     plist = "${homeDir}/Library/LaunchAgents/${agent.label}.plist";
   };
 
-  # Required packages for the PATH
-  requiredPackages = with pkgs; [
-    coreutils
-    findutils
-    gnugrep
-    flock
-    bash
-    docker
-    colima
-  ];
-
   # Environment variables
   envVars = {
     HOME = homeDir;
@@ -39,6 +43,7 @@ let
     COLIMA_PROFILE = defaultProfile;
     COLIMA_LOG_ROTATE = "true";
     COLIMA_LOG_SIZE = "10M";
+    PATH = systemPath;
   };
 in
 {
@@ -53,7 +58,7 @@ in
 
     # Activation script
     activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      export PATH="${lib.makeBinPath requiredPackages}:/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
+      export PATH="${systemPath}:$PATH"
 
       echo "Checking initial state..."
       "${paths.wrapperScript}" ${defaultProfile} status
