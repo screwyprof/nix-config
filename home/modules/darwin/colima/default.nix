@@ -1,73 +1,79 @@
 { config, lib, pkgs, ... }:
 
 let
+  # Basic configuration
   defaultProfile = "docker";
+  homeDir = config.home.homeDirectory;
 
-  # Centralize paths and configuration
+  # Centralize paths
   paths = {
-    logDir = "${config.home.homeDirectory}/.colima/${defaultProfile}";
-    configDir = "${config.home.homeDirectory}/.colima";
-    wrapperScript = "${config.home.homeDirectory}/.local/bin/colima-wrapper.sh";
+    logDir = "${homeDir}/.colima/${defaultProfile}";
+    configDir = "${homeDir}/.colima";
+    wrapperScript = "${homeDir}/.local/bin/colima-wrapper.sh";
   };
 
   # LaunchAgent configuration
   agent = {
     label = "org.nix-community.home.colima";
-    plist = "${config.home.homeDirectory}/Library/LaunchAgents/${agent.label}.plist";
+    plist = "${homeDir}/Library/LaunchAgents/${agent.label}.plist";
   };
 
-  # Centralize environment variables
+  # Required packages for the PATH
+  requiredPackages = with pkgs; [
+    coreutils
+    findutils
+    gnugrep
+    gettext
+    bash
+    nix
+    docker
+    colima
+  ];
+
+  # Environment variables
   envVars = {
-    HOME = config.home.homeDirectory;
+    HOME = homeDir;
     COLIMA_HOME = paths.configDir;
     COLIMA_PROFILE = defaultProfile;
     COLIMA_LOG_ROTATE = "true";
     COLIMA_LOG_SIZE = "10M";
-    PATH = lib.makeBinPath [
-      pkgs.coreutils
-      pkgs.findutils
-      pkgs.gnugrep
-      pkgs.gettext
-      pkgs.bash
-      pkgs.nix
-      pkgs.docker
-      pkgs.colima
-    ] + ":/usr/bin:/usr/sbin";
+    PATH = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin";
   };
+
+  # Create the wrapper script
+  wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
 in
 {
   home = {
-    packages = with pkgs; [ colima ];
+    packages = [ pkgs.colima ];
 
+    # File management
     file = {
       ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
       ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
-      ".local/bin/colima-wrapper.sh".source = "${pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh)}/bin/colima-wrapper.sh";
+      ".local/bin/colima-wrapper.sh".source = "${wrapperScript}/bin/colima-wrapper.sh";
     };
 
-    activation = {
-      cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        export PATH="${envVars.PATH}"
+    # Activation script
+    activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+      export PATH="${envVars.PATH}"
 
-        echo "PATH: $PATH"
-        echo "Checking initial state..."
-        "${paths.wrapperScript}" ${defaultProfile} status
+      echo "Checking initial state..."
+      "${paths.wrapperScript}" ${defaultProfile} status
 
-        echo "Unloading existing Colima agent..."
-        /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
+      echo "Unloading existing Colima agent..."
+      /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
+      rm -f "${agent.plist}" || true
 
-        # Clean up any remaining agent files
-        rm -f "${agent.plist}" || true
+      echo "Cleaning up Colima..."
+      "${paths.wrapperScript}" ${defaultProfile} clean
 
-        echo "Cleaning up Colima..."
-        "${paths.wrapperScript}" ${defaultProfile} clean
-
-        echo "Checking post-cleanup state..."
-        "${paths.wrapperScript}" ${defaultProfile} status
-      '';
-    };
+      echo "Checking post-cleanup state..."
+      "${paths.wrapperScript}" ${defaultProfile} status
+    '';
   };
 
+  # LaunchAgent configuration
   launchd.agents.colima = {
     enable = true;
     config = {
