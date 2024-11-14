@@ -20,8 +20,7 @@ let
   ];
 
   paths = {
-    profileDir = "${homeDir}/.colima/${defaultProfile}";
-    configDir = "${homeDir}/.colima";
+    currentProfileDir = "${homeDir}/.colima/${defaultProfile}";
     wrapperScript = lib.getExe wrapperScript;
     systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin";
   };
@@ -33,10 +32,6 @@ let
 
   envVars = {
     HOME = homeDir;
-    COLIMA_HOME = paths.configDir;
-    COLIMA_PROFILE = defaultProfile;
-    COLIMA_LOG_ROTATE = "true";
-    COLIMA_LOG_SIZE = "10M";
     PATH = paths.systemPath;
   };
 in
@@ -73,9 +68,9 @@ in
         ];
         EnvironmentVariables = envVars;
         RunAtLoad = true;
-        WorkingDirectory = paths.configDir;
-        StandardOutPath = "${paths.profileDir}/colima.log";
-        StandardErrorPath = "${paths.profileDir}/colima.error.log";
+        WorkingDirectory = paths.currentProfileDir;
+        StandardOutPath = "${paths.currentProfileDir}/colima.log";
+        StandardErrorPath = "${paths.currentProfileDir}/colima.error.log";
         KeepAlive = {
           Crashed = true;
           SuccessfulExit = false;
