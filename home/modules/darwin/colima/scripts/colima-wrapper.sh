@@ -98,9 +98,13 @@ start_colima() {
 
 stop_colima() {
     log_info "Stopping Colima..."
-    docker context use default >/dev/null 2>&1 || true
-    colima stop
-    wait_for_colima stop
+    if is_colima_running; then
+        docker context use default >/dev/null 2>&1 || true
+        colima stop
+        wait_for_colima stop
+    else
+        log_info "Colima is not running, no need to stop"
+    fi
 }
 
 clean_state() {
