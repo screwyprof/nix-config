@@ -81,7 +81,6 @@
                     name = username;
                     value = { pkgs, ... }: {
                       imports = [ ./home/users/darwin/${username} ];
-                      home.verbose = true;
                     };
                   })
                   users);
