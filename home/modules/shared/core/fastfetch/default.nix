@@ -3,6 +3,12 @@
     fastfetch
   ];
 
+  # TODO: Use xdg.configFile once fastfetch supports it
+  # xdg.configFile = {
+  #   "fastfetch/config.jsonc".source = ./config.jsonc;
+  #   "fastfetch/gopher.ascii".source = ./gopher.ascii;
+  # };
+
   xdg.configFile."fastfetch/config.jsonc".source = ./config.jsonc;
 
   # Create actual logo file as fastfech doesn't follow symlynks
