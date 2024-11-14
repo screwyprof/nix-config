@@ -26,9 +26,10 @@ let
     coreutils
     findutils
     gnugrep
-    gettext
+    flock
+    #gettext
     bash
-    nix
+    #nix
     docker
     colima
   ];
