@@ -41,8 +41,6 @@ let
 in
 {
   config = {
-    launchd.enable = true;
-
     home = {
       packages = [ pkgs.colima wrapperScript ];
 
@@ -98,5 +96,13 @@ in
         clog = "tail -f ~/.colima/${defaultProfile}/colima.log";
         clogerr = "tail -f ~/.colima/${defaultProfile}/colima.error.log";
       };
+
+    # Add debug output
+    home.activation.debugLaunchd = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      echo "Debug: LaunchAgents config:"
+      echo "Enable: ${toString config.launchd.agents.colima.enable}"
+      echo "Label: ${config.launchd.agents.colima.config.Label}"
+      echo "Plist path: ${agent.plist}"
+    '';
   };
 }
