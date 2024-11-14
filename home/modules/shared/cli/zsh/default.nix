@@ -7,13 +7,13 @@
 
       # Prefer GNU versions over BSD ones
       PATH = lib.concatStringsSep ":" [
+        "$HOME/.local/bin" # Local user binaries
         "${pkgs.coreutils}/bin"
         "${pkgs.findutils}/bin"
         "${pkgs.gnugrep}/bin"
         "${pkgs.gnused}/bin"
         "${pkgs.gnutar}/bin"
         "${pkgs.gawk}/bin"
-        "$HOME/.local/bin" # Local user binaries
         "$PATH"
       ];
     };
