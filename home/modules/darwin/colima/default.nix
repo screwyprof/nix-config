@@ -23,7 +23,7 @@ let
     COLIMA_PROFILE = defaultProfile;
     COLIMA_LOG_ROTATE = "true";
     COLIMA_LOG_SIZE = "10M";
-    PATH = lib.makeBinPath ([
+    PATH = lib.makeBinPath [
       pkgs.coreutils
       pkgs.findutils
       pkgs.gnugrep
@@ -31,9 +31,7 @@ let
       pkgs.bash
       pkgs.docker
       pkgs.colima
-    ] ++ (lib.optionals pkgs.stdenv.isDarwin [
-      pkgs.darwin.system_cmds 
-    ])); #+ ":/usr/bin:/usr/sbin";
+    ] + ":/usr/bin:/usr/sbin";  # System commands from macOS
   };
 in
 {
