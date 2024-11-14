@@ -41,6 +41,8 @@ let
 in
 {
   config = {
+    launchd.enable = true;
+
     home = {
       packages = [ pkgs.colima wrapperScript ];
 
