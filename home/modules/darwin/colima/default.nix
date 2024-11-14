@@ -70,7 +70,7 @@ in
       activation.setupColimaAgent = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         verboseEcho "Bootstrapping Colima agent..."
         run /bin/launchctl bootstrap gui/$UID "${agent.plist}" || {
-          verboseEcho "Failed to bootstrap agent"
+          errorEcho "Failed to bootstrap agent"
         }
       '';
     };
