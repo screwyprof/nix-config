@@ -92,7 +92,7 @@ start_colima() {
 
 stop_colima() {
     log_info "Stopping Colima..."
-    docker context use default || true
+    docker context use default >/dev/null 2>&1 || true
     colima stop -p "${PROFILE}"
     wait_for_colima stop
 }
