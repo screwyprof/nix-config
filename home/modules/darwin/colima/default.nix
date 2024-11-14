@@ -51,32 +51,11 @@ in
       };
 
       # Activation script
-      activation.cleanupColima = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+      activation.cleanupColima = lib.hm.dag.entryBefore [ "reloadAgent" ] ''
         export PATH="${paths.systemPath}:$PATH"
-
-        if /bin/launchctl list "${agent.label}" >/dev/null 2>&1; then
-          verboseEcho "Colima agent exists, removing..."
-          run /bin/launchctl bootout "gui/$UID" "${agent.plist}" || true
-          run /bin/launchctl remove "gui/$UID/${agent.label}" || true
-        fi
 
         verboseEcho "Cleaning up Colima..."
         run "${paths.wrapperScript}" ${defaultProfile} clean
-      '';
-
-      # Ensure the agent is loaded after setup
-      activation.setupColimaAgent = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-        verboseEcho "Starting Colima..."
-        
-        # Bootstrap with plist path
-        run /bin/launchctl bootstrap "gui/$UID" "${agent.plist}" || {
-          errorEcho "Failed to bootstrap agent"
-        }
-
-        # Kickstart with domain/service-id
-        run /bin/launchctl kickstart "gui/$UID/${agent.label}" || {
-          errorEcho "Failed to kickstart agent"
-        }
       '';
     };
 
@@ -105,7 +84,7 @@ in
         mkColimaAlias = cmd: "colima ${cmd} -p";
       in
       {
-        cstart = mkColimaAlias "start";
+        cstart = mkColimaAlias "start" --save-config=false;
         cstop = mkColimaAlias "stop";
         cstatus = mkColimaAlias "status";
         cdelete = mkColimaAlias "delete";
