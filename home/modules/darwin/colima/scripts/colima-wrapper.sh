@@ -5,11 +5,12 @@ set -euo pipefail
 readonly DEFAULT_TIMEOUT=30
 readonly PROFILE="${1:-unknown}"
 readonly CMD="${2:-help}"
+readonly SCRIPT_NAME="$(basename "$0")"
+readonly LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
 
 # Create aliases for commands with verbose flag
 alias docker="docker ${VERBOSE_ARG:-}"
 alias colima="colima ${VERBOSE_ARG:-} -p ${PROFILE}"
-
 
 # Logging functions
 log() {
@@ -28,12 +29,6 @@ is_colima_running() {
     else
         colima status >/dev/null 2>&1
     fi
-}
-
-init_constants() {
-    SCRIPT_NAME="$(basename "$0")"
-    LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
-    [[ -n "${VERBOSE_ARG:-}" ]] && log_info "Initialized constants: SCRIPT_NAME=${SCRIPT_NAME}, LOCK_FILE=${LOCK_FILE}"
 }
 
 acquire_lock() {
@@ -133,8 +128,6 @@ main() {
         show_help
         exit 1
     fi
-
-    init_constants
 
     case "${CMD}" in
         "daemon") run_daemon ;;
