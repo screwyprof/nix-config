@@ -5,12 +5,13 @@ set -euo pipefail
 readonly DEFAULT_TIMEOUT=30
 readonly PROFILE="${1:-unknown}"
 readonly CMD="${2:-help}"
-readonly SCRIPT_NAME="$(basename "$0")"
 readonly LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
 
-# Create aliases for commands with verbose flag
-alias docker="docker ${VERBOSE_ARG:-}"
-alias colima="colima ${VERBOSE_ARG:-} -p ${PROFILE}"
+readonly SCRIPT_NAME
+SCRIPT_NAME="$(basename "$0")"
+
+alias docker='docker ${VERBOSE_ARG:-}'
+alias colima='colima ${VERBOSE_ARG:-} -p ${PROFILE}'
 
 # Logging functions
 log() {
@@ -42,7 +43,7 @@ acquire_lock() {
 
 release_lock() {
     flock -u 9 2>/dev/null || true
-    rm -f ${VERBOSE_ARG:-} "${LOCK_FILE}" || true
+    rm -f "${VERBOSE_ARG:-}" "${LOCK_FILE}" || true
 }
 
 show_help() {
