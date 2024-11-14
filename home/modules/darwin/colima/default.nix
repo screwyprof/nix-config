@@ -42,7 +42,10 @@ in
     file = {
       ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
       ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
-      ".local/bin/colima-wrapper.sh".source = ./scripts/colima-wrapper.sh;
+      ".local/bin/colima-wrapper.sh" = {
+        source = ./scripts/colima-wrapper.sh;
+        executable = true;
+      };
     };
 
     activation = {
