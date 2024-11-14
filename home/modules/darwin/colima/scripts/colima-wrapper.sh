@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
-readonly VERBOSE_FLAG="$([[ -v VERBOSE && $VERBOSE -eq 1 ]] && echo '--verbose')"
+readonly VERBOSE_FLAG="$([[ -v VERBOSE ]] && [[ $VERBOSE -eq 1 ]] && echo '--verbose')"
 readonly PROFILE="${1:-unknown}"
 readonly CMD="${2:-help}"
 
@@ -11,9 +11,6 @@ readonly CMD="${2:-help}"
 alias docker="docker $VERBOSE_FLAG"
 alias colima="colima $VERBOSE_FLAG -p ${PROFILE}"
 
-
-# Debug info
-echo "Debug: VERBOSE=${VERBOSE_FLAG}" >&2
 
 # Logging functions
 log() {
