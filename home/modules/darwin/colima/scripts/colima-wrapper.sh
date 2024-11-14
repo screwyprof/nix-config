@@ -1,18 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
-# Debug info
-echo "Debug: VERBOSE=${VERBOSE:-}" >&2
-
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
-readonly VERBOSE_FLAG="${VERBOSE:+--verbose}"
+readonly VERBOSE_FLAG="$([[ -v VERBOSE && $VERBOSE -eq 1 ]] && echo '--verbose')"
 readonly PROFILE="${1:-unknown}"
 readonly CMD="${2:-help}"
 
 # Create aliases for commands with verbose flag
 alias docker="docker $VERBOSE_FLAG"
 alias colima="colima $VERBOSE_FLAG -p ${PROFILE}"
+
+
+# Debug info
+echo "Debug: VERBOSE=${VERBOSE_FLAG}" >&2
 
 # Logging functions
 log() {
