@@ -84,7 +84,7 @@ in
         mkColimaAlias = cmd: "colima ${cmd} -p";
       in
       {
-        cstart = mkColimaAlias "start" --save-config=false;
+        cstart = mkColimaAlias "start --save-config=false";
         cstop = mkColimaAlias "stop";
         cstatus = mkColimaAlias "status";
         cdelete = mkColimaAlias "delete";
