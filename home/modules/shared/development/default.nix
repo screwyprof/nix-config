@@ -1,4 +1,23 @@
-{ config, lib, pkgs, ... }: {
+{ config, lib, pkgs, ... }:
+
+let
+  # Centralize package groups
+  devTools = with pkgs; [
+    nix-prefetch-github
+    nix-prefetch-git
+    nixpkgs-fmt
+    statix
+    deadnix
+    shellcheck
+  ];
+
+  # Centralize environment variables
+  defaultEnv = {
+    K9S_EDITOR = "vim";
+    CARGO_NET_GIT_FETCH_WITH_CLI = "true";
+  };
+in
+{
   imports = [
     ./git.nix
     ./containers
@@ -13,31 +32,7 @@
   };
 
   home = {
-    packages = with pkgs; [
-      nix-prefetch-github
-      nix-prefetch-git
-      nixpkgs-fmt
-      statix
-      deadnix
-      shellcheck
-    ];
-
-    sessionVariables = {
-      K9S_EDITOR = "vim";
-      CARGO_NET_GIT_FETCH_WITH_CLI = "true";
-
-      # libpq
-      #LDFLAGS = "-L/opt/homebrew/opt/libpq/lib";
-      #CPPFLAGS = "-I/opt/homebrew/opt/libpq/include";
-      #PKG_CONFIG_PATH = "/opt/homebrew/opt/libpq/lib/pkgconfig";
-      #PQ_LIB_DIR = "$(brew --prefix libpq)/lib";
-
-      # libclang
-      #LDFLAGS = "-L/opt/homebrew/opt/llvm/lib";
-      #CPPFLAGS = "-I/opt/homebrew/opt/llvm/include";
-
-      # Add these
-      #AWS_PROFILE = "codefi";
-    };
+    packages = devTools;
+    sessionVariables = defaultEnv;
   };
 }

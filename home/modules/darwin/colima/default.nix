@@ -2,12 +2,37 @@
 
 let
   defaultProfile = "docker";
+  
+  # Centralize paths and configuration
+  paths = {
+    logDir = "${config.home.homeDirectory}/.colima/${defaultProfile}";
+    configDir = "${config.home.homeDirectory}/.colima";
+    wrapperScript = "${config.home.homeDirectory}/.local/bin/colima-wrapper.sh";
+  };
+
+  # LaunchAgent configuration
+  agent = {
+    label = "org.nix-community.home.colima";
+    plist = "${config.home.homeDirectory}/Library/LaunchAgents/${agent.label}.plist";
+  };
+
+  # Centralize environment variables
+  envVars = {
+    HOME = config.home.homeDirectory;
+    COLIMA_HOME = paths.configDir;
+    COLIMA_PROFILE = defaultProfile;
+    COLIMA_LOG_ROTATE = "true";
+    COLIMA_LOG_SIZE = "10M";
+    PATH = lib.makeBinPath [
+      pkgs.coreutils
+      pkgs.docker
+      pkgs.colima
+    ] + ":/usr/bin:/usr/sbin";
+  };
 in
 {
   home = {
-    packages = with pkgs; [
-      colima
-    ];
+    packages = with pkgs; [ colima ];
 
     file = {
       ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
@@ -17,35 +42,29 @@ in
         source = ./scripts/colima-wrapper.sh;
         onChange = ''
           echo "Colima wrapper updated!"
-          ${pkgs.shellcheck}/bin/shellcheck "$HOME/.local/bin/colima-wrapper.sh" || true
+          ${pkgs.shellcheck}/bin/shellcheck "${paths.wrapperScript}" || true
         '';
       };
     };
 
     activation = {
       cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        # Set up PATH
-        export PATH="${lib.makeBinPath [
-          pkgs.coreutils
-          pkgs.findutils
-          pkgs.colima
-          pkgs.docker
-        ]}:/usr/bin:/usr/sbin:$PATH"
+        export PATH="${envVars.PATH}"
 
         echo "Checking initial state..."
-        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
+        "${paths.wrapperScript}" ${defaultProfile} status
 
         echo "Unloading existing Colima agent..."
-        /bin/launchctl bootout gui/$UID ~/Library/LaunchAgents/org.nix-community.home.colima.plist 2>/dev/null || true
+        /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
 
         # Clean up any remaining agent files
-        rm -f ~/Library/LaunchAgents/org.nix-community.home.colima.plist || true
+        rm -f "${agent.plist}" || true
 
         echo "Cleaning up Colima..."
-        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} clean
+        "${paths.wrapperScript}" ${defaultProfile} clean
 
         echo "Checking post-cleanup state..."
-        ${config.home.homeDirectory}/.local/bin/colima-wrapper.sh ${defaultProfile} status
+        "${paths.wrapperScript}" ${defaultProfile} status
       '';
     };
   };
@@ -53,44 +72,37 @@ in
   launchd.agents.colima = {
     enable = true;
     config = {
-      Label = "org.nix-community.home.colima";
+      Label = agent.label;
       ProgramArguments = [
-        "${config.home.homeDirectory}/.local/bin/colima-wrapper.sh"
-        "${defaultProfile}"
+        paths.wrapperScript
+        defaultProfile
         "daemon"
       ];
       RunAtLoad = true;
-      StandardOutPath = "${config.home.homeDirectory}/.colima/docker/colima.log";
-      StandardErrorPath = "${config.home.homeDirectory}/.colima/docker/colima.error.log";
-      EnvironmentVariables = {
-        HOME = "${config.home.homeDirectory}";
-        COLIMA_HOME = "${config.home.homeDirectory}/.colima";
-        COLIMA_PROFILE = defaultProfile;
-        PATH = lib.concatStringsSep ":" [
-          "${pkgs.coreutils}/bin"
-          "${pkgs.docker}/bin"
-          "${pkgs.colima}/bin"
-          "/usr/bin"
-          "/usr/sbin"
-        ];
-        COLIMA_LOG_ROTATE = "true";
-        COLIMA_LOG_SIZE = "10M";
-      };
+      StandardOutPath = "${paths.logDir}/colima.log";
+      StandardErrorPath = "${paths.logDir}/colima.error.log";
+      EnvironmentVariables = envVars;
       KeepAlive = {
         Crashed = true;
         SuccessfulExit = false;
       };
       ThrottleInterval = 30;
+      # Additional recommended LaunchAgent settings
+      ProcessType = "Interactive";
+      LimitLoadToSessionType = "Aqua";
+      Nice = 0;
     };
   };
 
-  programs.zsh.shellAliases = {
-    cstart = "colima start -p";
-    cstop = "colima stop -p";
-    cstatus = "colima status -p";
-    cdelete = "colima delete -p";
+  programs.zsh.shellAliases = let
+    mkColimaAlias = cmd: "colima ${cmd} -p";
+  in {
+    cstart = mkColimaAlias "start";
+    cstop = mkColimaAlias "stop";
+    cstatus = mkColimaAlias "status";
+    cdelete = mkColimaAlias "delete";
     clist = "colima list";
-    clog = "tail -f ~/.colima/docker/colima.log";
-    clogerr = "tail -f ~/.colima/docker/colima.error.log";
+    clog = "tail -f ${paths.logDir}/colima.log";
+    clogerr = "tail -f ${paths.logDir}/colima.error.log";
   };
 }

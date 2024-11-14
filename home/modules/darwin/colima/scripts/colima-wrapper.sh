@@ -1,67 +1,88 @@
 #!/bin/bash
 set -euo pipefail
 
-# Constants - initialize after arguments are checked
-SCRIPT_NAME=""
-LOCK_FILE=""
-AGENT_PLIST=""
-PROFILE=""
-MODE=""
+# Constants and defaults
+readonly DEFAULT_TIMEOUT=30
+readonly VALID_MODES=("daemon" "start" "stop" "status" "clean" "help")
+
+# Variables - initialized after argument checking
+declare SCRIPT_NAME=""
+declare LOCK_FILE=""
+declare PROFILE=""
+declare MODE=""
+
+# Logging functions
+log() {
+    local level="$1"
+    shift
+    echo "${level}: $*" >&2
+}
+
+log_info() { log "INFO" "$@"; }
+log_error() { log "ERROR" "$@"; }
+
+# Helper functions
+is_colima_running() {
+    colima status -p "${PROFILE}" >/dev/null 2>&1
+}
 
 init_constants() {
     SCRIPT_NAME="$(basename "$0")"
-    if command -v flock >/dev/null 2>&1; then
-        LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
-    else
-        LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock.d"
-    fi
-    AGENT_PLIST="${HOME}/Library/LaunchAgents/org.nix-community.home.colima.plist"
+    LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
 }
 
-# Functions
+acquire_lock() {
+    exec 9>"${LOCK_FILE}"
+    if ! flock -n 9; then
+        log_error "Another instance is running for profile ${PROFILE}"
+        exit 1
+    fi
+    trap 'release_lock' EXIT
+}
+
+release_lock() {
+    flock -u 9 2>/dev/null || true
+    rm -f "${LOCK_FILE}" || true
+}
+
 show_help() {
     cat <<EOF
 Usage: ${SCRIPT_NAME} <profile> <command>
 
 Commands:
-  daemon    - run as agent daemon
+  daemon    - run as daemon
   start     - start colima
   stop      - stop colima
   status    - check status
-  clean     - stop colima and clean state
+  clean     - clean state
   help      - show this help
 EOF
 }
 
-log_info() {
-    echo "INFO: $*" >&2
-}
-
-log_error() {
-    echo "ERROR: $*" >&2
-}
-
 check_state() {
-    # Check if colima is running
-    colima_running=0
-    if colima status -p "${PROFILE}" >/dev/null 2>&1; then
-        colima_running=1
-    fi
+    local -i colima_running=0
+    is_colima_running && colima_running=1
+    log_info "State: Colima=${colima_running}"
+}
 
-    # Check if agent plist exists
-    agent_exists=0
-    if [ -f "${AGENT_PLIST}" ]; then
-        agent_exists=1
-    fi
+wait_for_colima() {
+    local action="$1"
+    local -i timeout="${DEFAULT_TIMEOUT}"
 
-    # Check if agent is loaded
-    agent_loaded=0
-    if /bin/launchctl list | grep -q "com.github.colima.nix"; then
-        agent_loaded=1
-    fi
-
-    echo "State: Colima=${colima_running} Agent_exists=${agent_exists} Agent_loaded=${agent_loaded}"
-    echo "${colima_running}:${agent_exists}:${agent_loaded}"
+    log_info "Waiting for Colima to ${action}..."
+    for ((i=1; i<=timeout; i++)); do
+        case "${action}" in
+            "start")
+                is_colima_running && { log_info "Colima started"; return 0; }
+                ;;
+            "stop")
+                ! is_colima_running && { log_info "Colima stopped"; return 0; }
+                ;;
+        esac
+        sleep 1
+    done
+    log_error "Timeout waiting for Colima to ${action}"
+    return 1
 }
 
 start_colima() {
@@ -77,108 +98,51 @@ stop_colima() {
     wait_for_colima stop
 }
 
-wait_for_colima() {
-    action="$1"
-    timeout=30
-
-    for ((i=1; i<=timeout; i++)); do
-        case "${action}" in
-            "start")
-                if colima status -p "${PROFILE}" >/dev/null 2>&1; then
-                    log_info "Colima started"
-                    return 0
-                fi
-                ;;
-            "stop")
-                if ! colima status -p "${PROFILE}" >/dev/null 2>&1; then
-                    log_info "Colima stopped"
-                    return 0
-                fi
-                ;;
-        esac
-        sleep 1
-    done
-    log_error "Timeout waiting for Colima to ${action}"
-    return 1
-}
-
 clean_state() {
     log_info "Cleaning Colima state..."
     stop_colima || true
     colima delete -p "${PROFILE}" -f || true
-    rm -f "${LOCK_FILE}" || true
     log_info "Cleanup complete"
 }
 
 run_daemon() {
-    # Try to use flock if available, otherwise fallback to mkdir
-    if command -v flock >/dev/null 2>&1; then
-        # Use flock for locking
-        exec 9>"${LOCK_FILE}"
-        if ! flock -n 9; then
-            log_error "Another instance is running for profile ${PROFILE}"
-            exit 1
-        fi
-        trap 'flock -u 9' EXIT
-    else
-        # Fallback to mkdir for locking
-        if ! mkdir "${LOCK_FILE}" 2>/dev/null; then
-            log_error "Another instance is running for profile ${PROFILE}"
-            exit 1
-        fi
-        trap 'rm -rf "${LOCK_FILE}"' EXIT
-    fi
-
+    acquire_lock
     trap 'stop_colima; exit 0' TERM INT QUIT
 
-    state=$(check_state)
-    colima_running=$(echo "${state}" | tail -n1 | cut -d: -f1)
-
-    if [ "${colima_running}" = "1" ]; then
+    if is_colima_running; then
         log_info "Colima already running for profile ${PROFILE}"
     else
         start_colima
     fi
 
-    # Keep running to handle signals
-    while true; do
-        sleep 1
-    done
+    while true; do sleep 1; done
 }
 
-# Argument checking
-if [ $# -lt 2 ]; then
-    log_error "Not enough arguments"
-    show_help
-    exit 1
-fi
-
-PROFILE="$1"
-MODE="$2"
-
-# Initialize constants after arguments are set
-init_constants
-
-# Main
-case "${MODE}" in
-    "daemon")
-        run_daemon
-        ;;
-    "start")
-        start_colima
-        ;;
-    "stop")
-        stop_colima
-        ;;
-    "status")
-        check_state
-        ;;
-    "clean")
-        clean_state
-        ;;
-    *)
-        log_error "Unknown mode: ${MODE}"
+main() {
+    if [[ $# -lt 2 ]]; then
+        log_error "Not enough arguments"
         show_help
         exit 1
-        ;;
-esac 
+    fi
+
+    PROFILE="$1"
+    MODE="$2"
+    
+    init_constants
+
+    case "${MODE}" in
+        "daemon") run_daemon ;;
+        "start") start_colima ;;
+        "stop") stop_colima ;;
+        "status") check_state ;;
+        "clean") clean_state ;;
+        "help") show_help ;;
+        *)
+            log_error "Unknown mode: ${MODE}"
+            show_help
+            exit 1
+            ;;
+    esac 
+}
+
+main "$@" 
