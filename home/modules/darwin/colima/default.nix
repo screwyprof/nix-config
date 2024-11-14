@@ -56,7 +56,8 @@ in
 
         if /bin/launchctl list "${agent.label}" >/dev/null 2>&1; then
           verboseEcho "Colima agent exists, removing..."
-          run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
+          run /bin/launchctl bootout "gui/$UID" "${agent.plist}" || true
+          run /bin/launchctl remove "gui/$UID/${agent.label}" || true
         fi
 
         verboseEcho "Cleaning up Colima..."
@@ -66,11 +67,14 @@ in
       # Ensure the agent is loaded after setup
       activation.setupColimaAgent = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         verboseEcho "Starting Colima..."
-        run /bin/launchctl bootstrap gui/$UID "${agent.plist}" || {
+        
+        # Bootstrap with plist path
+        run /bin/launchctl bootstrap "gui/$UID" "${agent.plist}" || {
           errorEcho "Failed to bootstrap agent"
         }
 
-        run /bin/launchctl kickstart -k "gui/$UID/${agent.plist}" || {
+        # Kickstart with domain/service-id
+        run /bin/launchctl kickstart "gui/$UID/${agent.label}" || {
           errorEcho "Failed to kickstart agent"
         }
       '';
