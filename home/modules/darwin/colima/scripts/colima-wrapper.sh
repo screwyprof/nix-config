@@ -97,8 +97,9 @@ stop_colima() {
     log_info "Stopping Colima..."
 
     docker context use default >/dev/null 2>&1 || true
-    colima stop 2>/dev/null || true
+    colima stop >/dev/null 2>&1 || true
     wait_for_colima stop
+    colima stop -f >/dev/null 2>&1 || true
 }
 
 clean_state() {
