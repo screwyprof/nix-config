@@ -2,18 +2,17 @@
 set -euo pipefail
 
 # Debug info
-echo "Debug: All environment variables:" >&2
-env | sort >&2
+echo "Debug: VERBOSE=${VERBOSE:-}" >&2
 
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
-readonly VERBOSE_ARG="${VERBOSE_ARG:-}"
-readonly PROFILE="${1:-unknown}"  # Get profile from first argument
-readonly CMD="${2:-help}"         # Get command from second argument, default to help
+readonly VERBOSE_FLAG="${VERBOSE:+--verbose}"
+readonly PROFILE="${1:-unknown}"
+readonly CMD="${2:-help}"
 
 # Create aliases for commands with verbose flag
-alias docker="docker $VERBOSE_ARG"
-alias colima="colima $VERBOSE_ARG -p ${PROFILE}"
+alias docker="docker $VERBOSE_FLAG"
+alias colima="colima $VERBOSE_FLAG -p ${PROFILE}"
 
 # Logging functions
 log() {
@@ -27,7 +26,7 @@ log_error() { log "ERROR" "$@"; }
 
 # Helper functions
 is_colima_running() {
-    if [[ -n "${VERBOSE_ARG}" ]]; then
+    if [[ -n "${VERBOSE_FLAG}" ]]; then
         colima status
     else
         colima status >/dev/null 2>&1
@@ -37,7 +36,7 @@ is_colima_running() {
 init_constants() {
     SCRIPT_NAME="$(basename "$0")"
     LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
-    [[ -n "${VERBOSE_ARG}" ]] && log_info "Initialized constants: SCRIPT_NAME=${SCRIPT_NAME}, LOCK_FILE=${LOCK_FILE}"
+    [[ -n "${VERBOSE_FLAG}" ]] && log_info "Initialized constants: SCRIPT_NAME=${SCRIPT_NAME}, LOCK_FILE=${LOCK_FILE}"
 }
 
 acquire_lock() {
@@ -51,7 +50,7 @@ acquire_lock() {
 
 release_lock() {
     flock -u 9 2>/dev/null || true
-    rm -f$VERBOSE_ARG "${LOCK_FILE}" || true
+    rm -f$VERBOSE_FLAG "${LOCK_FILE}" || true
 }
 
 show_help() {

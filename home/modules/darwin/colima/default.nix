@@ -52,17 +52,14 @@ in
 
       # Activation script
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-        echo "Activation Debug: VERBOSE_ARG=''${VERBOSE_ARG:-}"
-        echo "Activation Debug: DRY_RUN_CMD=''${DRY_RUN_CMD:-}"
-        
         export PATH="${paths.systemPath}:$PATH"
 
-        $DRY_RUN_CMD echo "Unloading existing Colima agent..."
-        $DRY_RUN_CMD /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
-        $DRY_RUN_CMD rm $VERBOSE_ARG -f "${agent.plist}" || true
+        verboseEcho "Unloading existing Colima agent..."
+        run /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
+        run rm --verbose -f "${agent.plist}" || true
 
-        $DRY_RUN_CMD echo "Cleaning up Colima..."
-        $DRY_RUN_CMD "${paths.wrapperScript}" ${defaultProfile} clean
+        verboseEcho "Cleaning up Colima..."
+        run env "VERBOSE=$VERBOSE" "${paths.wrapperScript}" ${defaultProfile} clean
       '';
     };
 
