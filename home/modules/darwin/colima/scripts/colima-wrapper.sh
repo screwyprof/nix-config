@@ -10,14 +10,10 @@ readonly LOCK_FILE="/tmp/colima-${PROFILE:-unknown}.lock"
 _script_name="$(basename "$0")"
 readonly SCRIPT_NAME="${_script_name}"
 
-docker() {
-    command docker "${VERBOSE_ARG:-}" "$@"
-}
-
-colima() {
-    log_info "Running colima with profile: ${PROFILE}"
-    command colima "${VERBOSE_ARG:-}" -p "${PROFILE}" "$@"
-}
+# Always use profile and verbose flags with colima
+shopt -s expand_aliases
+alias colima='command colima ${VERBOSE_ARG:-} -p ${PROFILE}'
+alias docker='command docker ${VERBOSE_ARG:-}'
 
 # Logging functions
 log() {
