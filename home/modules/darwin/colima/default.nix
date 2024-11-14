@@ -15,33 +15,28 @@ let
     colima
   ];
 
-  # Define PATH once
-  systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin:/bin:/sbin";
-
   # Create the wrapper script
   wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
 
-  # Centralize paths
   paths = {
     logDir = "${homeDir}/.colima/${defaultProfile}";
     configDir = "${homeDir}/.colima";
     wrapperScript = lib.getExe wrapperScript;
+    systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin:/bin:/sbin";
   };
 
-  # LaunchAgent configuration
   agent = {
     label = "org.nix-community.home.colima";
     plist = "${homeDir}/Library/LaunchAgents/${agent.label}.plist";
   };
 
-  # Environment variables
   envVars = {
     HOME = homeDir;
     COLIMA_HOME = paths.configDir;
     COLIMA_PROFILE = defaultProfile;
     COLIMA_LOG_ROTATE = "true";
     COLIMA_LOG_SIZE = "10M";
-    PATH = systemPath;
+    PATH = paths.systemPath;
   };
 in
 {
@@ -56,10 +51,7 @@ in
 
     # Activation script
     activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      export PATH="${systemPath}:$PATH"
-
-      echo "Checking initial state..."
-      "${paths.wrapperScript}" ${defaultProfile} status
+      export PATH="${paths.systemPath}:$PATH"
 
       echo "Unloading existing Colima agent..."
       /bin/launchctl bootout gui/$UID "${agent.plist}" 2>/dev/null || true
@@ -67,13 +59,9 @@ in
 
       echo "Cleaning up Colima..."
       "${paths.wrapperScript}" ${defaultProfile} clean
-
-      echo "Checking post-cleanup state..."
-      "${paths.wrapperScript}" ${defaultProfile} status
     '';
   };
 
-  # LaunchAgent configuration
   launchd.agents.colima = {
     enable = true;
     config = {
