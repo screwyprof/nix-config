@@ -103,10 +103,11 @@ stop_colima() {
 
 clean_state() {
     log_info "Cleaning Colima state..."
+
     stop_colima || true
     log_info "Running delete for profile: ${PROFILE}"
     colima delete -f 2>/dev/null || true
-    log_info "Cleanup complete"
+    rm -f "${LOCK_FILE}" || true
 }
 
 run_daemon() {

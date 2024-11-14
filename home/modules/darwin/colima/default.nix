@@ -68,6 +68,7 @@ in
           defaultProfile
           "daemon"
         ];
+        EnvironmentVariables = envVars;
         RunAtLoad = true;
         WorkingDirectory = paths.configDir;
         StandardOutPath = "${paths.profileDir}/colima.log";
@@ -89,8 +90,8 @@ in
         cstatus = mkColimaAlias "status";
         cdelete = mkColimaAlias "delete";
         clist = "colima list";
-        clog = "tail -f ${paths.profileDir}/colima.log";
-        clogerr = "tail -f ${paths.profileDir}/colima.error.log";
+        clog = "tail -f ~/.colima/${defaultProfile}/colima.log";
+        clogerr = "tail -f ~/.colima/${defaultProfile}/colima.error.log";
       };
   };
 }
