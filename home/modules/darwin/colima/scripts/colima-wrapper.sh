@@ -3,7 +3,6 @@ set -euo pipefail
 
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
-readonly VALID_MODES=("daemon" "start" "stop" "status" "clean" "help")
 
 # Variables - initialized after argument checking
 declare SCRIPT_NAME=""
