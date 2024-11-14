@@ -32,7 +32,7 @@ let
       pkgs.nix
       pkgs.docker
       pkgs.colima
-    ] + ":/usr/bin:/usr/sbin"; # System commands from macOS
+    ] + ":/usr/bin:/usr/sbin";
   };
 in
 {
@@ -42,10 +42,7 @@ in
     file = {
       ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
       ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
-      ".local/bin/colima-wrapper.sh" = {
-        source = ./scripts/colima-wrapper.sh;
-        executable = true;
-      };
+      ".local/bin/colima-wrapper.sh".source = "${pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh)}/bin/colima-wrapper.sh";
     };
 
     activation = {
