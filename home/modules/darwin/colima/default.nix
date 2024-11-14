@@ -2,7 +2,7 @@
 
 let
   defaultProfile = "docker";
-  
+
   # Centralize paths and configuration
   paths = {
     logDir = "${config.home.homeDirectory}/.colima/${defaultProfile}";
@@ -32,7 +32,7 @@ let
       pkgs.nix
       pkgs.docker
       pkgs.colima
-    ] + ":/usr/bin:/usr/sbin";  # System commands from macOS
+    ] + ":/usr/bin:/usr/sbin"; # System commands from macOS
   };
 in
 {
@@ -93,15 +93,17 @@ in
     };
   };
 
-  programs.zsh.shellAliases = let
-    mkColimaAlias = cmd: "colima ${cmd} -p";
-  in {
-    cstart = mkColimaAlias "start";
-    cstop = mkColimaAlias "stop";
-    cstatus = mkColimaAlias "status";
-    cdelete = mkColimaAlias "delete";
-    clist = "colima list";
-    clog = "tail -f ${paths.logDir}/colima.log";
-    clogerr = "tail -f ${paths.logDir}/colima.error.log";
-  };
+  programs.zsh.shellAliases =
+    let
+      mkColimaAlias = cmd: "colima ${cmd} -p";
+    in
+    {
+      cstart = mkColimaAlias "start";
+      cstop = mkColimaAlias "stop";
+      cstatus = mkColimaAlias "status";
+      cdelete = mkColimaAlias "delete";
+      clist = "colima list";
+      clog = "tail -f ${paths.logDir}/colima.log";
+      clogerr = "tail -f ${paths.logDir}/colima.error.log";
+    };
 }
