@@ -73,7 +73,7 @@ in
           errorEcho "Failed to bootstrap agent"
         }
 
-        run /bin/launchctl kickstart -k "${agent.plist}"
+        run /bin/launchctl kickstart -k "gui/$UID/${agent.plist}"
       '';
     };
 
