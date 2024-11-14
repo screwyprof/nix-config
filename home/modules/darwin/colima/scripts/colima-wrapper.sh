@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+echo "Debug: Starting script with PROFILE=${1:-unknown} CMD=${2:-help}" >&2
+
 # Constants and defaults
 readonly DEFAULT_TIMEOUT=30
 readonly PROFILE="${1:-unknown}"
