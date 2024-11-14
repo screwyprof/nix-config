@@ -92,11 +92,6 @@ in
           Crashed = true;
           SuccessfulExit = false;
         };
-        ThrottleInterval = 30;
-        # Additional recommended LaunchAgent settings
-        ProcessType = "Interactive";
-        LimitLoadToSessionType = "Aqua";
-        Nice = 0;
       };
     };
 
