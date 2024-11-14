@@ -30,11 +30,7 @@ log_error() { log "ERROR" "$@"; }
 
 # Helper functions
 is_colima_running() {
-    if [[ -n "${VERBOSE_ARG:-}" ]]; then
-        colima status
-    else
-        colima status >/dev/null 2>&1
-    fi
+    colima status >/dev/null 2>&1
 }
 
 acquire_lock() {
@@ -48,7 +44,7 @@ acquire_lock() {
 
 release_lock() {
     flock -u 9 2>/dev/null || true
-    rm -f "${VERBOSE_ARG:-}" "${LOCK_FILE}" || true
+    rm -f "${LOCK_FILE}" || true
 }
 
 show_help() {
@@ -99,19 +95,16 @@ start_colima() {
 
 stop_colima() {
     log_info "Stopping Colima..."
-    if is_colima_running; then
-        docker context use default >/dev/null 2>&1 || true
-        colima stop 2>/dev/null || true
-        wait_for_colima stop
-    else
-        log_info "Colima is not running, no need to stop"
-    fi
+
+    docker context use default >/dev/null 2>&1 || true
+    colima stop 2>/dev/null || true
+    wait_for_colima stop
 }
 
 clean_state() {
     log_info "Cleaning Colima state..."
     stop_colima || true
-    colima delete -f || true
+    colima delete -f 2>/dev/null || true
     log_info "Cleanup complete"
 }
 
