@@ -51,8 +51,11 @@ in
       };
 
       # Activation script
-      activation.cleanupColima = lib.hm.dag.entryBefore [ "reloadAgent" ] ''
+      activation.cleanupColima = lib.hm.dag.entryBefore [ "setupLaunchAgents" ] ''
         export PATH="${paths.systemPath}:$PATH"
+
+        # Clean stale lock file
+        rm -f "/tmp/colima-${defaultProfile}.lock" || true
 
         verboseEcho "Cleaning up Colima..."
         run "${paths.wrapperScript}" ${defaultProfile} clean
