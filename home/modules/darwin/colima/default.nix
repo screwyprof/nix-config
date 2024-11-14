@@ -23,11 +23,17 @@ let
     COLIMA_PROFILE = defaultProfile;
     COLIMA_LOG_ROTATE = "true";
     COLIMA_LOG_SIZE = "10M";
-    PATH = lib.makeBinPath [
+    PATH = lib.makeBinPath ([
       pkgs.coreutils
+      pkgs.findutils
+      pkgs.gnugrep
+      pkgs.gettext
+      pkgs.bash
       pkgs.docker
       pkgs.colima
-    ] + ":/usr/bin:/usr/sbin";
+    ] ++ (lib.optionals pkgs.stdenv.isDarwin [
+      pkgs.darwin.system_cmds 
+    ])); #+ ":/usr/bin:/usr/sbin";
   };
 in
 {
@@ -37,14 +43,7 @@ in
     file = {
       ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
       ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
-      ".local/bin/colima-wrapper.sh" = {
-        executable = true;
-        source = ./scripts/colima-wrapper.sh;
-        onChange = ''
-          echo "Colima wrapper updated!"
-          ${pkgs.shellcheck}/bin/shellcheck "${paths.wrapperScript}" || true
-        '';
-      };
+      ".local/bin/colima-wrapper.sh".source = ./scripts/colima-wrapper.sh;
     };
 
     activation = {
