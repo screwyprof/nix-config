@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: {
+{ lib, pkgs, ... }: {
   home = {
     sessionVariables = {
       NOSYSZSHRC = "1"; # Prevent loading of /etc/zshrc
@@ -52,7 +52,6 @@
         enable = true;
         plugins = [
           "git"
-          #"thefuck"
           "gitfast"
           "alias-finder"
           "command-not-found"

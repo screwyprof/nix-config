@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ pkgs, ... }:
 
 let
   nixDevTools = with pkgs; [
@@ -17,7 +17,10 @@ let
   nixAliases = {
     # Basic operations
     nix-check = "nix flake check";
-    nix-cleanup = "nix-collect-garbage -d && nix store optimise";
+    nix-cleanup = ''
+      nix-collect-garbage -d && \
+      nix store optimise 2>&1 | grep -v "warning: skipping suspicious writable file"
+    '';
     nix-update = "nix flake update";
     nix-update-nixpkgs = "nix flake lock --update-input nixpkgs";
 
