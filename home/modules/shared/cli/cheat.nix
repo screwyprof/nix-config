@@ -11,6 +11,10 @@ in
   home = {
     packages = [ pkgs.cheat ];
 
+    sessionVariables = {
+      CHEAT_USE_FZF = "true";
+    };
+
     file = {
       ".config/cheat/conf.yml".text = ''
         editor: vim

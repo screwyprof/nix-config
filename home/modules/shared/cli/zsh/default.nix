@@ -2,7 +2,6 @@
   home = {
     sessionVariables = {
       NOSYSZSHRC = "1"; # Prevent loading of /etc/zshrc
-      POWERLEVEL9K_INSTANT_PROMPT = "quiet";
       TERM = "xterm-256color";
 
       # Prefer GNU versions over BSD ones
@@ -43,9 +42,6 @@
         # Disable oh-my-zsh's compfix
         ZSH_DISABLE_COMPFIX=true
 
-        # Disable instant prompt warnings for Powerlevel10k
-        #POWERLEVEL9K_INSTANT_PROMPT="quiet"
-
         # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
         if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
           source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
@@ -56,7 +52,6 @@
         enable = true;
         plugins = [
           "git"
-          "fzf"
           "gitfast"
           "alias-finder"
           "command-not-found"
@@ -93,15 +88,6 @@
           src = ./p10k;
           file = "p10k.zsh";
         }
-        {
-          name = "fzf-tab";
-          src = pkgs.fetchFromGitHub {
-            owner = "Aloxaf";
-            repo = "fzf-tab";
-            rev = "master";
-            sha256 = "sha256-gvZp8P3quOtcy1Xtt1LAW1cfZ/zCtnAmnWqcwrKel6w=";
-          };
-        }
       ];
 
       initExtra = ''
@@ -126,13 +112,6 @@
         setopt HIST_SAVE_NO_DUPS         # Don't write duplicate entries in the history file.
         setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks before recording entry.
 
-        
-        # fzf-tab configuration
-        enable-fzf-tab
-        # Set fzf-tab options here
-        zstyle ':fzf-tab:*' fzf-command fzf
-        zstyle ':fzf-tab:*' fzf-flags --height 40%
-
         # Enable command correction
         #setopt CORRECT
         #setopt CORRECT_ALL
@@ -144,16 +123,21 @@
         eval "$(thefuck --alias)"
         # Optional: add shorter alias
         eval "$(thefuck --alias f)"
+      '';
 
-        # Enable FZF integration for cheat
-        export CHEAT_USE_FZF=true
+      envExtra = ''
+        # Force source the session variables in new shells
+        if [ -e "/etc/profiles/per-user/$USER/etc/profile.d/hm-session-vars.sh" ]; then
+          unset __HM_SESS_VARS_SOURCED
+          . "/etc/profiles/per-user/$USER/etc/profile.d/hm-session-vars.sh"
+        fi
       '';
 
       shellAliases = {
         # Modern CLI tool replacements
-        ls = "${pkgs.eza}/bin/eza";
-        ll = "${pkgs.eza}/bin/eza -la";
-        tree = "${pkgs.eza}/bin/eza --tree";
+        ls = "${pkgs.eza}/bin/eza --icons=always";
+        ll = "${pkgs.eza}/bin/eza -la --icons=always";
+        tree = "${pkgs.eza}/bin/eza --tree --icons=always";
         du = "${pkgs.du-dust}/bin/dust";
         df = "${pkgs.duf}/bin/duf";
         top = "${pkgs.htop}/bin/htop";
@@ -165,33 +149,10 @@
         make = "${pkgs.gnumake}/bin/make";
       };
     };
-
-    # fzf configuration
-    fzf = {
-      enable = true;
-      enableZshIntegration = true;
-      defaultCommand = "${pkgs.fd}/bin/fd --type f";
-      defaultOptions = [
-        "--height 40%"
-        "--layout=reverse"
-        "--border"
-        "--inline-info"
-      ];
-    };
   };
 
   # Add required packages
   home.packages = with pkgs; [
-    # GNU Core Utilities
-    coreutils # Basic file, shell and text manipulation utilities
-    findutils # GNU find, locate, updatedb, and xargs
-    gnugrep # GNU grep, egrep, and fgrep
-    gnused # GNU sed
-    gnutar # GNU tar
-    gawk # GNU awk
-    gnutls # GNU TLS library
-    gnumake # GNU make
-
     # Modern replacements for traditional tools
     procs # Modern process viewer (ps replacement)
     eza # Better ls
@@ -199,8 +160,6 @@
     du-dust # Better du
     htop # Better top
     ripgrep # Better grep
-    fd # Better find
-    fzf # Fuzzy finder
     thefuck # Command correction
   ];
 }
