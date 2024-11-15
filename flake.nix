@@ -16,7 +16,6 @@
 
   outputs = { self, nixpkgs, darwin, home-manager, pre-commit-hooks, ... }@inputs:
     let
-      inherit (nixpkgs) lib;
 
       devUser = {
         fullName = "Happy Gopher";
@@ -38,10 +37,7 @@
         config.allowUnfree = true;
       };
 
-      system = "aarch64-darwin";
-      pkgs = nixpkgs.legacyPackages.${system};
-
-      mkDarwinConfig = { hostname, system ? "aarch64-darwin", users }:
+      mkDarwinConfig = { hostname, system, users }:
         darwin.lib.darwinSystem {
           inherit system;
           specialArgs = {

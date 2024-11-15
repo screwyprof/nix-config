@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: {
+{
   home.sessionPath = [
     "$PNPM_HOME"
   ];

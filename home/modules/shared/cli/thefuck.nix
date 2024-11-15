@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: {
+{ lib, pkgs, ... }: {
   programs.zsh = {
     initExtra = lib.mkBefore ''
       # Initialize thefuck with standard mode

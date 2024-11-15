@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: {
+{ config, lib, ... }: {
   targets.darwin.defaults = {
     # Global domain settings
     NSGlobalDomain = {

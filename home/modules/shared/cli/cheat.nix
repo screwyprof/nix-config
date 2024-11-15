@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ pkgs, ... }:
 let
   cheatsheets = pkgs.fetchFromGitHub {
     owner = "cheat";

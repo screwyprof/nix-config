@@ -1,4 +1,4 @@
-{ pkgs, config, lib, ... }:
+{ pkgs, config, ... }:
 let
   createLauncherScript = pkgs.writeShellScript "create-launcher" ''
     set -e

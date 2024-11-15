@@ -4,7 +4,7 @@
 , darwin
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+stdenv.mkDerivation {
   pname = "mysides";
   version = "1.0.1";
 
@@ -54,4 +54,4 @@ stdenv.mkDerivation (finalAttrs: {
     license = licenses.mit;
     platforms = [ "aarch64-darwin" ];
   };
-})
+}

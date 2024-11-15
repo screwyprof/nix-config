@@ -1,4 +1,4 @@
-{ pkgs, config, lib, ... }: {
+{ pkgs, lib, ... }: {
   home.packages = with pkgs; [
     fastfetch
   ];
