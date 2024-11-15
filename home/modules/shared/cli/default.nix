@@ -6,5 +6,6 @@
     ./moar.nix
     ./cheat.nix
     ./tldr.nix
+    ./thefuck.nix
   ];
 }

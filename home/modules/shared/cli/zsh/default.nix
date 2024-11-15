@@ -52,6 +52,7 @@
         enable = true;
         plugins = [
           "git"
+          #"thefuck"
           "gitfast"
           "alias-finder"
           "command-not-found"
@@ -90,10 +91,7 @@
         }
       ];
 
-      initExtra = ''
-        # Terminal configuration
-        export TERM=xterm-256color
-        
+      initExtra = lib.mkBefore ''
         # Custom ZSH configurations
         setopt AUTO_CD
         setopt EXTENDED_GLOB
@@ -111,18 +109,7 @@
         setopt HIST_IGNORE_SPACE         # Don't record an entry starting with a space.
         setopt HIST_SAVE_NO_DUPS         # Don't write duplicate entries in the history file.
         setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks before recording entry.
-
-        # Enable command correction
-        #setopt CORRECT
-        #setopt CORRECT_ALL
-        
-        # Configure correction prompt
-        #SPROMPT="Correct %R to %r? [Yes, No, Abort, Edit] "
-        
-        # Initialize thefuck
-        eval "$(thefuck --alias)"
-        # Optional: add shorter alias
-        eval "$(thefuck --alias f)"
+        setopt HIST_VERIFY               # Show expanded history commands before executing.
       '';
 
       envExtra = ''
@@ -160,6 +147,5 @@
     du-dust # Better du
     htop # Better top
     ripgrep # Better grep
-    thefuck # Command correction
   ];
 }
