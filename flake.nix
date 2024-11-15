@@ -181,10 +181,7 @@
 
           hammering = pkgs.runCommand "check-hammering"
             {
-              __structuredAttrs = true;
               buildInputs = [ nixpkgs-hammering.packages.${system}.default ];
-              preferLocalBuild = true;
-              allowSubstitutes = false;
             } ''
             set -euo pipefail
               
