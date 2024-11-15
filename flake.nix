@@ -11,11 +11,10 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-eval-jobs.url = "github:nix-community/nix-eval-jobs";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, nix-eval-jobs, pre-commit-hooks, ... }@inputs:
+  outputs = { self, nixpkgs, darwin, home-manager, pre-commit-hooks, ... }@inputs:
     let
       inherit (nixpkgs) lib;
 
@@ -30,7 +29,7 @@
       nixpkgsForSystem = system: import nixpkgs {
         inherit system;
         overlays = [
-          (final: prev: {
+          (final: _: {
             mysides = final.callPackage ./pkgs/mysides {
               stdenv = if final.stdenv.isDarwin then final.darwin.apple_sdk.stdenv else final.stdenv;
             };
@@ -41,22 +40,6 @@
 
       system = "aarch64-darwin";
       pkgs = nixpkgs.legacyPackages.${system};
-
-      mkHomeConfig = { username, system }: {
-        useGlobalPkgs = true;
-        useUserPackages = true;
-        extraSpecialArgs = {
-          inherit inputs devUser;
-          isDarwin = builtins.match ".*-darwin" system != null;
-        };
-        backupFileExtension = "bak";
-        users.${username} = { pkgs, ... }: {
-          imports =
-            if builtins.match ".*-darwin" system != null
-            then [ ./home/users/darwin/${username} ]
-            else [ ./home/users/linux/${username} ];
-        };
-      };
 
       mkDarwinConfig = { hostname, system ? "aarch64-darwin", users }:
         darwin.lib.darwinSystem {
@@ -84,32 +67,11 @@
                 users = builtins.listToAttrs (map
                   (username: {
                     name = username;
-                    value = { pkgs, ... }: {
+                    value = { ... }: {
                       imports = [ ./home/users/darwin/${username} ];
                     };
                   })
                   users);
-              };
-            }
-          ];
-        };
-
-      mkLinuxConfig = { username, hostname, system ? "x86_64-linux" }:
-        nixpkgs.lib.nixosSystem {
-          inherit system;
-          specialArgs = {
-            inherit inputs devUser;
-            isDarwin = false;
-            pkgs = nixpkgsForSystem system;
-          };
-          modules = [
-            ./modules/linux
-            ./hosts/linux/${hostname}
-
-            home-manager.nixosModules.home-manager
-            {
-              home-manager = mkHomeConfig {
-                inherit username system;
               };
             }
           ];
@@ -134,19 +96,13 @@
         let pkgs = nixpkgsForSystem system;
         in {
           default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              mysides
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+            buildInputs = [
+              pkgs.mysides
               pkgs.darwin.apple_sdk.frameworks.CoreServices
               pkgs.darwin.apple_sdk.frameworks.Foundation
               self.checks.${system}.pre-commit-check.enabledPackages
             ];
-
-            shellHook = ''
-              echo "Development shell for macOS tools"
-              echo "Available commands:"
-              echo "  mysides - Manage Finder sidebar"
-              ${self.checks.${system}.pre-commit-check.shellHook}
-            '';
           };
         });
 
@@ -158,24 +114,10 @@
         pre-commit-check = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
-            # Formatting
             nixpkgs-fmt.enable = true;
-
-            # Static analysis
             statix.enable = true;
             deadnix.enable = true;
-
-            # Run flake checks
-            nil.enable = true; # Nix language server checks
-
-            # Custom hook for nix flake check
-            nix-flake-check = {
-              enable = true;
-              name = "Nix Flake Check";
-              entry = "nix flake check";
-              files = "\\.nix$";
-              language = "system";
-            };
+            nil.enable = true;
           };
         };
       });
