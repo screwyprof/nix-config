@@ -181,12 +181,16 @@
 
           hammering = pkgs.runCommand "check-hammering"
             {
-              buildInputs = [ nixpkgs-hammering.packages.${system}.default ];
+              buildInputs = with pkgs; [
+                nixpkgs-hammering.packages.${system}.default
+                nix
+              ];
               allowSubstitutes = false;
               testNix = ./checks/hammering-test.nix;
+              inherit (pkgs) mysides;
             } ''
-              ${builtins.readFile ./checks/hammering-check.sh}
-            '';
+            ${builtins.readFile ./checks/hammering-check.sh}
+          '';
 
           inherit (pkgs) mysides;
         });
