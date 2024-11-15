@@ -182,35 +182,12 @@
           hammering = pkgs.runCommand "check-hammering"
             {
               buildInputs = [ nixpkgs-hammering.packages.${system}.default ];
+              allowSubstitutes = false;
             } ''
             set -euo pipefail
               
-            # Create minimal test file with all rules enabled
-            cat > ./default.nix << 'EOF'
-            { pkgs ? import <nixpkgs> {}, overlays ? [] }:
-            let
-              finalPkgs = import <nixpkgs> {
-                inherit overlays;
-                config.nixpkgs.overlays = overlays ++ [
-                  (self: super: {
-                    mysides = (super.callPackage ${./pkgs/mysides/default.nix} {
-                      stdenv = self.darwin.apple_sdk.stdenv;
-                    }).overrideAttrs (old: {
-                      nixpkgsHammering = {
-                        enable = true;
-                        rules = "all";
-                      };
-                    });
-                  })
-                ];
-              };
-            in {
-              inherit (finalPkgs) mysides;
-            }
-            EOF
-
             # Run hammering and capture output
-            nixpkgs-hammer -f ./default.nix mysides 2>&1 | \
+            nixpkgs-hammer -f ${./checks/hammering-test.nix} mysides 2>&1 | \
               grep -v "warning: creating directory '/homeless-shelter" | \
               grep -v "error: build log" | \
               grep -v "notice: no-build-output" > hammer_output.txt
