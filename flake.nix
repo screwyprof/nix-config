@@ -12,9 +12,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-eval-jobs.url = "github:nix-community/nix-eval-jobs";
+    pre-commit-hooks.url = "github:cachix/git-hooks.nix";
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, nix-eval-jobs, ... }@inputs:
+  outputs = { self, nixpkgs, darwin, home-manager, nix-eval-jobs, pre-commit-hooks, ... }@inputs:
     let
       inherit (nixpkgs) lib;
 
@@ -137,12 +138,14 @@
               mysides
               pkgs.darwin.apple_sdk.frameworks.CoreServices
               pkgs.darwin.apple_sdk.frameworks.Foundation
+              self.checks.${system}.pre-commit-check.enabledPackages
             ];
 
             shellHook = ''
               echo "Development shell for macOS tools"
               echo "Available commands:"
               echo "  mysides - Manage Finder sidebar"
+              ${self.checks.${system}.pre-commit-check.shellHook}
             '';
           };
         });
@@ -151,27 +154,30 @@
         inherit (nixpkgsForSystem system) mysides;
       });
 
-      checks = forAllSystems (system:
-        let
-          pkgs = nixpkgsForSystem system;
-        in
-        {
-          formatting = pkgs.runCommand "check-formatting"
-            {
-              buildInputs = with pkgs; [
-                nixpkgs-fmt
-                statix
-                deadnix
-              ];
-            } ''
-            cd ${self}
-            nixpkgs-fmt --check .
-            statix check .
-            deadnix .
-            touch $out
-          '';
+      checks = forAllSystems (system: {
+        pre-commit-check = pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            # Formatting
+            nixpkgs-fmt.enable = true;
 
-          inherit (pkgs) mysides;
-        });
+            # Static analysis
+            statix.enable = true;
+            deadnix.enable = true;
+
+            # Run flake checks
+            nil.enable = true; # Nix language server checks
+
+            # Custom hook for nix flake check
+            nix-flake-check = {
+              enable = true;
+              name = "Nix Flake Check";
+              entry = "nix flake check";
+              files = "\\.nix$";
+              language = "system";
+            };
+          };
+        };
+      });
     };
 } 

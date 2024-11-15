@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: {
+{ config, lib, ... }: {
   home.activation = {
     userPreferences = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       echo "Configuring macOS preferences..."
