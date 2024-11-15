@@ -3,11 +3,6 @@
 let
   # Centralize package groups
   devTools = with pkgs; [
-    nix-prefetch-github
-    nix-prefetch-git
-    nixpkgs-fmt
-    statix
-    deadnix
     shellcheck
   ];
 
@@ -20,6 +15,7 @@ in
 {
   imports = [
     ./git.nix
+    ./nix.nix
     ./containers
     ./golang.nix
     ./node.nix

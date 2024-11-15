@@ -11,10 +11,17 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixpkgs-hammering = {
+      url = "github:jtojnar/nixpkgs-hammering";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-eval-jobs.url = "github:nix-community/nix-eval-jobs";
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, darwin, home-manager, nixpkgs-hammering, nix-eval-jobs, ... }@inputs:
     let
+      inherit (nixpkgs) lib;
+
       devUser = {
         fullName = "Happy Gopher";
         email = "max@happygopher.nl";
@@ -26,10 +33,14 @@
       nixpkgsForSystem = system: import nixpkgs {
         inherit system;
         overlays = [
+          nixpkgs-hammering.overlays.default
+
           (final: prev: {
-            mysides = final.callPackage ./pkgs/mysides {
+            mysides = (final.callPackage ./pkgs/mysides {
               stdenv = if final.stdenv.isDarwin then final.darwin.apple_sdk.stdenv else final.stdenv;
-            };
+            }).overrideAttrs (old: {
+              nixpkgsHammering = true;
+            });
           })
         ];
         config.allowUnfree = true;
@@ -148,17 +159,87 @@
         inherit (nixpkgsForSystem system) mysides;
       });
 
-      checks.${system} = {
-        formatting = pkgs.runCommand "check-formatting"
-          {
-            buildInputs = with pkgs; [ nixpkgs-fmt statix deadnix ];
-          } ''
-          cd ${self}
-          nixpkgs-fmt --check .
-          statix check .
-          deadnix .
-          touch $out
-        '';
-      };
+      checks = forAllSystems (system:
+        let
+          pkgs = nixpkgsForSystem system;
+        in
+        {
+          formatting = pkgs.runCommand "check-formatting"
+            {
+              buildInputs = with pkgs; [
+                nixpkgs-fmt
+                statix
+                deadnix
+              ];
+            } ''
+            cd ${self}
+            nixpkgs-fmt --check .
+            statix check .
+            deadnix .
+            touch $out
+          '';
+
+          hammering = pkgs.runCommand "check-hammering"
+            {
+              __structuredAttrs = true;
+              buildInputs = [ nixpkgs-hammering.packages.${system}.default ];
+              preferLocalBuild = true;
+              allowSubstitutes = false;
+            } ''
+            set -euo pipefail
+              
+            echo "=== Running nixpkgs-hammer check ==="
+              
+            # Create minimal test file with all rules enabled
+            cat > ./default.nix << 'EOF'
+            { pkgs ? import <nixpkgs> {}, overlays ? [] }:
+            let
+              finalPkgs = import <nixpkgs> {
+                inherit overlays;
+                config.nixpkgs.overlays = overlays ++ [
+                  (self: super: {
+                    mysides = (super.callPackage ${./pkgs/mysides/default.nix} {
+                      stdenv = self.darwin.apple_sdk.stdenv;
+                    }).overrideAttrs (old: {
+                      nixpkgsHammering = {
+                        enable = true;
+                        rules = "all";
+                      };
+                    });
+                  })
+                ];
+              };
+            in {
+              inherit (finalPkgs) mysides;
+            }
+            EOF
+
+            # Run hammering and filter output
+            nixpkgs-hammer -f ./default.nix mysides 2>&1 | \
+              grep -v "warning: creating directory '/homeless-shelter" | \
+              grep -v "error: build log" | \
+              grep -v "notice: no-build-output" > hammer_output.txt
+
+            # Check for warnings (excluding system warnings)
+            if grep -i "warning:" hammer_output.txt > actual_warnings.txt; then
+              echo "⚠️  Package warnings found:"
+              echo "----------------------------------------"
+              cat actual_warnings.txt
+              echo "----------------------------------------"
+              # Uncomment to make warnings fail the build:
+              # exit 1
+            else
+              echo "✅ No package warnings found"
+            fi
+
+            # Save filtered output for reference
+            mkdir -p $out/nix-support
+            cp actual_warnings.txt $out/nix-support/ || touch $out/nix-support/actual_warnings.txt
+
+            touch $out
+          '';
+
+          inherit (pkgs) mysides;
+        });
     };
 } 

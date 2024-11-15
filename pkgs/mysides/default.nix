@@ -4,7 +4,7 @@
 , darwin
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "mysides";
   version = "1.0.1";
 
@@ -14,6 +14,8 @@ stdenv.mkDerivation rec {
     rev = "master";
     sha256 = "sha256-aAZOGeU8lvMPxBIHKbNNe5WVHvSfRpjgnqJ6qV4Jw00=";
   };
+
+  doCheck = true;
 
   buildInputs = [
     darwin.apple_sdk.frameworks.CoreServices
@@ -55,4 +57,4 @@ stdenv.mkDerivation rec {
     platforms = [ "aarch64-darwin" ];
     maintainers = [ ];
   };
-}
+})

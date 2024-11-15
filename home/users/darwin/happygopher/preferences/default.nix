@@ -16,7 +16,7 @@
       $DRY_RUN_CMD /usr/bin/defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
       
       # ===== Dock Settings =====
-      $DRY_RUN_CMD /usr/bin/defaults write com.apple.dock autohide -bool false
+      $DRY_RUN_CMD /usr/bin/defaults write com.apple.dock autohide -bool true
       $DRY_RUN_CMD /usr/bin/defaults write com.apple.dock mru-spaces -bool false
       
       # ===== Finder Settings =====
