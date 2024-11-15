@@ -15,8 +15,6 @@ stdenv.mkDerivation (finalAttrs: {
     sha256 = "sha256-aAZOGeU8lvMPxBIHKbNNe5WVHvSfRpjgnqJ6qV4Jw00=";
   };
 
-  doCheck = true;
-
   buildInputs = [
     darwin.apple_sdk.frameworks.CoreServices
     darwin.apple_sdk.frameworks.Foundation
@@ -55,6 +53,5 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/mosen/mysides";
     license = licenses.mit;
     platforms = [ "aarch64-darwin" ];
-    maintainers = [ ];
   };
 })

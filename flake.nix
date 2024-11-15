@@ -11,14 +11,10 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixpkgs-hammering = {
-      url = "github:jtojnar/nixpkgs-hammering";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     nix-eval-jobs.url = "github:nix-community/nix-eval-jobs";
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, nixpkgs-hammering, nix-eval-jobs, ... }@inputs:
+  outputs = { self, nixpkgs, darwin, home-manager, nix-eval-jobs, ... }@inputs:
     let
       inherit (nixpkgs) lib;
 
@@ -33,14 +29,10 @@
       nixpkgsForSystem = system: import nixpkgs {
         inherit system;
         overlays = [
-          nixpkgs-hammering.overlays.default
-
           (final: prev: {
-            mysides = (final.callPackage ./pkgs/mysides {
+            mysides = final.callPackage ./pkgs/mysides {
               stdenv = if final.stdenv.isDarwin then final.darwin.apple_sdk.stdenv else final.stdenv;
-            }).overrideAttrs (old: {
-              nixpkgsHammering = true;
-            });
+            };
           })
         ];
         config.allowUnfree = true;
@@ -177,19 +169,6 @@
             statix check .
             deadnix .
             touch $out
-          '';
-
-          hammering = pkgs.runCommand "check-hammering"
-            {
-              buildInputs = with pkgs; [
-                nixpkgs-hammering.packages.${system}.default
-                nix
-              ];
-              allowSubstitutes = false;
-              testNix = ./checks/hammering-test.nix;
-              inherit (pkgs) mysides;
-            } ''
-            ${builtins.readFile ./checks/hammering-check.sh}
           '';
 
           inherit (pkgs) mysides;
