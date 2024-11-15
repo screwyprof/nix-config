@@ -188,8 +188,6 @@
             } ''
             set -euo pipefail
               
-            echo "=== Running nixpkgs-hammer check ==="
-              
             # Create minimal test file with all rules enabled
             cat > ./default.nix << 'EOF'
             { pkgs ? import <nixpkgs> {}, overlays ? [] }:
@@ -214,29 +212,42 @@
             }
             EOF
 
-            # Run hammering and filter output
+            # Run hammering and capture output
             nixpkgs-hammer -f ./default.nix mysides 2>&1 | \
               grep -v "warning: creating directory '/homeless-shelter" | \
               grep -v "error: build log" | \
               grep -v "notice: no-build-output" > hammer_output.txt
 
-            # Check for warnings (excluding system warnings)
-            if grep -i "warning:" hammer_output.txt > actual_warnings.txt; then
-              echo "⚠️  Package warnings found:"
-              echo "----------------------------------------"
-              cat actual_warnings.txt
-              echo "----------------------------------------"
-              # Uncomment to make warnings fail the build:
-              # exit 1
-            else
-              echo "✅ No package warnings found"
-            fi
+            # Create output directory
+            mkdir -p $out
 
-            # Save filtered output for reference
-            mkdir -p $out/nix-support
-            cp actual_warnings.txt $out/nix-support/ || touch $out/nix-support/actual_warnings.txt
+            # Extract and format warnings
+            {
+              echo "=== nixpkgs-hammering Check Results ==="
+              echo ""
+                
+              if grep -q "warning:" hammer_output.txt; then
+                echo "⚠️  Warnings found:"
+                echo "----------------------------------------"
+                grep -A2 "warning:" hammer_output.txt | grep -v "See:"
+                echo "----------------------------------------"
+                echo ""
+                echo "For details, see:"
+                grep "See:" hammer_output.txt
+                  
+                # Save full output
+                mkdir -p $out/nix-support
+                cp hammer_output.txt $out/nix-support/
+                  
+                # Exit with error to indicate warnings were found
+                exit 1
+              else
+                echo "✅ No issues found"
+              fi
+            } | tee $out/result.txt
 
-            touch $out
+            # Always create a new result to prevent caching
+            date > $out/timestamp
           '';
 
           inherit (pkgs) mysides;
