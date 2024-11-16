@@ -73,8 +73,8 @@
         ] ++ lib.optionals pkgs.stdenv.isDarwin [
           "macos"
         ];
-        custom = "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k";
         theme = "powerlevel10k";
+        custom = "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k";
       };
 
       plugins = [

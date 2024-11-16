@@ -2,7 +2,7 @@
   imports = [
     ./zsh
     ./bat.nix
-    ./fzf.nix
+    ./fzf
     ./cheat.nix
     ./moar.nix
     ./tldr.nix
