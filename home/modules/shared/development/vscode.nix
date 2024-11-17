@@ -13,7 +13,8 @@
     # Nix vscode extensions
     extensions = with pkgs.vscode-extensions; [
       # Theme and UI
-      emroussel.atomize-atom-one-dark-theme # Color theme
+      #emroussel.atomize-atom-one-dark-theme # Color theme
+      dracula-theme.theme-dracula
       pkief.material-icon-theme # File icons
       usernamehw.errorlens # Inline error display
 
@@ -69,7 +70,30 @@
       "extensions.autoCheckUpdates" = false;
 
       # theme settings
-      "workbench.colorTheme" = "Atomize";
+      #"workbench.colorTheme" = "Atomize";
+      "workbench.colorTheme" = "Dracula";
+      "workbench.preferredDarkColorTheme" = "Dracula";
+
+      "workbench.colorCustomizations" = {
+        "terminal.foreground" = "#e9e9f4";
+        "terminal.background" = "#21222C";
+        "terminal.ansiBlack" = "#282A36";
+        "terminal.ansiBlue" = "#BD93F9";
+        "terminal.ansiBrightBlack" = "#3a3c4e";
+        "terminal.ansiBrightBlue" = "#D6ACFF";
+        "terminal.ansiBrightCyan" = "#A4FFFF";
+        "terminal.ansiBrightGreen" = "#69FF94";
+        "terminal.ansiBrightPurple" = "#FF92DF";
+        "terminal.ansiBrightRed" = "#FF6E6E";
+        "terminal.ansiBrightWhite" = "#FFFFFF";
+        "terminal.ansiBrightYellow" = "#FFFFA5";
+        "terminal.ansiCyan" = "#8BE9FD";
+        "terminal.ansiGreen" = "#50FA7B";
+        "terminal.ansiPurple" = "#FF79C6";
+        "terminal.ansiRed" = "#FF5555";
+        "terminal.ansiWhite" = "#F8F8F2";
+        "terminal.ansiYellow" = "#F1FA8C";
+      };
 
       # Editor settings
       "editor" = {
