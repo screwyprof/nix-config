@@ -1,5 +1,9 @@
 { config, pkgs, ... }:
 let
+  #theme = "base24-flat";
+  #theme = "base24-one-dark";
+  theme = "base24-dracula";
+
   tinted-schemes = pkgs.fetchFromGitHub {
     owner = "tinted-theming";
     repo = "schemes";
@@ -10,16 +14,30 @@ let
   tinted-shell = pkgs.fetchFromGitHub {
     owner = "tinted-theming";
     repo = "tinted-shell";
-    rev = "main";
+    rev = "60c80f53cd3d97c25eb0580e40f0b9de84dac55f";
     sha256 = "sha256-eyZKShUpeIAoxhVsHAm2eqYvMp5e15NtbVrjMWFqtF8=";
   };
 
-  tinted-fzf = pkgs.fetchFromGitHub {
+  tinted-fzf-src = pkgs.fetchFromGitHub {
     owner = "tinted-theming";
     repo = "tinted-fzf";
-    rev = "main";
-    sha256 = "sha256-mIOkmHJTg3xZ9bYNbtUUjeF1m8THaDBalYkDONQgRKY=";
+    rev = "7646a7e697767271d3dd059bbd9c267163d030a3";
+    sha256 = "sha256-Hoj5ib7cOwuuRmOHJd1SyCeyBoMrNTsrqrWgN955zJM=";
   };
+
+  # Create a patched version of tinted-fzf with theme symlinks in ansi/
+  tinted-fzf = pkgs.runCommand "tinted-fzf-patched" { } ''
+    cp -r ${tinted-fzf-src} $out
+    chmod -R +w $out
+
+    cd $out
+    mkdir -p ansi-sh
+   
+    for theme in sh/base16-*.sh sh/base24-*.sh; do
+      name=$(basename "$theme")
+      ln -s ../ansi/ansi.sh "ansi-sh/$name"
+    done
+  '';
 
   # Assert that a path exists or throw an error
   assertPath = path:
@@ -31,9 +49,10 @@ in
     packages = [ pkgs.tinty ];
     file = {
       "${config.xdg.dataHome}/tinted-theming/tinty/repos/schemes".source = assertPath tinted-schemes;
-      "${config.xdg.dataHome}/tinted-theming/tinty/repos/shell".source = assertPath tinted-shell;
+      "${config.xdg.dataHome}/tinted-theming/tinty/repos/tinted-shell".source = assertPath tinted-shell;
       "${config.xdg.dataHome}/tinted-theming/tinty/repos/fzf".source = assertPath tinted-fzf;
-      "${config.xdg.configHome}/zsh/colors.sh".source = assertPath "${tinted-shell}/scripts/base16-catppuccin-frappe.sh";
+
+      "${config.xdg.configHome}/zsh/colors.sh".source = assertPath "${tinted-shell}/scripts/${theme}.sh";
       "${config.xdg.configHome}/fzf/colors.sh".source = assertPath "${tinted-fzf}/ansi/ansi.sh";
     };
   };
@@ -41,22 +60,21 @@ in
   xdg.configFile = {
     "tinted-theming/tinty/config.toml".text = ''
       shell = "zsh -c '{}'"
-      default-scheme = "base16-tokyo-night-storm"
+      default-scheme = "${theme}"
       schemes-dir = "${config.xdg.dataHome}/tinted-theming/tinty/repos/schemes"
 
-      # Item configurations
       [[items]]
       name = "tinted-shell"
-      path = "${config.xdg.dataHome}/tinted-theming/tinty/repos/shell"
+      path = "${config.xdg.dataHome}/tinted-theming/tinty/repos/tinted-shell"
       themes-dir = "scripts"
-      #hook = "source %f"
       hook = "cp -f %f ~/.config/zsh/colors.sh && source ~/.config/zsh/colors.sh"
       supported-systems = ["base16", "base24"]
 
       [[items]]
       name = "fzf"
       path = "${config.xdg.dataHome}/tinted-theming/tinty/repos/fzf"
-      themes-dir = "ansi"
+      themes-dir = "ansi-sh"
+      supported-systems = ["base16", "base24"]
       hook = "cp -f %f ~/.config/fzf/colors.sh && source ~/.config/fzf/colors.sh"
     '';
   };

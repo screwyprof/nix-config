@@ -5,16 +5,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "tinty";
-  version = "0.22.0";
+  version = "0.23.0";
 
   src = fetchFromGitHub {
     owner = "tinted-theming";
     repo = "tinty";
     rev = "v${version}";
-    sha256 = "sha256-CZ++Njxt19pB2om2tvOYnprvCR1p7Xc1ZFR/LfI2064=";
+    sha256 = "sha256-5KrXvE+RLkypqKg01Os09XGxrqv0fCMkeSD//E5WrZc=";
   };
 
-  cargoHash = "sha256-8d7OkxNfCDreS2D1w8b5CUrEs0PgGORzJsYBUPZ6J0M=";
+  cargoHash = "sha256-qTHlSP9WN39KgU7Q/4/iS1H2XOikXiCAiZ/NSAFS9mM=";
 
   # TODO(fix testsDisable tests for now as they require specific CI setup
   doCheck = false;

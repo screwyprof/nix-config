@@ -32,21 +32,6 @@
       #   header = "#2CF9ED";    # Bright cyan for header
       # };
 
-      # TODO: remove once https://github.com/tinted-theming/tinted-fzf/issues/25 is fixed
-      colors = {
-        fg = "7";
-        bg = "0";
-        "bg+" = "8";
-        hl = "3";
-        "hl+" = "11";
-        info = "3";
-        prompt = "4";
-        pointer = "0";
-        marker = "9";
-        spinner = "9";
-        header = "1";
-      };
-
       defaultCommand = "${pkgs.fd}/bin/fd --hidden --strip-cwd-prefix --exclude .git";
 
       fileWidgetCommand = "${pkgs.fd}/bin/fd --hidden --strip-cwd-prefix --exclude .git";
@@ -89,8 +74,7 @@
       # Source theme colors if the theme exists
       envExtra = lib.mkAfter ''
         # Source theme colors if the theme exists
-        # TODO: uncomment once https://github.com/tinted-theming/tinted-fzf/issues/25 is fixed
-        #[ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
+        [ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
       '';
 
       initExtra = lib.mkAfter ''
