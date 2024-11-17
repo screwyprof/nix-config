@@ -13,15 +13,15 @@
     # Nix vscode extensions
     extensions = with pkgs.vscode-extensions; [
       # Theme and UI
-      #emroussel.atomize-atom-one-dark-theme # Color theme
       dracula-theme.theme-dracula
       pkief.material-icon-theme # File icons
+      pkief.material-product-icons # UI icons
       usernamehw.errorlens # Inline error display
 
       # Language Support
       bbenoist.nix # Nix language
       golang.go # Go language
-      #rust-lang.rust-analyzer               # Rust language (commented out)
+      #rust-lang.rust-analyzer # Rust language (commented out)
       tamasfe.even-better-toml # TOML support
 
       # Development Tools
@@ -70,9 +70,9 @@
       "extensions.autoCheckUpdates" = false;
 
       # theme settings
-      #"workbench.colorTheme" = "Atomize";
       "workbench.colorTheme" = "Dracula";
       "workbench.preferredDarkColorTheme" = "Dracula";
+      #"workbench.colorTheme" = "Dark Modern One";
 
       "workbench.colorCustomizations" = {
         "terminal.foreground" = "#e9e9f4";
@@ -94,6 +94,17 @@
         "terminal.ansiWhite" = "#F8F8F2";
         "terminal.ansiYellow" = "#F1FA8C";
       };
+
+      # Icon settings
+      "workbench.iconTheme" = "material-icon-theme";
+      "workbench.productIconTheme" = "material-product-icons";
+
+      # Optional: Material Icon Theme customization
+      "material-icon-theme.folders.color" = "#6bc1ff";
+      "material-icon-theme.files.color" = "#42a5f5";
+
+      "material-icon-theme.activeIconPack" = "nest"; # Choose icon pack: none, angular, nest, ngrx, react, redux, vue, etc.
+      "material-icon-theme.hidesExplorerArrows" = true; # Clean folder style
 
       # Editor settings
       "editor" = {
@@ -182,4 +193,4 @@
       "editor.inlineSuggest.enabled" = true;
     };
   };
-} 
+}
