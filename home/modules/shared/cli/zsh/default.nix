@@ -117,6 +117,9 @@
           unset __HM_SESS_VARS_SOURCED
           . "/etc/profiles/per-user/$USER/etc/profile.d/hm-session-vars.sh"
         fi
+
+        # Source shell theme colors if exists
+        [ -f ~/.config/zsh/colors.sh ] && source ~/.config/zsh/colors.sh
       '';
 
       shellAliases = {

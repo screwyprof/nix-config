@@ -17,6 +17,7 @@
         "--ansi"
       ];
 
+      # adjusted tokyo-night colors
       # colors = {
       #   fg = "#CBE0F0";        # Light blue-gray text
       #   bg = "#011628";        # Dark blue background
@@ -31,19 +32,20 @@
       #   header = "#2CF9ED";    # Bright cyan for header
       # };
 
-      # colors = {
-      #   fg = "#a9b1d6";
-      #   bg = "#1a1b26";
-      #   "bg+" = "#292e42";
-      #   hl = "#7aa2f7";
-      #   "hl+" = "#7aa2f7";
-      #   info = "#7dcfff";
-      #   prompt = "#bb9af7";
-      #   pointer = "#ff9e64";
-      #   marker = "#9ece6a";
-      #   spinner = "#bb9af7";
-      #   header = "#9ece6a";
-      # };
+      # TODO: remove once https://github.com/tinted-theming/tinted-fzf/issues/25 is fixed
+      colors = {
+        fg = "7";
+        bg = "0";
+        "bg+" = "8";
+        hl = "3";
+        "hl+" = "11";
+        info = "3";
+        prompt = "4";
+        pointer = "0";
+        marker = "9";
+        spinner = "9";
+        header = "1";
+      };
 
       defaultCommand = "${pkgs.fd}/bin/fd --hidden --strip-cwd-prefix --exclude .git";
 
@@ -86,7 +88,9 @@
 
       # Source theme colors if the theme exists
       envExtra = lib.mkAfter ''
-        [ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
+        # Source theme colors if the theme exists
+        # TODO: uncomment once https://github.com/tinted-theming/tinted-fzf/issues/25 is fixed
+        #[ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
       '';
 
       initExtra = lib.mkAfter ''
