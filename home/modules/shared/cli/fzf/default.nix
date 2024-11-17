@@ -6,8 +6,16 @@
       enableZshIntegration = true;
 
       defaultOptions = [
-        "--preview-window=right:60%:border-left"
-        #"--color=bg:#011628,bg+:#143652,fg:#CBE0F0,header:#2CF9ED,hl:#B388FF,hl+:#B388FF,info:#06BCE4,marker:#2CF9ED,pointer:#2CF9ED,prompt:#2CF9ED,spinner:#2CF9ED"
+        "--multi"
+        "--height=40%"
+        "--no-separator"
+        "--border"
+        "--layout=reverse"
+        "--padding=1"
+        "--preview-window=right:60%:border-none"
+        "--bind=ctrl-p:toggle-preview"
+        #"--bind=ctrl-p:change-preview-window(right:85%|right:60%)"
+        "--ansi"
       ];
 
       colors = {
@@ -28,12 +36,14 @@
 
       fileWidgetCommand = "${pkgs.fd}/bin/fd --hidden --strip-cwd-prefix --exclude .git";
       fileWidgetOptions = [
-        "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --icons --git-ignore --level=2 --color=always {}) || ${pkgs.bat}/bin/bat --style=header,numbers,grid,changes --color=always {}'"
+        "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}) || 
+                   ([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=numbers,changes,header --color=always {}) || 
+                   echo {} 2> /dev/null | head -200'"
       ];
 
       changeDirWidgetCommand = "${pkgs.fd}/bin/fd --type d --hidden --strip-cwd-prefix --exclude .git";
       changeDirWidgetOptions = [
-        "--preview '${pkgs.eza}/bin/eza --tree --icons --git-ignore --level=2 --color=always {}'"
+        "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}'"
       ];
     };
 
@@ -50,15 +60,78 @@
         # Enable fzf-tab
         enable-fzf-tab
 
-        source ${./fzf-comprun.sh}
-
-        # Use same preview for fzf-tab as we do for fzf
-        zstyle ':fzf-tab:complete:*:*' fzf-preview \
-          '([[ -d $realpath ]] && ${pkgs.eza}/bin/eza --tree --icons --git-ignore --level=2 --color=always $realpath) || \
-           ([[ -f $realpath ]] && ${pkgs.bat}/bin/bat --style=header,grid,numbers,changes --color=always $realpath) || echo $realpath'
-
         # Use fzf default options
         zstyle ':fzf-tab:*' use-fzf-default-opts yes
+
+        # force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
+        zstyle ':completion:*' menu no
+
+        # Command-specific previews
+
+        ## cd <tab>
+        zstyle ':fzf-tab:complete:cd:*' fzf-preview '${pkgs.eza}/bin/eza -1 --tree --all --icons --git-ignore --level=3 --color=always $realpath'
+        
+        ## ssh <tab>
+        ### First, set up SSH completion to only use our specified hosts
+        zstyle ':completion:*:*:ssh:*' tag-order 'hosts:-host:host'
+        zstyle ':completion:*:*:ssh:*' group-order hosts-host
+        zstyle ':completion:*:ssh:*' completer _ssh _complete _hosts
+
+        ### Then add hosts from various sources
+        zstyle ':completion:*:hosts' hosts $(
+          (
+            cat ~/.ssh/config 2>/dev/null | sed -n 's/^Host \([^ *]*\)/\1/p';
+            cat ~/.ssh/known_hosts 2>/dev/null | cut -d ' ' -f1 | tr ',' '\n' | sed 's/\[//g;s/\]//g';
+            cat /etc/hosts 2>/dev/null | grep -v '^#' | awk '{print $2}'
+          ) | sort -u
+        )
+        zstyle ':fzf-tab:complete:ssh:*' fzf-preview '
+          echo "=== Host: $word ==="
+          if [ -f ~/.ssh/config ] && grep -q "^Host $word" ~/.ssh/config; then
+            echo "\n=== SSH Config (~/.ssh/config) ==="
+            line=$(grep -n "^Host $word" ~/.ssh/config | cut -d: -f1)
+            echo "# Host $word found: line $line"
+            grep -A 4 "^Host $word" ~/.ssh/config
+          elif ${pkgs.openssh}/bin/ssh-keygen -F $word > /dev/null 2>&1; then
+            echo "\n=== Known Host (~/.ssh/known_hosts) ==="
+            ${pkgs.openssh}/bin/ssh-keygen -F $word
+          elif grep -q "$word" /etc/hosts; then
+            echo "\n=== System Host (/etc/hosts) ==="
+            line=$(grep -n "$word" /etc/hosts | cut -d: -f1)
+            echo "# Host $word found: line $line"
+            grep "$word" /etc/hosts
+          fi'
+        
+        # Environment variables preview
+        zstyle ':fzf-tab:complete:(export|unset):*' fzf-preview '
+          echo "=== $word ==="
+          eval "echo \$$word"
+          description=$(case $word in
+            PATH)        echo "List of directories to search for commands";;
+            HOME)        echo "User home directory";;
+            SHELL)       echo "Default shell";;
+            EDITOR)      echo "Default text editor";;
+            LANG)        echo "Default system language";;
+            TERM)        echo "Terminal type";;
+            SSH_*)       echo "SSH session variable";;
+            DISPLAY)     echo "X11 display address";;
+            XDG_*)       echo "XDG specification directory";;
+            LC_*)        echo "Locale setting";;
+            *)           echo "";;
+          esac)
+          if [ -n "$description" ]; then
+            echo "\nDescription: $description"
+          fi
+          if env | grep -q "^$word="; then
+            echo "\nType: Environment variable (available to child processes)"
+          else
+            echo "\nType: Shell variable (only available in current shell)"
+          fi'
+        
+        # Default preview for other commands
+        zstyle ':fzf-tab:complete:*:*' fzf-preview \
+          '([[ -d $realpath ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $realpath) || \
+           ([[ -f $realpath ]] && ${pkgs.bat}/bin/bat --style=header,grid,numbers,changes --color=always $realpath) || echo $realpath'
       '';
     };
   };
@@ -67,6 +140,5 @@
     fd
     bat
     eza
-    dnsutils
   ];
 }
