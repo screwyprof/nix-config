@@ -14,23 +14,36 @@
         "--padding=1"
         "--preview-window=right:60%:border-none"
         "--bind=ctrl-/:toggle-preview"
-        #"--bind=ctrl-p:change-preview-window(right:85%|right:60%)"
         "--ansi"
       ];
 
-      colors = {
-        fg = "#CBE0F0";
-        bg = "#011628";
-        "bg+" = "#143652";
-        hl = "#B388FF";
-        "hl+" = "#B388FF";
-        info = "#06BCE4";
-        prompt = "#2CF9ED";
-        pointer = "#2CF9ED";
-        marker = "#2CF9ED";
-        spinner = "#2CF9ED";
-        header = "#2CF9ED";
-      };
+      # colors = {
+      #   fg = "#CBE0F0";        # Light blue-gray text
+      #   bg = "#011628";        # Dark blue background
+      #   "bg+" = "#143652";     # Lighter blue for selected
+      #   hl = "#B388FF";        # Purple for highlights
+      #   "hl+" = "#B388FF";     # Same purple for selected highlights
+      #   info = "#06BCE4";      # Cyan for info
+      #   prompt = "#2CF9ED";    # Bright cyan for prompt
+      #   pointer = "#2CF9ED";   # Bright cyan for pointer
+      #   marker = "#2CF9ED";    # Bright cyan for marker
+      #   spinner = "#2CF9ED";   # Bright cyan for spinner
+      #   header = "#2CF9ED";    # Bright cyan for header
+      # };
+
+      # colors = {
+      #   fg = "#a9b1d6";
+      #   bg = "#1a1b26";
+      #   "bg+" = "#292e42";
+      #   hl = "#7aa2f7";
+      #   "hl+" = "#7aa2f7";
+      #   info = "#7dcfff";
+      #   prompt = "#bb9af7";
+      #   pointer = "#ff9e64";
+      #   marker = "#9ece6a";
+      #   spinner = "#bb9af7";
+      #   header = "#9ece6a";
+      # };
 
       defaultCommand = "${pkgs.fd}/bin/fd --hidden --strip-cwd-prefix --exclude .git";
 
@@ -70,6 +83,11 @@
           file = "fzf-git.sh";
         }
       ];
+
+      # Source theme colors if the theme exists
+      envExtra = lib.mkAfter ''
+        [ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
+      '';
 
       initExtra = lib.mkAfter ''
         # Enable fzf-tab
@@ -157,4 +175,7 @@
     eza
     git
   ];
+
+  # Create the fzf config directory
+  xdg.configFile."fzf/.keep".text = "";
 }

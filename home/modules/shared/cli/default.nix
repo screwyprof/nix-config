@@ -1,5 +1,6 @@
 {
   imports = [
+    ./themes
     ./zsh
     ./bat.nix
     ./fzf
