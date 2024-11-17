@@ -13,7 +13,7 @@
         "--layout=reverse"
         "--padding=1"
         "--preview-window=right:60%:border-none"
-        "--bind=ctrl-p:toggle-preview"
+        "--bind=ctrl-/:toggle-preview"
         #"--bind=ctrl-p:change-preview-window(right:85%|right:60%)"
         "--ansi"
       ];
@@ -53,6 +53,21 @@
           name = "fzf-tab";
           src = pkgs.zsh-fzf-tab;
           file = "share/fzf-tab/fzf-tab.plugin.zsh";
+        }
+        {
+          name = "forgit";
+          src = pkgs.zsh-forgit;
+          file = "share/zsh/zsh-forgit/forgit.plugin.zsh";
+        }
+        {
+          name = "fzf-git.zsh";
+          src = pkgs.fetchFromGitHub {
+            owner = "junegunn";
+            repo = "fzf-git.sh";
+            rev = "f730cfa1860acdb64597a0cf060d4949f1cd02a8";
+            sha256 = "sha256-7IUCIaP2suAtrvSKvIJ/Oledm+3heZCBcTy56XgtIYo=";
+          };
+          file = "fzf-git.sh";
         }
       ];
 
@@ -140,5 +155,6 @@
     fd
     bat
     eza
+    git
   ];
 }

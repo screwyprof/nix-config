@@ -8,7 +8,7 @@
       enable = true;
       options = {
         features = "decorations";
-        side-by-side = true;
+        #side-by-side = true;
         line-numbers = true;
         line-numbers-left-format = "{nm:>4}│";
         line-numbers-right-format = "{np:>4}│";
