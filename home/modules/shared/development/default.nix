@@ -9,7 +9,6 @@ let
   # Centralize environment variables
   defaultEnv = {
     K9S_EDITOR = "vim";
-    CARGO_NET_GIT_FETCH_WITH_CLI = "true";
   };
 in
 {
@@ -19,6 +18,7 @@ in
     ./containers
     ./golang.nix
     ./node.nix
+    ./rust.nix
     ./vscode.nix
   ];
 

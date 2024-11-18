@@ -21,7 +21,7 @@
       # Language Support
       bbenoist.nix # Nix language
       golang.go # Go language
-      #rust-lang.rust-analyzer # Rust language (commented out)
+      rust-lang.rust-analyzer # Rust language (commented out)
       tamasfe.even-better-toml # TOML support
 
       # Development Tools
@@ -31,7 +31,7 @@
       ms-vscode.makefile-tools # Makefile support
 
       # Testing and Debugging
-      #vadimcn.vscode-lldb                  # LLDB debugger (cause warnings in settings.json)
+      vadimcn.vscode-lldb # LLDB debugger (cause warnings in settings.json)
       ms-vscode.test-adapter-converter # Test adapter support
       hbenl.vscode-test-explorer # Test explorer UI
     ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
@@ -160,6 +160,31 @@
       "go.delveConfig" = {
         "debugAdapter" = "dlv-dap";
         "showGlobalVariables" = true;
+      };
+
+      # File associations
+      "files.associations" = {
+        "*.rs" = "rust";
+      };
+
+      # Limit rust-analyzer to Rust files
+      "[rust]" = {
+        "editor.defaultFormatter" = "rust-lang.rust-analyzer";
+        "editor.formatOnSave" = true;
+      };
+
+      # Rust settings
+      "rust-analyzer" = {
+        "checkOnSave.command" = "clippy";
+        "cargo.allFeatures" = true;
+        "completion.autoimport.enable" = true;
+        "inlayHints.enable" = true;
+        "inlayHints.parameterHints.enable" = true;
+        "inlayHints.typeHints.enable" = true;
+        "files.excludePatterns" = [
+          "**/.git/**"
+          "**/target/**"
+        ];
       };
 
       # Debug settings

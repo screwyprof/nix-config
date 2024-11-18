@@ -4,6 +4,7 @@
     ./terminal
     ./iterm2
     ../../../modules/shared
+    ../../../modules/darwin/coredumps
     ../../../modules/darwin/colima
   ];
 

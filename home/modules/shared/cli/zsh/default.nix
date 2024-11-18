@@ -126,7 +126,7 @@
         # Modern CLI tool replacements
         ls = "${pkgs.eza}/bin/eza --icons=always";
         ll = "${pkgs.eza}/bin/eza -la --icons=always";
-        tree = "${pkgs.eza}/bin/eza --tree --icons=always";
+        tree = "${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --color=always";
         du = "${pkgs.du-dust}/bin/dust";
         df = "${pkgs.duf}/bin/duf";
         top = "${pkgs.htop}/bin/htop";
