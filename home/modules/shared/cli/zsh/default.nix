@@ -1,8 +1,6 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
-  zshCacheDir = "$HOME/.cache/zsh";
-
   # Modern CLI replacements
   modernCLI = with pkgs; {
     ls = "${eza}/bin/eza --icons=always";
@@ -53,7 +51,7 @@ in
 
   programs.zsh = {
     enable = true;
-    enableCompletion = false;
+    enableCompletion = true;
     autosuggestion = {
       enable = true;
       strategy = [ "history" "completion" ];
@@ -79,7 +77,7 @@ in
     historySubstringSearch.enable = true;
     shellAliases = modernCLI // gnuUtils;
 
-    # Oh-my-zsh configuration
+    # Oh-my-zsh with p10k theme
     oh-my-zsh = {
       enable = true;
       theme = "powerlevel10k";
@@ -107,13 +105,8 @@ in
       ] ++ lib.optionals pkgs.stdenv.isDarwin [ "macos" ];
     };
 
-    # Theme plugins
+    # Only load custom p10k config
     plugins = [
-      {
-        name = "powerlevel10k";
-        src = pkgs.zsh-powerlevel10k;
-        file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
-      }
       {
         name = "powerlevel10k-config";
         src = ./p10k;
@@ -121,30 +114,22 @@ in
       }
     ];
 
-    # Shell initialization
+    # Initialize p10k instant prompt first
     initExtraFirst = ''
-      ZSH_DISABLE_COMPFIX=true
-      if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
-        source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
+      zsh_cache="${config.xdg.cacheHome}/zsh"
+      mkdir -p "$zsh_cache"
+
+      # Ensure zcompdump uses XDG cache directory
+      export ZSH_COMPDUMP="${config.xdg.cacheHome}/zsh/zcompdump-$ZSH_VERSION"
+ 
+      # p10k instant prompt
+      if [[ -r "${config.xdg.cacheHome}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
+        source "${config.xdg.cacheHome}/p10k-instant-prompt-''${(%):-%n}.zsh"
       fi
     '';
 
-    initExtra = lib.mkBefore ''
-      setopt AUTO_CD EXTENDED_GLOB
-    '';
-
-    envExtra = ''
-      # if [ -e "/etc/profiles/per-user/$USER/etc/profile.d/hm-session-vars.sh" ]; then
-      #   unset __HM_SESS_VARS_SOURCED
-      #   . "/etc/profiles/per-user/$USER/etc/profile.d/hm-session-vars.sh"
-      # fi
-      [ -f ~/.config/zsh/colors.sh ] && source ~/.config/zsh/colors.sh
-    '';
-
-    # Completion configuration
-    completionInit = ''
-      mkdir -p ${zshCacheDir}
-      typeset -g ZSH_COMPDUMP="${zshCacheDir}/.zcompdump"
+    initExtraBeforeCompInit = ''
+      ZSH_DISABLE_COMPFIX=true
     '';
   };
 

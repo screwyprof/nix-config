@@ -84,11 +84,10 @@ in
       # bat theme
       # Only rebuild cache if the theme isn't in the themes list
       if ! bat --list-themes | grep -q "${theme}"; then
-        bat cache --build
+        bat cache --build >/dev/null 2>&1
       fi
     '';
   };
-
 
   xdg.configFile = {
     "tinted-theming/tinty/config.toml".text = ''
@@ -119,4 +118,3 @@ in
     '';
   };
 }
-

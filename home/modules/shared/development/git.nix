@@ -38,6 +38,11 @@
       };
       merge.conflictstyle = "diff3";
       diff.colorMoved = "default";
+      url = {
+        "https://github" = {
+          insteadOf = "git://github";
+        };
+      };
     };
 
     aliases = {
@@ -51,6 +56,7 @@
       "*.swp"
       ".env"
       ".direnv"
+      ".CFUserTextEncoding"
     ];
   };
 

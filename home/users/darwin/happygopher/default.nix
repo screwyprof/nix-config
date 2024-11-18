@@ -20,5 +20,9 @@
     ];
   };
 
-  xdg.dataHome = "${config.home.homeDirectory}/.local/share";
+  xdg = {
+    enable = true;
+    dataHome = "${config.home.homeDirectory}/.local/share";
+    cacheHome = "${config.home.homeDirectory}/.cache";
+  };
 }
