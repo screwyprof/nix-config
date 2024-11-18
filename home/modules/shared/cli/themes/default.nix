@@ -63,6 +63,7 @@ in
       "${config.xdg.configHome}/zsh/colors.sh".source = assertPath "${tinted-shell}/scripts/${theme}.sh";
       "${config.xdg.configHome}/fzf/colors.sh".source = assertPath "${tinted-fzf}/ansi/ansi.sh";
       "${config.xdg.configHome}/bat/themes/${theme}.tmTheme".source = assertPath ./Gopher.tmTheme;
+      "${config.xdg.configHome}/eza/theme.yml".source = ./eza-dracula.yml;
     };
   };
 

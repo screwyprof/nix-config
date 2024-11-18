@@ -1,0 +1,36 @@
+colourful: true
+
+filekinds:
+  normal: {foreground: "#f8f8f2"}      # base05
+  directory: {foreground: "#8be9fd"}    # base0C
+  symlink: {foreground: "#bd93f9"}      # base0F
+  pipe: {foreground: "#6272a4"}         # base03
+  block_device: {foreground: "#ff5555"}  # base08
+  char_device: {foreground: "#ff5555"}   # base08
+  socket: {foreground: "#44475a"}       # base02
+  special: {foreground: "#ff79c6"}      # base0E
+  executable: {foreground: "#50fa7b"}    # base0B
+  mount_point: {foreground: "#ffb86c"}   # base09
+
+perms:
+  user_read: {foreground: "#f8f8f2"}     # base05
+  user_write: {foreground: "#ffb86c"}    # base09
+  user_execute_file: {foreground: "#50fa7b"}  # base0B
+  user_execute_other: {foreground: "#50fa7b"} # base0B
+  group_read: {foreground: "#f8f8f2"}    # base05
+  group_write: {foreground: "#ffb86c"}   # base09
+  group_execute: {foreground: "#50fa7b"}  # base0B
+  other_read: {foreground: "#f8f8f2"}    # base05
+  other_write: {foreground: "#ffb86c"}   # base09
+  other_execute: {foreground: "#50fa7b"}  # base0B
+  special_user_file: {foreground: "#ff79c6"}  # base0E
+  special_other: {foreground: "#6272a4"}  # base03
+
+git:
+  new: {foreground: "#50fa7b"}           # base0B
+  modified: {foreground: "#ffb86c"}      # base09
+  deleted: {foreground: "#ff5555"}       # base08
+  renamed: {foreground: "#8be9fd"}       # base0C
+  typechange: {foreground: "#ff79c6"}    # base0E
+  ignored: {foreground: "#6272a4"}       # base03
+  conflicted: {foreground: "#ff5555"}    # base08 

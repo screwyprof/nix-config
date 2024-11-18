@@ -32,18 +32,17 @@
       #   header = "#2CF9ED";    # Bright cyan for header
       # };
 
-      defaultCommand = "${pkgs.fd}/bin/fd --hidden --strip-cwd-prefix --exclude .git";
+      defaultCommand = "${pkgs.fd}/bin/fd --type f --strip-cwd-prefix --hidden --follow --exclude .git";
 
-      fileWidgetCommand = "${pkgs.fd}/bin/fd --hidden --strip-cwd-prefix --exclude .git";
+      fileWidgetCommand = "${pkgs.fd}/bin/fd --type f --strip-cwd-prefix --hidden --follow --exclude .git";
       fileWidgetOptions = [
-        "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}) || 
-                   ([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=numbers,changes,header --color=always {}) || 
+        "--preview '([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=numbers,changes,header --color=always {}) || 
                    echo {} 2> /dev/null | head -200'"
       ];
 
-      changeDirWidgetCommand = "${pkgs.fd}/bin/fd --type d --hidden --strip-cwd-prefix --exclude .git";
+      changeDirWidgetCommand = "${pkgs.fd}/bin/fd --type d --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules";
       changeDirWidgetOptions = [
-        "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}'"
+        "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=2 --color=always {}'"
       ];
     };
 
