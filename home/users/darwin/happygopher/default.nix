@@ -1,7 +1,8 @@
 { config, lib, pkgs, ... }: {
   imports = [
-    ./terminal
     ./preferences
+    ./terminal
+    ./iterm2
     ../../../modules/shared
     ../../../modules/darwin/colima
   ];
