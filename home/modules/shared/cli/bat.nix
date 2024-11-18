@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ lib, pkgs, ... }: {
   programs.bat = {
     enable = true;
     config = {
@@ -41,7 +41,7 @@
       prettybat = "${pkgs.bat-extras.prettybat}/bin/prettybat";
     };
 
-    initExtra = ''
+    initExtra = lib.mkAfter ''
       # Enhanced tail -f with bat
       tail() {
         if [[ "$1" == "-f" ]]; then

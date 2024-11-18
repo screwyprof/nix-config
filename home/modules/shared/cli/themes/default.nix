@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   #theme = "base24-flat";
   #theme = "base24-one-dark";
@@ -39,6 +39,12 @@ let
     done
   '';
 
+  # Create bat themes directory with our custom Gopher theme
+  gopher-bat = pkgs.runCommand "gopher-bat" { } ''
+    mkdir -p $out/themes
+    cp ${./Gopher.tmTheme} $out/themes/${theme}.tmTheme
+  '';
+
   # Assert that a path exists or throw an error
   assertPath = path:
     assert builtins.pathExists path;
@@ -52,14 +58,38 @@ in
       "${config.xdg.dataHome}/tinted-theming/tinty/repos/tinted-shell".source = assertPath tinted-shell;
       "${config.xdg.dataHome}/tinted-theming/tinty/repos/fzf".source = assertPath tinted-fzf;
 
+      "${config.xdg.dataHome}/tinted-theming/tinty/repos/bat".source = assertPath gopher-bat;
+
       "${config.xdg.configHome}/zsh/colors.sh".source = assertPath "${tinted-shell}/scripts/${theme}.sh";
       "${config.xdg.configHome}/fzf/colors.sh".source = assertPath "${tinted-fzf}/ansi/ansi.sh";
+      "${config.xdg.configHome}/bat/themes/${theme}.tmTheme".source = assertPath ./Gopher.tmTheme;
     };
   };
 
+  programs.zsh = {
+    envExtra = lib.mkAfter ''
+      # fzf theme
+      [ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
+
+      # bat theme
+      if [[ -f ~/.config/bat/themes/${theme}.tmTheme ]]; then
+        export BAT_THEME="${theme}"
+      fi
+    '';
+
+    initExtra = lib.mkAfter ''
+      # bat theme
+      # Only rebuild cache if the theme isn't in the themes list
+      if ! bat --list-themes | grep -q "${theme}"; then
+        bat cache --build
+      fi
+    '';
+  };
+
+
   xdg.configFile = {
     "tinted-theming/tinty/config.toml".text = ''
-      shell = "zsh -c '{}'"
+        shell = "zsh -c '{}'"
       default-scheme = "${theme}"
       schemes-dir = "${config.xdg.dataHome}/tinted-theming/tinty/repos/schemes"
 
@@ -76,6 +106,14 @@ in
       themes-dir = "ansi-sh"
       supported-systems = ["base16", "base24"]
       hook = "cp -f %f ~/.config/fzf/colors.sh && source ~/.config/fzf/colors.sh"
+
+      [[items]]
+      name = "bat"
+      path = "${config.xdg.dataHome}/tinted-theming/tinty/repos/bat"
+      themes-dir = "themes"
+      supported-systems = ["base16", "base24"]
+      hook = "cp -f %f ~/.config/bat/themes/${theme}.tmTheme && bat cache --build"
     '';
   };
 }
+

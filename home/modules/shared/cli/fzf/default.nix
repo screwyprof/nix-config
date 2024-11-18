@@ -71,12 +71,6 @@
         }
       ];
 
-      # Source theme colors if the theme exists
-      envExtra = lib.mkAfter ''
-        # Source theme colors if the theme exists
-        [ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
-      '';
-
       initExtra = lib.mkAfter ''
         # Enable fzf-tab
         enable-fzf-tab
