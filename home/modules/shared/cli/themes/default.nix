@@ -68,6 +68,9 @@ in
 
   programs.zsh = {
     envExtra = lib.mkAfter ''
+      # shell theme
+      [ -f ~/.config/zsh/colors.sh ] && source ~/.config/zsh/colors.sh
+      
       # fzf theme
       [ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
 
@@ -89,7 +92,7 @@ in
 
   xdg.configFile = {
     "tinted-theming/tinty/config.toml".text = ''
-        shell = "zsh -c '{}'"
+      shell = "zsh -c '{}'"
       default-scheme = "${theme}"
       schemes-dir = "${config.xdg.dataHome}/tinted-theming/tinty/repos/schemes"
 

@@ -34,6 +34,10 @@
       vadimcn.vscode-lldb # LLDB debugger (cause warnings in settings.json)
       ms-vscode.test-adapter-converter # Test adapter support
       hbenl.vscode-test-explorer # Test explorer UI
+
+      # Python Support
+      ms-python.python
+      ms-python.vscode-pylance
     ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
       # Additional Tools
       {
@@ -216,6 +220,19 @@
 
       # Editor settings
       "editor.inlineSuggest.enabled" = true;
+
+      # Python settings
+      "python.defaultInterpreterPath" = "${pkgs.python312}/bin/python3";
+      "python.formatting.provider" = "black";
+      "python.linting.enabled" = true;
+      "python.linting.pylintEnabled" = true;
+      "[python]" = {
+        "editor.formatOnSave" = true;
+        "editor.defaultFormatter" = "ms-python.python";
+        "editor.codeActionsOnSave" = {
+          "source.organizeImports" = "explicit";
+        };
+      };
     };
   };
 }

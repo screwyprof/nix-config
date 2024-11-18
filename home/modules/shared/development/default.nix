@@ -1,16 +1,3 @@
-{ pkgs, ... }:
-
-let
-  # Centralize package groups
-  devTools = with pkgs; [
-    shellcheck
-  ];
-
-  # Centralize environment variables
-  defaultEnv = {
-    K9S_EDITOR = "vim";
-  };
-in
 {
   imports = [
     ./git.nix
@@ -18,17 +5,8 @@ in
     ./containers
     ./golang.nix
     ./node.nix
+    ./python.nix
     ./rust.nix
     ./vscode.nix
   ];
-
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
-  };
-
-  home = {
-    packages = devTools;
-    sessionVariables = defaultEnv;
-  };
 }
