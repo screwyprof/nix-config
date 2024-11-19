@@ -21,13 +21,9 @@
       url = "github:homebrew/homebrew-cask";
       flake = false;
     };
-    homebrew-bundle = {
-      url = "github:homebrew/homebrew-bundle";
-      flake = false;
-    };
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, ... }@inputs:
+  outputs = { self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-homebrew, homebrew-core, homebrew-cask, ... }@inputs:
     let
 
       devUser = {
@@ -71,11 +67,10 @@
                 enableRosetta = true;
 
                 autoMigrate = true;
-                mutableTaps = false;
+                mutableTaps = true;
                 taps = {
                   "homebrew/homebrew-core" = inputs.homebrew-core;
                   "homebrew/homebrew-cask" = inputs.homebrew-cask;
-                  "homebrew/bundle" = inputs.homebrew-bundle;
                 };
               };
             }

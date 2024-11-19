@@ -53,13 +53,8 @@
     enable = true;
     onActivation = {
       autoUpdate = true;
-      cleanup = "none";
+      cleanup = "uninstall"; # or "zap" to remove aggresively everything not declared
       upgrade = true;
-    };
-
-    global = {
-      brewfile = true;
-      lockfiles = true;
     };
 
     caskArgs = {
