@@ -32,12 +32,11 @@
       #   header = "#2CF9ED";    # Bright cyan for header
       # };
 
-      defaultCommand = "${pkgs.fd}/bin/fd --type f --strip-cwd-prefix --hidden --follow --exclude .git";
+      defaultCommand = "${pkgs.fd}/bin/fd --strip-cwd-prefix --hidden --follow --exclude .git";
 
-      fileWidgetCommand = "${pkgs.fd}/bin/fd --type f --strip-cwd-prefix --hidden --follow --exclude .git";
+      fileWidgetCommand = "${pkgs.fd}/bin/fd --strip-cwd-prefix --hidden --follow --exclude .git";
       fileWidgetOptions = [
-        "--preview '([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=numbers,changes,header --color=always {}) || 
-                   echo {} 2> /dev/null | head -200'"
+        "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}) || ([[ -L {} ]] && echo \"→ $(readlink {})\" && ${pkgs.eza}/bin/eza -la --color=always {}) || ([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=header,grid,numbers,changes --color=always {}) || echo {}'"
       ];
 
       changeDirWidgetCommand = "${pkgs.fd}/bin/fd --type d --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules";
@@ -47,28 +46,28 @@
     };
 
     zsh = {
-      plugins = [
-        {
-          name = "fzf-tab";
-          src = pkgs.zsh-fzf-tab;
-          file = "share/fzf-tab/fzf-tab.plugin.zsh";
-        }
-        {
-          name = "forgit";
-          src = pkgs.zsh-forgit;
-          file = "share/zsh/zsh-forgit/forgit.plugin.zsh";
-        }
-        {
-          name = "fzf-git.zsh";
-          src = pkgs.fetchFromGitHub {
-            owner = "junegunn";
-            repo = "fzf-git.sh";
-            rev = "f730cfa1860acdb64597a0cf060d4949f1cd02a8";
-            sha256 = "sha256-7IUCIaP2suAtrvSKvIJ/Oledm+3heZCBcTy56XgtIYo=";
-          };
-          file = "fzf-git.sh";
-        }
-      ];
+      # plugins = [
+      #   {
+      #     name = "fzf-tab";
+      #     src = pkgs.zsh-fzf-tab;
+      #     file = "share/fzf-tab/fzf-tab.plugin.zsh";
+      #   }
+      #   {
+      #     name = "forgit";
+      #     src = pkgs.zsh-forgit;
+      #     file = "share/zsh/zsh-forgit/forgit.plugin.zsh";
+      #   }
+      #   {
+      #     name = "fzf-git.zsh";
+      #     src = pkgs.fetchFromGitHub {
+      #       owner = "junegunn";
+      #       repo = "fzf-git.sh";
+      #       rev = "f730cfa1860acdb64597a0cf060d4949f1cd02a8";
+      #       sha256 = "sha256-7IUCIaP2suAtrvSKvIJ/Oledm+3heZCBcTy56XgtIYo=";
+      #     };
+      #     file = "fzf-git.sh";
+      #   }
+      # ];
 
       initExtra = lib.mkAfter ''
         # Enable fzf-tab
@@ -77,13 +76,13 @@
         # Use fzf default options
         zstyle ':fzf-tab:*' use-fzf-default-opts yes
 
-        # force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
+        # force zsh not to show completion menu
         zstyle ':completion:*' menu no
 
         # Command-specific previews
 
         ## cd <tab>
-        zstyle ':fzf-tab:complete:cd:*' fzf-preview '${pkgs.eza}/bin/eza -1 --tree --all --icons --git-ignore --level=3 --color=always $realpath'
+        zstyle ':fzf-tab:complete:cd:*' fzf-preview '${pkgs.eza}/bin/eza -1 --tree --all --icons --git-ignore --level=3 --color=always ''$realpath'
         
         ## ssh <tab>
         ### First, set up SSH completion to only use our specified hosts
@@ -144,8 +143,10 @@
         
         # Default preview for other commands
         zstyle ':fzf-tab:complete:*:*' fzf-preview \
-          '([[ -d $realpath ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $realpath) || \
-           ([[ -f $realpath ]] && ${pkgs.bat}/bin/bat --style=header,grid,numbers,changes --color=always $realpath) || echo $realpath'
+          '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}) || \
+           ([[ -L {} ]] && echo \"→ $(readlink {})\" && ${pkgs.eza}/bin/eza -la --color=always {}) || \
+           ([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=header,grid,numbers,changes --color=always {}) || \
+           echo {}'
       '';
     };
   };
