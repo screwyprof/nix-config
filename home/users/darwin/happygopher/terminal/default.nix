@@ -13,7 +13,8 @@
       run /usr/bin/defaults write com.apple.Terminal "Startup Window Settings" -string "Happy Gopher"
 
       # Kill Terminal.app to apply changes
-      run /usr/bin/killall Terminal || true
+      verboseEcho "Terminal.app is running, please reload manually"
+      #run /usr/bin/killall Terminal || true
     '';
   };
 }

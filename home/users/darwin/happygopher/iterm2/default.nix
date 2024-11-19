@@ -20,7 +20,8 @@
 
       # Reload iTerm2 settings if it's running
       if pgrep "iTerm2" > /dev/null; then
-        run killall "iTerm2"
+        #run killall "iTerm2"
+        verboseEcho "iTerm2 is running, please reload manually"
       fi
     '';
   };

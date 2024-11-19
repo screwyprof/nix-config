@@ -6,7 +6,7 @@ in
 {
   # Create dumps directory
   home.activation.createDumpsDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    $DRY_RUN_CMD mkdir -p ${homeDir}/.local/dumps
+    run mkdir -p ${homeDir}/.local/dumps
   '';
 
   # Configure core dump location and cleanup via launchd agents (user-specific)

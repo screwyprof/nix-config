@@ -131,6 +131,11 @@ in
     initExtraBeforeCompInit = ''
       ZSH_DISABLE_COMPFIX=true
     '';
+
+    profileExtra = ''
+      # hook in brew
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    '';
   };
 
   programs.direnv = {

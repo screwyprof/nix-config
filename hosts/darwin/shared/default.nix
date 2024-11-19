@@ -47,4 +47,37 @@
     pathsToLink = [ "/Applications" ]; # links Home 
     shells = [ pkgs.zsh ];
   };
+
+  # Common Homebrew configuration for all macOS hosts
+  homebrew = {
+    enable = true;
+    onActivation = {
+      autoUpdate = true;
+      cleanup = "none";
+      upgrade = true;
+    };
+
+    global = {
+      brewfile = true;
+      lockfiles = true;
+    };
+
+    caskArgs = {
+      appdir = "~/Applications";
+      require_sha = true;
+    };
+
+    casks = [
+      "1password"
+      "bitwarden"
+      "firefox"
+      "jetbrains-toolbox"
+      "tableplus"
+      "telegram"
+    ];
+
+    brews = [
+      "mas"
+    ];
+  };
 }
