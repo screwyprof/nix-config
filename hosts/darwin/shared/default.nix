@@ -52,9 +52,9 @@
   homebrew = {
     enable = true;
     onActivation = {
-      autoUpdate = true;
-      cleanup = "uninstall"; # or "zap" to remove aggresively everything not declared
-      upgrade = true;
+      autoUpdate = false;
+      cleanup = "zap";
+      upgrade = false;
     };
 
     caskArgs = {
