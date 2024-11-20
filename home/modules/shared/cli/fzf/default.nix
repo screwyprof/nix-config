@@ -7,7 +7,7 @@
 
       defaultOptions = [
         "--multi"
-        "--height=40%"
+        "--height=50%"
         "--no-separator"
         "--border"
         "--layout=reverse"
@@ -36,12 +36,12 @@
 
       fileWidgetCommand = "${pkgs.fd}/bin/fd --strip-cwd-prefix --hidden --follow --exclude .git";
       fileWidgetOptions = [
-        "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}) || ([[ -L {} ]] && echo \"→ $(readlink {})\" && ${pkgs.eza}/bin/eza -la --color=always {}) || ([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=header,grid,numbers,changes --color=always {}) || echo {}'"
+        "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {} || ${pkgs.bat}/bin/bat --style=header,numbers,changes --color=always {})'"
       ];
 
       changeDirWidgetCommand = "${pkgs.fd}/bin/fd --type d --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules";
       changeDirWidgetOptions = [
-        "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=2 --color=always {}'"
+        "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}'"
       ];
     };
 
@@ -79,12 +79,10 @@
         # force zsh not to show completion menu
         zstyle ':completion:*' menu no
 
-        # Command-specific previews
+        # Command completion (cd<tab>, ssh<tab>, etc)
+        zstyle ':fzf-tab:complete:*:commands' fzf-preview 'which {}'
 
-        ## cd <tab>
-        zstyle ':fzf-tab:complete:cd:*' fzf-preview '${pkgs.eza}/bin/eza -1 --tree --all --icons --git-ignore --level=3 --color=always ''$realpath'
-        
-        ## ssh <tab>
+        ## ssh<space><tab>
         ### First, set up SSH completion to only use our specified hosts
         zstyle ':completion:*:*:ssh:*' tag-order 'hosts:-host:host'
         zstyle ':completion:*:*:ssh:*' group-order hosts-host
@@ -115,7 +113,7 @@
             grep "$word" /etc/hosts
           fi'
         
-        # Environment variables preview
+        # export|unset<space><tab>
         zstyle ':fzf-tab:complete:(export|unset):*' fzf-preview '
           echo "=== $word ==="
           eval "echo \$$word"
@@ -140,13 +138,12 @@
           else
             echo "\nType: Shell variable (only available in current shell)"
           fi'
-        
-        # Default preview for other commands
-        zstyle ':fzf-tab:complete:*:*' fzf-preview \
-          '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}) || \
-           ([[ -L {} ]] && echo \"→ $(readlink {})\" && ${pkgs.eza}/bin/eza -la --color=always {}) || \
-           ([[ -f {} ]] && ${pkgs.bat}/bin/bat --style=header,grid,numbers,changes --color=always {}) || \
-           echo {}'
+
+        # cd<space><tab> - directory completion
+        zstyle ':fzf-tab:complete:cd:*' fzf-preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $word'
+
+        # File/directory preview for other completions
+        zstyle ':fzf-tab:complete:*:(files|directories):*' fzf-preview '([[ -d $word ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $word || ${pkgs.bat}/bin/bat --style=header,numbers,changes --color=always $word)'
       '';
     };
   };
