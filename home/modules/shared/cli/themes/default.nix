@@ -60,7 +60,8 @@ in
 
       "${config.xdg.dataHome}/tinted-theming/tinty/repos/bat".source = assertPath gopher-bat;
 
-      "${config.xdg.configHome}/zsh/colors.sh".source = assertPath "${tinted-shell}/scripts/${theme}.sh";
+      #"${config.xdg.configHome}/zsh/colors.sh".source = assertPath "${tinted-shell}/scripts/${theme}.sh";
+      "${config.xdg.configHome}/zsh/colors.sh".source = assertPath ./zsh-dracula-ansi.sh;
       #"${config.xdg.configHome}/fzf/colors.sh".source = assertPath "${tinted-fzf}/ansi/ansi.sh";
       "${config.xdg.configHome}/fzf/colors.sh".source = assertPath ./fzf-dracula-ansi.sh;
       "${config.xdg.configHome}/bat/themes/${theme}.tmTheme".source = assertPath ./Gopher.tmTheme;
