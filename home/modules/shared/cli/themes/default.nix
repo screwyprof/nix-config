@@ -61,7 +61,8 @@ in
       "${config.xdg.dataHome}/tinted-theming/tinty/repos/bat".source = assertPath gopher-bat;
 
       "${config.xdg.configHome}/zsh/colors.sh".source = assertPath "${tinted-shell}/scripts/${theme}.sh";
-      "${config.xdg.configHome}/fzf/colors.sh".source = assertPath "${tinted-fzf}/ansi/ansi.sh";
+      #"${config.xdg.configHome}/fzf/colors.sh".source = assertPath "${tinted-fzf}/ansi/ansi.sh";
+      "${config.xdg.configHome}/fzf/colors.sh".source = assertPath ./fzf-dracula-ansi.sh;
       "${config.xdg.configHome}/bat/themes/${theme}.tmTheme".source = assertPath ./Gopher.tmTheme;
       "${config.xdg.configHome}/eza/theme.yml".source = ./eza-dracula.yml;
     };
@@ -73,7 +74,7 @@ in
       [ -f ~/.config/zsh/colors.sh ] && source ~/.config/zsh/colors.sh
       
       # fzf theme
-      [ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
+      #[ -f ~/.config/fzf/colors.sh ] && source ~/.config/fzf/colors.sh
 
       # bat theme
       if [[ -f ~/.config/bat/themes/${theme}.tmTheme ]]; then
@@ -119,3 +120,4 @@ in
     '';
   };
 }
+

@@ -14,7 +14,7 @@
         "--padding=1"
         "--preview-window=right:60%:border-none"
         "--bind=ctrl-/:toggle-preview"
-        "--ansi"
+        # "--ansi"
       ];
 
       # adjusted tokyo-night colors
@@ -31,6 +31,22 @@
       #   spinner = "#2CF9ED";   # Bright cyan for spinner
       #   header = "#2CF9ED";    # Bright cyan for header
       # };
+
+      # dracula
+      colors = {
+        fg = "#f8f8f2"; # Foreground
+        bg = "#282a36"; # Background
+        "bg+" = "#44475a"; # Selected background
+        hl = "#bd93f9"; # Highlight
+        "hl+" = "#bd93f9"; # Selected highlight
+        info = "#ffb86c"; # Info
+        prompt = "#50fa7b"; # Prompt
+        pointer = "#ff79c6"; # Pointer
+        marker = "#ff79c6"; # Marker
+        spinner = "#ffb86c"; # Spinner
+        header = "#6272a4"; # Header
+        border = "#bd93f9"; # Border (matching highlight color)
+      };
 
       defaultCommand = "${pkgs.fd}/bin/fd --strip-cwd-prefix --hidden --follow --exclude .git";
 
