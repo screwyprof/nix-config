@@ -3,109 +3,97 @@
 with lib;
 
 let
-  cfg = config.programs.zsh;
+  cfg = config.programs.zsh.zimfw;
 in
 {
-  options = {
-    programs.zsh.zimfw = {
-      enable = mkEnableOption "Zim - ${pkgs.zimfw.meta.description}";
+  options.programs.zsh.zimfw = {
+    enable = mkEnableOption "Zim - ${pkgs.zimfw.meta.description}";
 
-      homeDir = mkOption {
-        default = "$HOME/.zim";
-        type = types.str;
-        description = "Working directory for zim. It stores downloaded plugins here.";
-      };
+    zimDir = mkOption {
+      type = types.str;
+      default = "$HOME/.zim";
+      example = "$HOME/.cache/zim";
+    };
 
-      degit = mkOption {
-        default = true;
-        type = types.bool;
-        description = "Use degit for faster module installation";
-      };
+    zimConfig = mkOption {
+      type = types.str;
+      default = "$HOME/.zimrc";
+      example = "$HOME/.config/zsh/.zimrc";
+    };
 
-      configFile = mkOption {
-        default = "$HOME/.zimrc";
-        type = types.str;
-        description = "Location of zimrc file";
-      };
+    degit = mkOption {
+      default = false;
+      type = types.bool;
+      description = "Use degit for faster module installation";
+    };
 
-      disableVersionCheck = mkOption {
-        default = false;
-        type = types.bool;
-        description = "Disable Zim's version check";
-      };
+    disableVersionCheck = mkOption {
+      default = true;
+      type = types.bool;
+      description = "Disable Zim's version check";
+    };
 
-      caseSensitivity = mkOption {
-        default = "insensitive";
-        type = types.enum [ "sensitive" "insensitive" ];
-        description = "Case sensitivity for completions and globbing";
-      };
+    caseSensitive = mkOption {
+      default = false;
+      type = types.bool;
+      description = ''
+        Whether completions and globbing should be case sensitive.
+        Set via ':zim:completion' and ':zim:glob' styles.
+        Default is case insensitive.
+      '';
+    };
 
-      zmodules = mkOption {
-        default = [
-          # "environment"
-          # "git"
-          # "input"
-          # "termtitle"
-          # "utility"
+    zmodules = mkOption {
+      default = [ ];
+      type = types.listOf types.str;
+      description = "List of zimfw modules. These are added to .zimrc verbatim.";
+    };
 
-          # "zsh-users/zsh-completions --fpath src"
-          # "completion"
+    initBeforeZim = mkOption {
+      default = "";
+      type = types.lines;
+      description = "Shell commands to run before Zim initialization.";
+    };
 
-          # "zsh-users/zsh-autosuggestions"
-          # "zsh-users/zsh-syntax-highlighting"
-        ];
-        type = types.listOf types.str;
-        description = "List of zimfw modules. These are added to .zimrc verbatim.";
-      };
-
-      initBeforeZim = mkOption {
-        default = "";
-        type = types.lines;
-        description = "Shell commands to run before Zim initialization.";
-      };
-
-      initAfterZim = mkOption {
-        default = "";
-        type = types.lines;
-        description = "Shell commands to run after Zim initialization.";
-      };
+    initAfterZim = mkOption {
+      default = "";
+      type = types.lines;
+      description = "Shell commands to run after Zim initialization.";
     };
   };
 
-  config = mkIf cfg.zimfw.enable {
-    home.packages = [ pkgs.zimfw ];
+  config = mkIf cfg.enable {
+    home = {
+      packages = [ pkgs.zimfw ];
 
-    home.file.".zimrc".text = concatStringsSep "\n" ([
-      # Zim settings
-      (optionalString cfg.zimfw.degit ''
-        zstyle ':zim:zmodule' use 'degit'
-      '')
-      (optionalString cfg.zimfw.disableVersionCheck ''
-        zstyle ':zim' disable-version-check yes
-      '')
-      # Completion settings
-      "zstyle ':zim' case-sensitive ${cfg.zimfw.caseSensitivity}"
-      "zstyle ':zim:completion' dumpfile '${config.xdg.cacheHome}/zsh/zim-compdump'"
-      "zstyle ':completion::complete:*' cache-path '${config.xdg.cacheHome}/zsh/'"
-    ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zimfw.zmodules));
+      activation.createZimrc = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        # Create .zimrc at the configured location
+        run mkdir -p $(dirname ${cfg.zimConfig})
+        run cat > ${cfg.zimConfig} << 'EOL'
+         ${concatStringsSep "\n" ([
+           (optionalString cfg.degit ''
+             zstyle ':zim:zmodule' use 'degit'
+           '')
+           (optionalString cfg.disableVersionCheck ''
+             zstyle ':zim' disable-version-check yes
+           '')
+         ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules))}
+        EOL
+      '';
+    };
 
     programs.zsh = {
-      # Disable home-manager's completion to let Zim handle it
-      #enableCompletion = mkForce false;
+      enableCompletion = mkForce false; # Let Zim handle completion
 
-      localVariables = {
-        ZIM_HOME = cfg.zimfw.homeDir;
-        ZIM_CONFIG_FILE = cfg.zimfw.configFile;
+      sessionVariables = {
+        ZIM_HOME = cfg.zimDir;
+        ZIM_CONFIG_FILE = cfg.zimConfig;
+        ZIM_CASE_SENSITIVE = if cfg.caseSensitive then "true" else "false";
       };
 
-      initExtraFirst = ''
-        # Ensure compinit isn't loaded before Zim
-        #skip_global_compinit=1
-      '';
-
-      initExtra = ''
+      initExtra = lib.mkAfter ''
         # Pre-Zim initialization hook
-        ${cfg.zimfw.initBeforeZim}
+        ${cfg.initBeforeZim}
 
         # Download zimfw plugin manager if missing
         if [[ ! -e ''${ZIM_HOME}/zimfw.zsh ]]; then
@@ -127,7 +115,7 @@ in
         source ''${ZIM_HOME}/init.zsh
 
         # Post-Zim initialization hook
-        ${cfg.zimfw.initAfterZim}
+        ${cfg.initAfterZim}
       '';
     };
   };

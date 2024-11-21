@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   # Modern CLI replacements
@@ -19,6 +19,12 @@ let
     tar = "${gnutar}/bin/tar";
     make = "${gnumake}/bin/make";
   };
+
+  # zim completion module
+  completionModule = pkgs.runCommand "zsh-completion" { } ''
+    mkdir -p $out
+    cp ${./zim/completion.zsh} $out/init.zsh
+  '';
 in
 {
   imports = [ ./zim ]; # Import Zim module
@@ -28,6 +34,7 @@ in
       NOSYSZSHRC = "1";
       TERM = "xterm-256color";
       K9S_EDITOR = "vim";
+
       PATH = lib.concatStringsSep ":" [
         "$HOME/.local/bin"
         "${pkgs.coreutils}/bin"
@@ -53,54 +60,10 @@ in
 
   programs.zsh = {
     enable = true;
+    dotDir = ".config/zsh";
     syntaxHighlighting.enable = false;
     autosuggestion.enable = false;
     enableCompletion = false;
-
-    initExtraFirst = ''
-      # Cache directory setup
-      zsh_cache="${config.xdg.cacheHome}/zsh"
-      mkdir -p "$zsh_cache"
-
-      # Ensure zcompdump uses XDG cache directory
-      export ZSH_COMPDUMP="${config.xdg.cacheHome}/zsh/zcompdump-''${ZSH_VERSION}"
-
-      # Zim's completion optimization logic
-      if [[ -s "''${ZSH_COMPDUMP}" && (! -s "''${ZSH_COMPDUMP}.zwc" || "''${ZSH_COMPDUMP}" -nt "''${ZSH_COMPDUMP}.zwc") ]]; then
-        # If .zwc file is missing or older than .zcompdump, compile it
-        zcompile "''${ZSH_COMPDUMP}"
-      fi
-
-      # Initialize completion system
-      autoload -U compinit 
-      if [[ -n ''${XDG_CACHE_HOME}/zsh/zcompdump(#qN.mh+24) ]]; then
-        compinit -d "''${ZSH_COMPDUMP}"
-      else
-        compinit -C -d "''${ZSH_COMPDUMP}"
-      fi
-
-      # Add completion styles
-      zstyle ':completion:*' use-cache on
-      zstyle ':completion:*' cache-path "$zsh_cache"
-      zstyle ':completion:*' completer _complete _match _approximate
-      zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' # Case insensitive
-      zstyle ':completion:*' menu select=2 # Show menu after 2 tabs
-      zstyle ':completion:*' list-colors ''${(s.:.)LS_COLORS} # Use LS_COLORS
-      zstyle ':completion:*' verbose true
-
-      # Group matches
-      zstyle ':completion:*' group-name ""
-      zstyle ':completion:*:matches' group yes
-
-      # Fuzzy matching of completions
-      zstyle ':completion:*:approximate:*' max-errors 1 numeric
-
-      # Don't complete unavailable commands
-      zstyle ':completion:*:functions' ignored-patterns '(_*|pre(cmd|exec))'
-
-      # Array completion element sorting
-      zstyle ':completion:*:*:-subscript-:*' tag-order indexes parameters
-    '';
 
     history = {
       size = 50000;
@@ -155,7 +118,6 @@ in
       }
     ];
 
-
     # Initialize p10k instant prompt first
     initExtraBeforeCompInit = ''
       ZSH_DISABLE_COMPFIX=true
@@ -169,6 +131,8 @@ in
     zimfw = {
       enable = true;
       degit = true;
+      zimDir = "$HOME/.config/zsh/.zim";
+      zimConfig = "$HOME/.config/zsh/.zimrc";
       zmodules = [
         # Core modules first
         #"environment"
@@ -189,43 +153,12 @@ in
         "zsh-users/zsh-completions --fpath src"
         "zimfw/fzf"
         "Aloxaf/fzf-tab"
+        "${toString completionModule} --source init.zsh"
 
         # These must be last
         "zsh-users/zsh-syntax-highlighting"
         "zsh-users/zsh-autosuggestions"
       ];
-
-      initAfterZim = ''
-        # Cache directory setup
-        zsh_cache="${config.xdg.cacheHome}/zsh"
-        mkdir -p "$zsh_cache"
-
-        # Initialize completion after Zim loads
-        autoload -U compinit && compinit
-
-        # Keep all existing completion styles
-        zstyle ':completion:*' use-cache on
-      
-        # Set completion options
-        zstyle ':completion:*' completer _complete _match _approximate
-        zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' # Case insensitive
-        #zstyle ':completion:*' menu select=2 # Show menu after 2 tabs
-        #zstyle ':completion:*' list-colors ''${(s.:.)LS_COLORS} # Use LS_COLORS
-        zstyle ':completion:*' verbose true
-      
-        # Group matches
-        zstyle ':completion:*' group-name ""
-        zstyle ':completion:*:matches' group yes
-      
-        # Fuzzy matching of completions
-        zstyle ':completion:*:approximate:*' max-errors 1 numeric
-      
-        # Don't complete unavailable commands
-        zstyle ':completion:*:functions' ignored-patterns '(_*|pre(cmd|exec))'
-      
-        # Array completion element sorting
-        zstyle ':completion:*:*:-subscript-:*' tag-order indexes parameters
-      '';
     };
   };
 
@@ -233,4 +166,4 @@ in
     enable = true;
     nix-direnv.enable = true;
   };
-}
+}   
