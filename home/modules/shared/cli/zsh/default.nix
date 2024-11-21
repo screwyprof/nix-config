@@ -118,16 +118,6 @@ in
       }
     ];
 
-    # Initialize p10k instant prompt first
-    initExtraBeforeCompInit = ''
-      ZSH_DISABLE_COMPFIX=true
-    '';
-
-    profileExtra = ''
-      # hook in brew
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    '';
-
     zimfw = {
       enable = true;
       degit = true;
@@ -147,15 +137,15 @@ in
         #"prompt-pwd"
 
         "zimfw/exa"
+        "zimfw/fzf"
+        "zimfw/homebrew"
 
         # Theme (after all info modules)
         "romkatv/powerlevel10k"
 
         # Completion modules
         "zsh-users/zsh-completions --fpath src"
-        "zimfw/fzf"
         "Aloxaf/fzf-tab"
-        #"zimfw/completion"
         "${toString completionModule} --source init.zsh"
 
         # These must be last
