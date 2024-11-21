@@ -17,21 +17,6 @@
         "--ansi"
       ];
 
-      # adjusted tokyo-night colors
-      # colors = {
-      #   fg = "#CBE0F0";        # Light blue-gray text
-      #   bg = "#011628";        # Dark blue background
-      #   "bg+" = "#143652";     # Lighter blue for selected
-      #   hl = "#B388FF";        # Purple for highlights
-      #   "hl+" = "#B388FF";     # Same purple for selected highlights
-      #   info = "#06BCE4";      # Cyan for info
-      #   prompt = "#2CF9ED";    # Bright cyan for prompt
-      #   pointer = "#2CF9ED";   # Bright cyan for pointer
-      #   marker = "#2CF9ED";    # Bright cyan for marker
-      #   spinner = "#2CF9ED";   # Bright cyan for spinner
-      #   header = "#2CF9ED";    # Bright cyan for header
-      # };
-
       # dracula
       # colors = {
       #   fg = "#f8f8f2"; # Foreground

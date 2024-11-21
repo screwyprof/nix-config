@@ -146,14 +146,14 @@ in
     # };
 
 
-    # Only load custom p10k config
-    # plugins = [
-    #   {
-    #     name = "powerlevel10k-config";
-    #     src = ./p10k;
-    #     file = "p10k.zsh";
-    #   }
-    # ];
+    #Only load custom p10k config
+    plugins = [
+      {
+        name = "powerlevel10k-config";
+        src = ./p10k;
+        file = "p10k.zsh";
+      }
+    ];
 
 
     # Initialize p10k instant prompt first
@@ -178,13 +178,12 @@ in
         #"utility"
 
         # Info modules (need to be before prompt)
-        "git-info"
-        "duration-info"
-        "prompt-pwd"
+        #"git-info"
+        #"duration-info"
+        #"prompt-pwd"
 
         # Theme (after all info modules)
-        "eriner"
-        #"asciiship"
+        "romkatv/powerlevel10k"
 
         # Completion modules
         "zsh-users/zsh-completions --fpath src"
@@ -195,21 +194,6 @@ in
         "zsh-users/zsh-syntax-highlighting"
         "zsh-users/zsh-autosuggestions"
       ];
-
-      # Set formats after Zim loads but before completion
-      #initBeforeZim = ''
-      # Pre-Zim setup if needed
-      #'';
-
-
-      # Only load custom p10k config
-      # plugins = [
-      #   {
-      #     name = "powerlevel10k-config";
-      #     src = ./p10k;
-      #     file = "p10k.zsh";
-      #   }
-      # ];
 
       initAfterZim = ''
         # Cache directory setup
