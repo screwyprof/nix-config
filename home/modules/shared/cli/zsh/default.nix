@@ -3,8 +3,6 @@
 let
   # Modern CLI replacements
   modernCLI = with pkgs; {
-    ls = "${eza}/bin/eza --icons=always";
-    ll = "${eza}/bin/eza -la --icons=always";
     tree = "${eza}/bin/eza --tree --all --icons --git-ignore --color=always";
     #du = "${du-dust}/bin/dust";
     #df = "${duf}/bin/duf";
@@ -34,6 +32,8 @@ in
       NOSYSZSHRC = "1";
       TERM = "xterm-256color";
       K9S_EDITOR = "vim";
+
+      EZA_ICONS_AUTO = "1";
 
       PATH = lib.concatStringsSep ":" [
         "$HOME/.local/bin"
@@ -145,6 +145,8 @@ in
         #"git-info"
         #"duration-info"
         #"prompt-pwd"
+
+        "zimfw/exa"
 
         # Theme (after all info modules)
         "romkatv/powerlevel10k"
