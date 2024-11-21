@@ -20,7 +20,7 @@ let
     make = "${gnumake}/bin/make";
   };
 
-  # zim completion module
+  #zim custom completion module
   completionModule = pkgs.runCommand "zsh-completion" { } ''
     mkdir -p $out
     cp ${./zim/completion.zsh} $out/init.zsh
@@ -153,6 +153,7 @@ in
         "zsh-users/zsh-completions --fpath src"
         "zimfw/fzf"
         "Aloxaf/fzf-tab"
+        #"zimfw/completion"
         "${toString completionModule} --source init.zsh"
 
         # These must be last

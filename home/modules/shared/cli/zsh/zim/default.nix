@@ -77,6 +77,9 @@ in
            (optionalString cfg.disableVersionCheck ''
              zstyle ':zim' disable-version-check yes
            '')
+            (optionalString cfg.caseSensitive ''
+              zstyle ':zim:*' case-sensitivity sensitive
+            '')
          ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules))}
         EOL
       '';
@@ -88,7 +91,6 @@ in
       sessionVariables = {
         ZIM_HOME = cfg.zimDir;
         ZIM_CONFIG_FILE = cfg.zimConfig;
-        ZIM_CASE_SENSITIVE = if cfg.caseSensitive then "true" else "false";
       };
 
       initExtra = lib.mkAfter ''
