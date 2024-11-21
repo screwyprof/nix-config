@@ -1,4 +1,7 @@
 { lib, pkgs, ... }:
+let
+  fdCmd = "${pkgs.fd}/bin/fd --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules --exclude .cache --exclude Library";
+in
 {
   programs = {
     fzf = {
@@ -18,7 +21,7 @@
       ];
 
       # dracula
-      # colors = {
+      # colors = {q
       #   fg = "#f8f8f2"; # Foreground
       #   bg = "#282a36"; # Background
       #   "bg+" = "#44475a"; # Selected background
@@ -33,16 +36,17 @@
       #   border = "#bd93f9"; # Border (matching highlight color)
       # };
 
-      defaultCommand = "${pkgs.fd}/bin/fd --strip-cwd-prefix --hidden --follow --exclude .git";
+      defaultCommand = "${fdCmd}";
 
-      fileWidgetCommand = "${pkgs.fd}/bin/fd --strip-cwd-prefix --hidden --follow --exclude .git";
+      fileWidgetCommand = "${fdCmd} --type f";
       fileWidgetOptions = [
         "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {} || ${pkgs.bat}/bin/bat --style=header,numbers,changes --color=always {})'"
       ];
 
-      changeDirWidgetCommand = "${pkgs.fd}/bin/fd --type d --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules";
+      changeDirWidgetCommand = "${fdCmd} --type d";
       changeDirWidgetOptions = [
         "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}'"
+        "--bind 'change:reload:${fdCmd} --type d'"
       ];
     };
 
@@ -73,6 +77,10 @@
       initExtra = lib.mkAfter ''
         # Enable fzf-tab
         enable-fzf-tab
+
+        zstyle ':fzf-tab:*' fzf-min-height 8
+        zstyle ':fzf-tab:*' popup-min-size 80 8
+        zstyle ':fzf-tab:*' switch-group '<' '>'
 
         # Use fzf default options
         zstyle ':fzf-tab:*' use-fzf-default-opts yes
