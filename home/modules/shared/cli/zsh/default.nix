@@ -18,8 +18,13 @@ let
     make = "${gnumake}/bin/make";
   };
 
-  #zim custom completion module
-  completionModule = pkgs.runCommand "zsh-completion" { } ''
+  p10kConfig = pkgs.runCommand "p10k-config" { } ''
+    mkdir -p $out
+    cp ${./p10k/p10k.zsh} $out/p10k.zsh
+  '';
+
+  # zim custom completion module
+  completionModule = pkgs.runCommand "zim-completion" { } ''
     mkdir -p $out
     cp ${./zim/completion.zsh} $out/init.zsh
   '';
@@ -108,16 +113,6 @@ in
     #   ] ++ lib.optionals pkgs.stdenv.isDarwin [ "macos" ];
     # };
 
-
-    #Only load custom p10k config
-    plugins = [
-      {
-        name = "powerlevel10k-config";
-        src = ./p10k;
-        file = "p10k.zsh";
-      }
-    ];
-
     zimfw = {
       enable = true;
       degit = true;
@@ -142,6 +137,7 @@ in
 
         # Theme (after all info modules)
         "romkatv/powerlevel10k"
+        "${toString p10kConfig} --source p10k.zsh"
 
         # Completion modules
         "zsh-users/zsh-completions --fpath src"
