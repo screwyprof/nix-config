@@ -6,7 +6,7 @@ in
   programs = {
     fzf = {
       enable = true;
-      enableZshIntegration = true;
+      enableZshIntegration = false; # will be handled by zim
 
       defaultOptions = [
         "--multi"
@@ -75,20 +75,18 @@ in
       # ];
 
       initExtra = lib.mkAfter ''
-        # Enable fzf-tab
-        enable-fzf-tab
+        # fzf-tab
 
+        ## Use fzf default options
+        zstyle ':fzf-tab:*' use-fzf-default-opts yes
         zstyle ':fzf-tab:*' fzf-min-height 8
         zstyle ':fzf-tab:*' popup-min-size 80 8
         zstyle ':fzf-tab:*' switch-group '<' '>'
 
-        # Use fzf default options
-        zstyle ':fzf-tab:*' use-fzf-default-opts yes
-
-        # force zsh not to show completion menu
+        ## force zsh not to show completion menu
         zstyle ':completion:*' menu no
 
-        # Command completion (cd<tab>, ssh<tab>, etc)
+        ## Command completion (cd<tab>, ssh<tab>, etc)
         zstyle ':fzf-tab:complete:*:commands' fzf-preview 'which {}'
 
         ## ssh<space><tab>
@@ -122,7 +120,7 @@ in
             grep "$word" /etc/hosts
           fi'
         
-        # export|unset<space><tab>
+        ## export|unset<space><tab>
         zstyle ':fzf-tab:complete:(export|unset):*' fzf-preview '
           echo "=== $word ==="
           eval "echo \$$word"
@@ -148,10 +146,10 @@ in
             echo "\nType: Shell variable (only available in current shell)"
           fi'
 
-        # cd<space><tab> - directory completion
+        ## cd<space><tab> - directory completion
         zstyle ':fzf-tab:complete:cd:*' fzf-preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $word'
 
-        # File/directory preview for other completions
+        ## file/directory preview for other completions
         zstyle ':fzf-tab:complete:*:(files|directories):*' fzf-preview '([[ -d $word ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $word || ${pkgs.bat}/bin/bat --style=header,numbers,changes --color=always $word)'
       '';
     };
@@ -163,7 +161,4 @@ in
     eza
     git
   ];
-
-  # Create the fzf config directory
-  xdg.configFile."fzf/.keep".text = "";
 }
