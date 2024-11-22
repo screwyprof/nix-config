@@ -47,6 +47,11 @@ let
     mkdir -p $out
     cp ${./zim/zoxide.zsh} $out/init.zsh
   '';
+
+  zshCompletionsModule = pkgs.runCommand "zim-zsh-completions" { } ''
+    mkdir -p $out
+    cp -r ${pkgs.zsh-completions}/share/zsh/site-functions/* $out/
+  '';
 in
 {
   imports = [ ./zim ]; # Import Zim module
@@ -164,7 +169,7 @@ in
         "${toString p10kConfig} --source p10k.zsh"
 
         # Completion modules
-        "zsh-users/zsh-completions --fpath src"
+        "${toString zshCompletionsModule} --fpath src"
         "${toString completionModule} --source init.zsh"
 
         # These must be last
