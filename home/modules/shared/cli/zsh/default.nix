@@ -173,7 +173,7 @@ in
         "${toString completionModule} --source init.zsh"
 
         # These must be last
-        "zsh-users/zsh-syntax-highlighting"
+        "${toString pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
         "zsh-users/zsh-autosuggestions"
       ];
     };
