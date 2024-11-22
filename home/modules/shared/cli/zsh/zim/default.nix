@@ -70,17 +70,14 @@ in
         # Create .zimrc at the configured location
         run mkdir -p $(dirname ${cfg.zimConfig})
         run cat > ${cfg.zimConfig} << 'EOL'
-         ${concatStringsSep "\n" ([
-           (optionalString cfg.degit ''
-             zstyle ':zim:zmodule' use 'degit'
-           '')
-           (optionalString cfg.disableVersionCheck ''
-             zstyle ':zim' disable-version-check yes
-           '')
-            (optionalString cfg.caseSensitive ''
-              zstyle ':zim:*' case-sensitivity sensitive
-            '')
-         ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules))}
+        ${concatStringsSep "\n\n" ([
+          concatStringsSep "\n" (lib.remove "" [
+            "zstyle ':zim:zmodule' use 'degit'"  # No leading space
+            (optionalString cfg.disableVersionCheck "zstyle ':zim' disable-version-check yes")
+            (optionalString cfg.caseSensitive "zstyle ':zim:completion' case-sensitive yes")
+            (optionalString cfg.caseSensitive "zstyle ':zim:glob' case-sensitive yes")
+          ])
+        ] ++ [(concatStringsSep "\n" (map (zmodule: "zmodule ${zmodule}") cfg.zmodules))])}
         EOL
       '';
     };

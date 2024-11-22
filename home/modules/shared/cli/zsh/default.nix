@@ -23,6 +23,11 @@ let
     cp ${./p10k/p10k.zsh} $out/p10k.zsh
   '';
 
+  thefuckModule = pkgs.runCommand "zim-thefuck" { } ''
+    mkdir -p $out
+    cp ${./zim/thefuck.zsh} $out/init.zsh
+  '';
+
   zoxideModule = pkgs.runCommand "zim-zoxide" { } ''
     mkdir -p $out
     cp ${./zim/zoxide.zsh} $out/init.zsh
@@ -141,6 +146,7 @@ in
         "zimfw/fzf"
         "zimfw/homebrew"
 
+        "${toString thefuckModule} --source init.zsh"
         "${toString zoxideModule} --source init.zsh"
 
         # Theme (after all info modules)
