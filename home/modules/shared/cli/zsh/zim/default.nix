@@ -4,6 +4,28 @@ with lib;
 
 let
   cfg = config.programs.zsh.zimfw;
+
+  # Only two valid formats:
+  # 1. "$HOME/path/to/something"
+  # 2. "path/to/something"
+  cleanPath = path:
+    if hasPrefix "$HOME/" path
+    then removePrefix "$HOME/" path
+    else path;
+
+  zimHome = cleanPath cfg.zimDir;
+  zimConfigFile = cleanPath cfg.zimConfig;
+
+  assertions = [
+    {
+      assertion = !(hasPrefix "/" zimHome);
+      message = "zimDir must be either relative or start with $HOME/ (got: ${cfg.zimDir})";
+    }
+    {
+      assertion = !(hasPrefix "/" zimConfigFile);
+      message = "zimConfig must be either relative or start with $HOME/ (got: ${cfg.zimConfig})";
+    }
+  ];
 in
 {
   options.programs.zsh.zimfw = {
@@ -11,14 +33,24 @@ in
 
     zimDir = mkOption {
       type = types.str;
-      default = "$HOME/.zim";
-      example = "$HOME/.cache/zim";
+      default = ".zim";
+      example = ".cache/zim";
+      description = ''
+        Path to Zim's home directory, relative to user's $HOME.
+        Must be inside the user's home directory.
+        Will be prefixed with $HOME/ automatically.
+      '';
     };
 
     zimConfig = mkOption {
       type = types.str;
-      default = "$HOME/.zimrc";
-      example = "$HOME/.config/zsh/.zimrc";
+      default = ".zimrc";
+      example = ".config/zsh/.zimrc";
+      description = ''
+        Path to Zim's configuration file (.zimrc), relative to user's $HOME.
+        Must be inside the user's home directory.
+        Will be prefixed with $HOME/ automatically.
+      '';
     };
 
     degit = mkOption {
@@ -63,31 +95,27 @@ in
   };
 
   config = mkIf cfg.enable {
+    inherit assertions;
+
     home = {
       packages = [ pkgs.zimfw ];
 
-      activation.createZimrc = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        # Create .zimrc at the configured location
-        run mkdir -p $(dirname ${cfg.zimConfig})
-        run cat > ${cfg.zimConfig} << 'EOL'
-        ${concatStringsSep "\n\n" ([
-          concatStringsSep "\n" (lib.remove "" [
-            "zstyle ':zim:zmodule' use 'degit'"  # No leading space
-            (optionalString cfg.disableVersionCheck "zstyle ':zim' disable-version-check yes")
-            (optionalString cfg.caseSensitive "zstyle ':zim:completion' case-sensitive yes")
-            (optionalString cfg.caseSensitive "zstyle ':zim:glob' case-sensitive yes")
-          ])
-        ] ++ [(concatStringsSep "\n" (map (zmodule: "zmodule ${zmodule}") cfg.zmodules))])}
-        EOL
-      '';
+      file.${zimConfigFile}.text = concatStringsSep "\n" (
+        lib.remove "" [
+          (optionalString cfg.degit "zstyle ':zim:zmodule' use 'degit'")
+          (optionalString cfg.disableVersionCheck "zstyle ':zim' disable-version-check yes")
+          (optionalString cfg.caseSensitive "zstyle ':zim:completion' case-sensitive yes")
+          (optionalString cfg.caseSensitive "zstyle ':zim:glob' case-sensitive yes")
+        ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules)
+      );
     };
 
     programs.zsh = {
-      enableCompletion = mkForce false; # Let Zim handle completion
+      enableCompletion = mkForce false;
 
       sessionVariables = {
-        ZIM_HOME = cfg.zimDir;
-        ZIM_CONFIG_FILE = cfg.zimConfig;
+        ZIM_HOME = "$HOME/${zimHome}";
+        ZIM_CONFIG_FILE = "$HOME/${zimConfigFile}";
       };
 
       initExtra = lib.mkAfter ''

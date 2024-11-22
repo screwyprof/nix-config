@@ -1,20 +1,4 @@
 { pkgs, ... }: {
-  #  programs.zsh = {
-  #     initExtra = lib.mkBefore ''
-  #       # Initialize thefuck with standard mode
-  #       # eval "$(thefuck --alias)"
-
-  #       # Custom function that executes fuck directly
-  #       fuck-command-line() {
-  #         BUFFER="fuck"
-  #         zle accept-line
-  #       }
-
-  #       zle -N fuck-command-line
-  #       bindkey '\ef' fuck-command-line
-  #     '';
-  #   };
-
   home = {
     packages = with pkgs; [
       thefuck

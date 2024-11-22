@@ -18,6 +18,17 @@ let
     make = "${gnumake}/bin/make";
   };
 
+  # zim custom completion module
+  completionModule = pkgs.runCommand "zim-completion" { } ''
+    mkdir -p $out
+    cp ${./zim/completion.zsh} $out/init.zsh
+  '';
+
+  fzfTabModule = pkgs.runCommand "zim-fzf-tab" { } ''
+    mkdir -p $out
+    cp -r ${pkgs.zsh-fzf-tab}/share/fzf-tab/* $out/
+  '';
+
   p10kConfig = pkgs.runCommand "p10k-config" { } ''
     mkdir -p $out
     cp ${./p10k/p10k.zsh} $out/p10k.zsh
@@ -31,12 +42,6 @@ let
   zoxideModule = pkgs.runCommand "zim-zoxide" { } ''
     mkdir -p $out
     cp ${./zim/zoxide.zsh} $out/init.zsh
-  '';
-
-  # zim custom completion module
-  completionModule = pkgs.runCommand "zim-completion" { } ''
-    mkdir -p $out
-    cp ${./zim/completion.zsh} $out/init.zsh
   '';
 in
 {
@@ -146,6 +151,7 @@ in
         "zimfw/fzf"
         "zimfw/homebrew"
 
+        "${toString fzfTabModule} --source fzf-tab.plugin.zsh"
         "${toString thefuckModule} --source init.zsh"
         "${toString zoxideModule} --source init.zsh"
 
@@ -155,7 +161,7 @@ in
 
         # Completion modules
         "zsh-users/zsh-completions --fpath src"
-        "Aloxaf/fzf-tab"
+        #"Aloxaf/fzf-tab"
         "${toString completionModule} --source init.zsh"
 
         # These must be last
