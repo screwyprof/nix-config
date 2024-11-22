@@ -18,7 +18,6 @@ let
     make = "${gnumake}/bin/make";
   };
 
-  # zim custom completion module
   completionModule = pkgs.runCommand "zim-completion" { } ''
     mkdir -p $out
     cp ${./zim/completion.zsh} $out/init.zsh
@@ -27,6 +26,11 @@ let
   fzfTabModule = pkgs.runCommand "zim-fzf-tab" { } ''
     mkdir -p $out
     cp -r ${pkgs.zsh-fzf-tab}/share/fzf-tab/* $out/
+  '';
+
+  p10kModule = pkgs.runCommand "zim-powerlevel10k" { } ''
+    mkdir -p $out
+    cp -r ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/* $out/
   '';
 
   p10kConfig = pkgs.runCommand "p10k-config" { } ''
@@ -155,13 +159,12 @@ in
         "${toString thefuckModule} --source init.zsh"
         "${toString zoxideModule} --source init.zsh"
 
-        # Theme (after all info modules)
-        "romkatv/powerlevel10k"
+        # Theme
+        "${toString p10kModule} --source powerlevel10k.zsh-theme"
         "${toString p10kConfig} --source p10k.zsh"
 
         # Completion modules
         "zsh-users/zsh-completions --fpath src"
-        #"Aloxaf/fzf-tab"
         "${toString completionModule} --source init.zsh"
 
         # These must be last
