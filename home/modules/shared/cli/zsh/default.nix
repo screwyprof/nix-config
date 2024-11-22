@@ -23,6 +23,11 @@ let
     cp ${./p10k/p10k.zsh} $out/p10k.zsh
   '';
 
+  zoxideModule = pkgs.runCommand "zim-zoxide" { } ''
+    mkdir -p $out
+    cp ${./zim/zoxide.zsh} $out/init.zsh
+  '';
+
   # zim custom completion module
   completionModule = pkgs.runCommand "zim-completion" { } ''
     mkdir -p $out
@@ -134,6 +139,8 @@ in
         "zimfw/exa"
         "zimfw/fzf"
         "zimfw/homebrew"
+
+        "${toString zoxideModule} --source init.zsh"
 
         # Theme (after all info modules)
         "romkatv/powerlevel10k"
