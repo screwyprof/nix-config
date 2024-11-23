@@ -58,6 +58,7 @@ in
     syntaxHighlighting.enable = false;
     autosuggestion.enable = false;
     enableCompletion = false;
+    historySubstringSearch.enable = false;
 
     history = {
       size = 50000;
@@ -71,7 +72,7 @@ in
       share = true;
     };
 
-    historySubstringSearch.enable = true;
+
     shellAliases = modernCLI // gnuUtils;
 
     # Oh-my-zsh with p10k theme
@@ -111,13 +112,13 @@ in
         # Core modules first
         #"environment"
         #"git"
-        "input"
-        #"termtitle"
+        "zimfw/input"
+        #"zimfw/termtitle"
         #"utility"
-        "magic-enter"
+        "zimfw/magic-enter"
 
         # Info modules (need to be before prompt)
-        #"git-info"
+        #"zimfw/git-info"
         #"duration-info"
         #"prompt-pwd"
 
@@ -135,14 +136,41 @@ in
         "${toString ./zim/plugins} --source p10k.zsh"
 
         # Completion modules
-        "${toString pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
+        "${pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
         "${toString ./zim/plugins} --source completion.zsh"
 
         # Syntax highlighting
         "${toString ./zim/plugins} --source zsh-syntax-highlighting-dracula.zsh"
-        "${toString pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
-        "${toString pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
+        "${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
+        "${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search --source zsh-history-substring-search.zsh"
+        "${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
       ];
+
+
+      initAfterZim = ''
+        # First unbind all history-related keys
+        bindkey -r '^[OA'
+        bindkey -r '^[OB'
+        bindkey -r '^[[A'
+        bindkey -r '^[[B'
+
+        # Bind both terminal modes to history-substring-search
+        bindkey '^[OA' history-substring-search-up     # Up arrow (application mode)
+        bindkey '^[OB' history-substring-search-down   # Down arrow (application mode)
+        bindkey '^[[A' history-substring-search-up     # Up arrow (normal mode)
+        bindkey '^[[B' history-substring-search-down   # Down arrow (normal mode)
+
+        # Additional keybindings for different modes
+        bindkey -M emacs '^P' history-substring-search-up
+        bindkey -M emacs '^N' history-substring-search-down
+        bindkey -M vicmd 'k' history-substring-search-up
+        bindkey -M vicmd 'j' history-substring-search-down
+
+        # History substring search configuration
+        HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
+        HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS='i'
+        HISTORY_SUBSTRING_SEARCH_PREFIXED=1
+      '';
     };
   };
 

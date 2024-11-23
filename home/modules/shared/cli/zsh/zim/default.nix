@@ -106,6 +106,8 @@ in
           (optionalString cfg.disableVersionCheck "zstyle ':zim' disable-version-check yes")
           (optionalString cfg.caseSensitive "zstyle ':zim:completion' case-sensitive yes")
           (optionalString cfg.caseSensitive "zstyle ':zim:glob' case-sensitive yes")
+
+          # Enable double-dot expansion
           "zstyle ':zim:input' double-dot-expand yes"
         ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules)
       );
