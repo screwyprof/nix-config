@@ -30,16 +30,6 @@ let
     cp ${./zim/completion.zsh} $out/init.zsh
   '';
 
-  fzfTabModule = pkgs.runCommand "zim-fzf-tab" { } ''
-    mkdir -p $out
-    cp -r ${pkgs.zsh-fzf-tab}/share/fzf-tab/* $out/
-  '';
-
-  p10kModule = pkgs.runCommand "zim-powerlevel10k" { } ''
-    mkdir -p $out
-    cp -r ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/* $out/
-  '';
-
   p10kConfig = pkgs.runCommand "p10k-config" { } ''
     mkdir -p $out
     cp ${./p10k/p10k.zsh} $out/p10k.zsh
@@ -162,12 +152,12 @@ in
         "zimfw/fzf"
         "zimfw/homebrew"
 
-        "${toString fzfTabModule} --source fzf-tab.plugin.zsh"
+        "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
         "${toString thefuckModule} --source init.zsh"
         "${toString zoxideModule} --source init.zsh"
 
         # Theme
-        "${toString p10kModule} --source powerlevel10k.zsh-theme"
+        "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
         "${toString p10kConfig} --source p10k.zsh"
 
         # Completion modules
