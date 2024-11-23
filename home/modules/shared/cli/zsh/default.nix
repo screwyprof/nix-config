@@ -150,7 +150,7 @@ in
       initAfterZim = ''
         # Ctrl+A and Ctrl+E for beginning and end of line
         bindkey '^A' beginning-of-line  # Ctrl+A
-        bindkey '^E' end-of-line         # Ctrl+E
+        bindkey '^E' end-of-line        # Ctrl+E
 
         # Additional history options not covered by Zim
         setopt HIST_FCNTL_LOCK
