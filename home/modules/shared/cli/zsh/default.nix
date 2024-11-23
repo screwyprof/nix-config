@@ -152,6 +152,10 @@ in
         bindkey '^A' beginning-of-line  # Ctrl+A
         bindkey '^E' end-of-line        # Ctrl+E
 
+        # Word movement with Option+Left/Right (Emacs-style)
+        bindkey '^[f' forward-word      # Option+Right
+        bindkey '^[b' backward-word     # Option+Left
+
         # Additional history options not covered by Zim
         setopt HIST_FCNTL_LOCK
         setopt HIST_IGNORE_ALL_DUPS
