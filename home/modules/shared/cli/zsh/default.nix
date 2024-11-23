@@ -111,9 +111,10 @@ in
         # Core modules first
         #"environment"
         #"git"
-        #"input"
+        "input"
         #"termtitle"
         #"utility"
+        "magic-enter"
 
         # Info modules (need to be before prompt)
         #"git-info"
