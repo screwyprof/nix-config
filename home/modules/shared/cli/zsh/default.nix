@@ -17,33 +17,6 @@ let
     tar = "${gnutar}/bin/tar";
     make = "${gnumake}/bin/make";
   };
-
-  draculaZshSyntaxHighlighting = pkgs.fetchFromGitHub {
-    owner = "dracula";
-    repo = "zsh-syntax-highlighting";
-    rev = "09c89b657ad8a27ddfe1d6f2162e99e5cce0d5b3";
-    sha256 = "sha256-JrSKx8qHGAF0DnSJiuKWvn6ItQHvWpJ5pKo4yNbrHno=";
-  };
-
-  completionModule = pkgs.runCommand "zim-completion" { } ''
-    mkdir -p $out
-    cp ${./zim/completion.zsh} $out/init.zsh
-  '';
-
-  p10kConfig = pkgs.runCommand "p10k-config" { } ''
-    mkdir -p $out
-    cp ${./p10k/p10k.zsh} $out/p10k.zsh
-  '';
-
-  thefuckModule = pkgs.runCommand "zim-thefuck" { } ''
-    mkdir -p $out
-    cp ${./zim/thefuck.zsh} $out/init.zsh
-  '';
-
-  zoxideModule = pkgs.runCommand "zim-zoxide" { } ''
-    mkdir -p $out
-    cp ${./zim/zoxide.zsh} $out/init.zsh
-  '';
 in
 {
   imports = [ ./zim ]; # Import Zim module
@@ -153,21 +126,21 @@ in
         "zimfw/homebrew"
 
         "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
-        "${toString thefuckModule} --source init.zsh"
-        "${toString zoxideModule} --source init.zsh"
+        "${toString ./zim/plugins} --source thefuck.zsh"
+        "${toString ./zim/plugins} --source zoxide.zsh"
 
         # Theme
         "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
-        "${toString p10kConfig} --source p10k.zsh"
+        "${toString ./zim/plugins} --source p10k.zsh"
 
         # Completion modules
         "${toString pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
-        "${toString pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
-        "${toString completionModule} --source init.zsh"
+        "${toString ./zim/plugins} --source completion.zsh"
 
-        # These must be last
-        "${toString draculaZshSyntaxHighlighting} --source zsh-syntax-highlighting.sh"
+        # Syntax highlighting
+        "${toString ./zim/plugins} --source zsh-syntax-highlighting-dracula.zsh"
         "${toString pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
+        "${toString pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
       ];
     };
   };
