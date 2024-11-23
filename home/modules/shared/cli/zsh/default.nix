@@ -110,7 +110,7 @@ in
       zimConfig = "$HOME/.config/zsh/.zimrc";
       zmodules = [
         # Core modules first
-        #"environment"
+        "zimfw/environment"
         #"git"
         "zimfw/input"
         #"zimfw/termtitle"
@@ -146,8 +146,13 @@ in
         "${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
       ];
 
-
       initAfterZim = ''
+        # Additional history options not covered by Zim
+        setopt HIST_FCNTL_LOCK
+        setopt HIST_IGNORE_ALL_DUPS
+        setopt HIST_EXPIRE_DUPS_FIRST
+        setopt EXTENDED_HISTORY
+
         # First unbind all history-related keys
         bindkey -r '^[OA'
         bindkey -r '^[OB'
