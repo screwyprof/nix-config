@@ -16,6 +16,10 @@ in
       "${config.xdg.configHome}/bat/themes/${theme}.tmTheme".source = assertPath ./Gopher.tmTheme;
       "${config.xdg.configHome}/eza/theme.yml".source = ./eza-dracula.yml;
     };
+
+    sessionVariables = {
+      ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE = "fg=13";
+    };
   };
 
   programs.zsh = {
