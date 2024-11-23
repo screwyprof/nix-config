@@ -127,6 +127,7 @@ in
         "zimfw/fzf"
         "zimfw/homebrew"
 
+        "${toString ./zim/plugins} --source enhanced-paste.zsh"
         "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
         "${toString ./zim/plugins} --source thefuck.zsh"
         "${toString ./zim/plugins} --source zoxide.zsh"
