@@ -114,7 +114,7 @@ in
         #"git"
         "zimfw/input"
         #"zimfw/termtitle"
-        #"utility"
+        "zimfw/utility"
         "zimfw/magic-enter"
 
         # Info modules (need to be before prompt)
