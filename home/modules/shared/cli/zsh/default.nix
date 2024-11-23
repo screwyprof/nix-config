@@ -18,6 +18,13 @@ let
     make = "${gnumake}/bin/make";
   };
 
+  draculaZshSyntaxHighlighting = pkgs.fetchFromGitHub {
+    owner = "dracula";
+    repo = "zsh-syntax-highlighting";
+    rev = "09c89b657ad8a27ddfe1d6f2162e99e5cce0d5b3";
+    sha256 = "sha256-JrSKx8qHGAF0DnSJiuKWvn6ItQHvWpJ5pKo4yNbrHno=";
+  };
+
   completionModule = pkgs.runCommand "zim-completion" { } ''
     mkdir -p $out
     cp ${./zim/completion.zsh} $out/init.zsh
@@ -165,10 +172,11 @@ in
 
         # Completion modules
         "${toString pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
+        "${toString pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
         "${toString completionModule} --source init.zsh"
 
         # These must be last
-        "${toString pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
+        "${toString draculaZshSyntaxHighlighting} --source zsh-syntax-highlighting.sh"
         "${toString pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
       ];
     };
