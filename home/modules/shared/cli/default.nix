@@ -1,11 +1,11 @@
 {
   imports = [
     ./themes
-    ./zsh
+    ./moar.nix
     ./bat.nix
+    ./zsh
     ./fzf
     ./cheat.nix
-    ./moar.nix
     ./tldr.nix
     ./thefuck.nix
     ./zoxide.nix

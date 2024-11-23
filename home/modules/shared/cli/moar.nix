@@ -4,9 +4,9 @@
   ];
 
   programs.zsh = {
-    initExtra = ''
-      # Set moar as the default pager with all options
-      export MOAR="\
+    sessionVariables = {
+      PAGER = "${pkgs.moar}/bin/moar";
+      MOAR = ''
         --style=dracula \
         --wrap \
         --statusbar=bold \
@@ -14,8 +14,9 @@
         --quit-if-one-screen \
         --no-clear-on-exit \
         --mousemode=auto \
-        --no-linenumbers"
-    '';
+        --no-linenumbers
+      '';
+    };
 
     shellAliases = {
       more = "${pkgs.moar}/bin/moar";
