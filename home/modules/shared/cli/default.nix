@@ -6,7 +6,7 @@
     ./zsh
     ./fzf
     ./cheat.nix
-    ./direnv.nix
+    ./navi.nix
     ./tldr.nix
     ./thefuck.nix
     ./zoxide.nix

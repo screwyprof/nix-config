@@ -25,9 +25,13 @@
       url = "github:Homebrew/homebrew-bundle";
       flake = false;
     };
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, ... }@inputs:
+  outputs = { self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, rust-overlay, ... }@inputs:
     let
 
       devUser = {
@@ -41,6 +45,7 @@
       nixpkgsForSystem = system: import nixpkgs {
         inherit system;
         overlays = [
+          rust-overlay.overlays.default
           (final: _: {
             tinty = final.callPackage ./pkgs/tinty { };
             mysides = final.callPackage ./pkgs/mysides {

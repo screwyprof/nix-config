@@ -3,6 +3,7 @@
     ./git.nix
     ./nix.nix
     ./containers
+    ./direnv.nix
     ./golang.nix
     ./node.nix
     ./python.nix

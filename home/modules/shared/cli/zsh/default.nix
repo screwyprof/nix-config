@@ -77,34 +77,6 @@ in
 
     shellAliases = modernCLI // gnuUtils;
 
-    # Oh-my-zsh with p10k theme
-    # oh-my-zsh = {
-    #   enable = true;
-    #   theme = "powerlevel10k";
-    #   custom = "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k";
-    #   plugins = [
-    #     "git"
-    #     "gitfast"
-    #     "alias-finder"
-    #     "command-not-found"
-    #     "copyfile"
-    #     "direnv"
-    #     "dotenv"
-    #     "extract"
-    #     "aws"
-    #     "cabal"
-    #     "gcloud"
-    #     "golang"
-    #     "grc"
-    #     "kubectl"
-    #     "npm"
-    #     "nvm"
-    #     "rust"
-    #     "sudo"
-    #     "yarn"
-    #   ] ++ lib.optionals pkgs.stdenv.isDarwin [ "macos" ];
-    # };
-
     sessionVariables = {
       YSU_MODE = "ALL"; # or "BESTMATCH"
       YSU_HARDCORE = "1";

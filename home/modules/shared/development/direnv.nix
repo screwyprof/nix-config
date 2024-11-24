@@ -2,7 +2,9 @@
   programs.direnv = {
     enable = true;
     enableZshIntegration = false; # will be handled by zim
-    nix-direnv.enable = true;
+    nix-direnv = {
+      enable = true;
+    };
 
     config = {
       load_dotenv = true;
