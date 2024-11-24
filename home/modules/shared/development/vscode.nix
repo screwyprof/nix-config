@@ -124,6 +124,12 @@
       "terminal.integrated" = {
         "fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
         "fontSize" = 20;
+        "profiles.osx" = {
+          "zsh" = {
+            "path" = "/usr/bin/login";
+            "args" = [ "-fp" "\${env:USER}" "-c" "exec zsh" ];
+          };
+        };
       };
 
       # Language-specific settings
