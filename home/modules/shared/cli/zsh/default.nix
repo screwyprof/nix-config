@@ -105,6 +105,12 @@ in
     #   ] ++ lib.optionals pkgs.stdenv.isDarwin [ "macos" ];
     # };
 
+    sessionVariables = {
+      YSU_MODE = "ALL"; # or "BESTMATCH"
+      YSU_HARDCORE = "1";
+      YSU_MESSAGE_POSITION = "after";
+    };
+
     zimfw = {
       enable = true;
       degit = true;
@@ -130,6 +136,7 @@ in
 
         "${toString ./zim/plugins} --source enhanced-paste.zsh"
         "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
+        "${pkgs.zsh-you-should-use}/share/zsh/plugins/you-should-use --source you-should-use.plugin.zsh"
         "${toString ./zim/plugins} --source thefuck.zsh"
         "${toString ./zim/plugins} --source zoxide.zsh"
 
