@@ -55,23 +55,25 @@ in
   programs.zsh = {
     enable = true;
     dotDir = ".config/zsh";
-    syntaxHighlighting.enable = false;
+
+    # these are handled by zim
     autosuggestion.enable = false;
     enableCompletion = false;
-    historySubstringSearch.enable = false;
+    syntaxHighlighting.enable = false;
+
+    defaultKeymap = "emacs";
 
     history = {
-      size = 50000;
-      save = 50000;
-      path = "$HOME/.zsh_history";
-      extended = true;
+      size = 20000;
+      save = 10000;
+      path = "$ZDOTDIR/.zsh_history";
       ignoreDups = true;
       ignoreAllDups = true;
       ignoreSpace = true;
       expireDuplicatesFirst = true;
+      extended = true;
       share = true;
     };
-
 
     shellAliases = modernCLI // gnuUtils;
 
@@ -147,6 +149,20 @@ in
         "${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
       ];
 
+      historySearch = {
+        enable = true;
+        searchUpKey = [
+          "^[OA" # Up arrow (application mode)
+          "^[[A" # Up arrow (normal mode)
+          "^P" # Ctrl+P (emacs mode)
+        ];
+        searchDownKey = [
+          "^[OB" # Down arrow (application mode)
+          "^[[B" # Down arrow (normal mode)
+          "^N" # Ctrl+N (emacs mode)
+        ];
+      };
+
       initAfterZim = ''
         # Ctrl+A and Ctrl+E for beginning and end of line
         bindkey '^A' beginning-of-line  # Ctrl+A
@@ -155,47 +171,7 @@ in
         # Word movement with Option+Left/Right (Emacs-style)
         bindkey '^[f' forward-word      # Option+Right
         bindkey '^[b' backward-word     # Option+Left
-
-        # Additional history options not covered by Zim
-        setopt HIST_FCNTL_LOCK
-        setopt HIST_IGNORE_ALL_DUPS
-        setopt HIST_EXPIRE_DUPS_FIRST
-        setopt EXTENDED_HISTORY
-
-        # First unbind all history-related keys
-        bindkey -r '^[OA'
-        bindkey -r '^[OB'
-        bindkey -r '^[[A'
-        bindkey -r '^[[B'
-
-        # Bind both terminal modes to history-substring-search
-        bindkey '^[OA' history-substring-search-up     # Up arrow (application mode)
-        bindkey '^[OB' history-substring-search-down   # Down arrow (application mode)
-        bindkey '^[[A' history-substring-search-up     # Up arrow (normal mode)
-        bindkey '^[[B' history-substring-search-down   # Down arrow (normal mode)
-
-        # Additional keybindings for different modes
-        bindkey -M emacs '^P' history-substring-search-up
-        bindkey -M emacs '^N' history-substring-search-down
-        bindkey -M vicmd 'k' history-substring-search-up
-        bindkey -M vicmd 'j' history-substring-search-down
-
-        # History substring search configuration
-        HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
-        HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS='i'
-        HISTORY_SUBSTRING_SEARCH_PREFIXED=1
       '';
-    };
-  };
-
-  programs.direnv = {
-    enable = true;
-    enableZshIntegration = false; # will be handled by zim
-    nix-direnv.enable = true;
-
-    config = {
-      load_dotenv = true;
-      watch_file = [ ".env" ];
     };
   };
 }   

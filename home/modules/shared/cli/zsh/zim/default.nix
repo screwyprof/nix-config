@@ -26,6 +26,31 @@ let
       message = "zimConfig must be either relative or start with $HOME/ (got: ${cfg.zimConfig})";
     }
   ];
+
+  # Define our own history search submodule
+  historySearchModule = types.submodule {
+    options = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Whether to enable history substring search in Zim";
+      };
+
+      searchUpKey = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        example = [ "^[[A" "^P" ];
+        description = "Keys to bind to history-substring-search-up";
+      };
+
+      searchDownKey = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        example = [ "^[[B" "^N" ];
+        description = "Keys to bind to history-substring-search-down";
+      };
+    };
+  };
 in
 {
   options.programs.zsh.zimfw = {
@@ -92,6 +117,12 @@ in
       type = types.lines;
       description = "Shell commands to run after Zim initialization.";
     };
+
+    historySearch = mkOption {
+      type = historySearchModule;
+      default = { };
+      description = "Zim's history substring search configuration";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -115,6 +146,7 @@ in
 
     programs.zsh = {
       enableCompletion = mkForce false;
+      historySubstringSearch.enable = mkForce false;
 
       sessionVariables = {
         ZIM_HOME = "$HOME/${zimHome}";
@@ -124,7 +156,6 @@ in
       initExtra = lib.mkAfter ''
         # Pre-Zim initialization hook
         ${cfg.initBeforeZim}
-
         # Download zimfw plugin manager if missing
         if [[ ! -e ''${ZIM_HOME}/zimfw.zsh ]]; then
           mkdir -p ''${ZIM_HOME}
@@ -146,6 +177,27 @@ in
 
         # Post-Zim initialization hook
         ${cfg.initAfterZim}
+
+        ${lib.optionalString cfg.historySearch.enable ''
+          ${lib.concatMapStringsSep "\n"
+            (upKey: ''
+              bindkey -r '${upKey}'
+              bindkey '${upKey}' history-substring-search-up''
+            )
+            cfg.historySearch.searchUpKey
+          }
+          ${lib.concatMapStringsSep "\n"
+            (downKey: ''
+              bindkey -r '${downKey}'
+              bindkey '${downKey}' history-substring-search-down''
+            )
+            cfg.historySearch.searchDownKey
+          }
+          # Configuration
+          HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
+          HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS='i'
+          HISTORY_SUBSTRING_SEARCH_PREFIXED=1
+        ''}
       '';
     };
   };
