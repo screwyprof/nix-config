@@ -111,9 +111,7 @@ in
       zimDir = "$HOME/.config/zsh/.zim";
       zimConfig = "$HOME/.config/zsh/.zimrc";
       zmodules = [
-        # Core modules first
         "zimfw/environment"
-        #"git"
         "zimfw/input"
         #"zimfw/termtitle"
         "zimfw/utility"
@@ -127,6 +125,7 @@ in
         "zimfw/exa"
         "zimfw/direnv"
         "zimfw/fzf"
+        "zimfw/git"
         "zimfw/homebrew"
 
         "${toString ./zim/plugins} --source enhanced-paste.zsh"
