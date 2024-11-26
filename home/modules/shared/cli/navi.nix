@@ -42,7 +42,7 @@ in
     };
   };
 
-  programs.zsh.zimfw.zmodules = lib.mkAfter [
+  programs.zsh.zimfw.zmodules = lib.mkOrder 300 [
     "${toString ./zsh/zim/plugins} --source navi.zsh"
   ];
 }

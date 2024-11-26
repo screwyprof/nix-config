@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ lib, pkgs, ... }: {
   home = {
     packages = with pkgs; [
       thefuck
@@ -20,4 +20,8 @@
       THEFUCK_EXCLUDE_RULES = "git_pull_uncommitted_changes";
     };
   };
+
+  programs.zsh.zimfw.zmodules = lib.mkOrder 300 [
+    "${toString ./zsh/zim/plugins} --source thefuck.zsh"
+  ];
 }

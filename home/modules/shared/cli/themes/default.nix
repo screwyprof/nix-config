@@ -44,5 +44,10 @@ in
         bat cache --build >/dev/null 2>&1
       fi
     '';
+
+    zimfw.zmodules = lib.mkOrder 400 [
+      "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
+      "${toString ../zsh/zim/plugins} --source p10k.zsh"
+    ];
   };
 }

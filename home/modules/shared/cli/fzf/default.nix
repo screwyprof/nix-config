@@ -53,11 +53,6 @@ in
     zsh = {
       # plugins = [
       #   {
-      #     name = "fzf-tab";
-      #     src = pkgs.zsh-fzf-tab;
-      #     file = "share/fzf-tab/fzf-tab.plugin.zsh";
-      #   }
-      #   {
       #     name = "forgit";
       #     src = pkgs.zsh-forgit;
       #     file = "share/zsh/zsh-forgit/forgit.plugin.zsh";
@@ -160,5 +155,9 @@ in
     bat
     eza
     git
+  ];
+
+  programs.zsh.zimfw.zmodules = lib.mkOrder 300 [
+    "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
   ];
 }

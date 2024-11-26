@@ -88,43 +88,50 @@ in
       degit = true;
       zimDir = "$HOME/.config/zsh/.zim";
       zimConfig = "$HOME/.config/zsh/.zimrc";
-      zmodules = [
-        "zimfw/environment"
-        "zimfw/input"
-        #"zimfw/termtitle"
-        "zimfw/utility"
-        "zimfw/magic-enter"
+      zmodules = lib.mkMerge [
+        # Early modules (environment, input, etc.)
+        (lib.mkOrder 100 [
+          "zimfw/environment"
+          "zimfw/input"
+          #"zimfw/termtitle"
+          "zimfw/utility"
+          "zimfw/magic-enter"
+        ])
 
-        # Info modules (need to be before prompt)
-        #"zimfw/git-info"
-        #"duration-info"
-        #"prompt-pwd"
+        # Core functionality modules
+        (lib.mkOrder 200 [
+          "zimfw/exa"
+          "zimfw/direnv"
+          "zimfw/fzf"
+          "zimfw/git"
+          "zimfw/homebrew"
+        ])
 
-        "zimfw/exa"
-        "zimfw/direnv"
-        "zimfw/fzf"
-        "zimfw/git"
-        "zimfw/homebrew"
+        # Plugin modules
+        (lib.mkOrder 300 [
+          "${toString ./zim/plugins} --source enhanced-paste.zsh"
+          "${pkgs.zsh-you-should-use}/share/zsh/plugins/you-should-use --source you-should-use.plugin.zsh"
+        ])
 
-        "${toString ./zim/plugins} --source enhanced-paste.zsh"
-        "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
-        "${pkgs.zsh-you-should-use}/share/zsh/plugins/you-should-use --source you-should-use.plugin.zsh"
-        "${toString ./zim/plugins} --source thefuck.zsh"
-        "${toString ./zim/plugins} --source zoxide.zsh"
-
-        # Theme
-        "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
-        "${toString ./zim/plugins} --source p10k.zsh"
+        # Theme (should be before completion and syntax highlighting)
+        # (lib.mkOrder 400 [
+        #   "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
+        #   "${toString ./zim/plugins} --source p10k.zsh"
+        # ])
 
         # Completion modules
-        "${pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
-        "${toString ./zim/plugins} --source completion.zsh"
+        (lib.mkOrder 500 [
+          "${pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
+          "${toString ./zim/plugins} --source completion.zsh"
+        ])
 
-        # Syntax highlighting
-        "${toString ./zim/plugins} --source zsh-syntax-highlighting-dracula.zsh"
-        "${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
-        "${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search --source zsh-history-substring-search.zsh"
-        "${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
+        # Syntax highlighting (must be last)
+        (lib.mkOrder 900 [
+          "${toString ./zim/plugins} --source zsh-syntax-highlighting-dracula.zsh"
+          "${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
+          "${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search --source zsh-history-substring-search.zsh"
+          "${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
+        ])
       ];
 
       historySearch = {
