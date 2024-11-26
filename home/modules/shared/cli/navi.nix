@@ -17,9 +17,9 @@ in
     sessionVariables = {
       NAVI_CONFIG = "${config.xdg.configHome}/navi/config.yaml";
     };
-  };
 
-  home.file."${config.xdg.dataHome}/navi/cheats/denisidoro__cheats".source = officialCheats;
+    file."${config.xdg.dataHome}/navi/cheats/denisidoro__cheats".source = officialCheats;
+  };
 
   xdg.configFile."navi/config.yaml".text = lib.generators.toYAML { } {
     cheats = {
