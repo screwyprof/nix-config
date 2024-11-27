@@ -26,6 +26,9 @@ in
       NOSYSZSHRC = "1";
       TERM = "xterm-256color";
       K9S_EDITOR = "vim";
+      YSU_MODE = "ALL"; # or "BESTMATCH"
+      YSU_HARDCORE = "1";
+      YSU_MESSAGE_POSITION = "after";
 
       EZA_ICONS_AUTO = "1";
 
@@ -76,12 +79,6 @@ in
     };
 
     shellAliases = modernCLI // gnuUtils;
-
-    sessionVariables = {
-      YSU_MODE = "ALL"; # or "BESTMATCH"
-      YSU_HARDCORE = "1";
-      YSU_MESSAGE_POSITION = "after";
-    };
 
     zimfw = {
       enable = true;

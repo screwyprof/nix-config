@@ -8,12 +8,6 @@
     ../../../modules/darwin/colima
   ];
 
-  # User-specific theme configuration
-  theme = {
-    name = "dracula";
-    spec = "base24";
-  };
-
   # Group all home settings together
   home = {
     username = "happygopher";

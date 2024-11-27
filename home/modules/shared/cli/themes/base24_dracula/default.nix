@@ -1,5 +1,6 @@
 {
   imports = [
-    ./base24_dracula
+    ./bat
+    ./zsh
   ];
 }

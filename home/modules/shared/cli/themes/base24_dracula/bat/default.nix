@@ -1,7 +1,6 @@
 { config, lib, ... }:
 let
-  inherit (config.theme) name spec;
-  theme = "${spec}_${name}";
+  theme = "base24_dracula";
   themeFileName = "${theme}.tmTheme";
 in
 {

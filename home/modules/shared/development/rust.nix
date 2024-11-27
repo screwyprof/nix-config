@@ -13,7 +13,7 @@ let
 in
 {
 
-  home.packages = with pkgs; [
+  home.packages = [
     # Use rust-overlay's toolchain
     rustToolchain
   ];

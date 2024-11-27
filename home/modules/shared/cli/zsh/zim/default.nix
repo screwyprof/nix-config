@@ -142,16 +142,16 @@ in
           "zstyle ':zim:input' double-dot-expand yes"
         ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules)
       );
-    };
-
-    programs.zsh = {
-      enableCompletion = mkForce false;
-      historySubstringSearch.enable = mkForce false;
 
       sessionVariables = {
         ZIM_HOME = "$HOME/${zimHome}";
         ZIM_CONFIG_FILE = "$HOME/${zimConfigFile}";
       };
+    };
+
+    programs.zsh = {
+      enableCompletion = mkForce false;
+      historySubstringSearch.enable = mkForce false;
 
       initExtra = lib.mkAfter ''
         # Pre-Zim initialization hook
