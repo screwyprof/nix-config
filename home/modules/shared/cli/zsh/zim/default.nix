@@ -4,6 +4,8 @@ with lib;
 
 let
   cfg = config.programs.zsh.zimfw;
+  completionsCacheDir = "${config.xdg.cacheHome}/zsh";
+  completionDumpFile = "${completionsCacheDir}/zcompdump";
 
   # Only two valid formats:
   # 1. "$HOME/path/to/something"
@@ -140,18 +142,35 @@ in
 
           # Enable double-dot expansion
           "zstyle ':zim:input' double-dot-expand yes"
+
+          # Configure completion cache path
+          "zstyle ':completion::complete:*' cache-path '${completionsCacheDir}'"
+
+          # Configure completion dump file
+          "zstyle ':zim:completion' dumpfile '${completionDumpFile}'"
+
         ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules)
       );
-
-      sessionVariables = {
-        ZIM_HOME = "$HOME/${zimHome}";
-        ZIM_CONFIG_FILE = "$HOME/${zimConfigFile}";
-      };
     };
 
     programs.zsh = {
       enableCompletion = mkForce false;
       historySubstringSearch.enable = mkForce false;
+
+      sessionVariables = mkMerge [
+        # Base Zim variables
+        {
+          ZIM_HOME = "$HOME/${zimHome}";
+          ZIM_CONFIG_FILE = "$HOME/${zimConfigFile}";
+        }
+
+        # History search variables (only when enabled)
+        (mkIf cfg.historySearch.enable {
+          HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE = "1";
+          HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS = "i";
+          HISTORY_SUBSTRING_SEARCH_PREFIXED = "1";
+        })
+      ];
 
       initExtra = lib.mkAfter ''
         # Pre-Zim initialization hook
@@ -171,6 +190,8 @@ in
           source ''${ZIM_HOME}/zimfw.zsh init -q
           echo "$_zimrc_hash" > $_saved_hash_file
         fi
+
+        mkdir -p "${completionsCacheDir}"
 
         # Initialize modules
         source ''${ZIM_HOME}/init.zsh
@@ -193,10 +214,6 @@ in
             )
             cfg.historySearch.searchDownKey
           }
-          # Configuration
-          HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
-          HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS='i'
-          HISTORY_SUBSTRING_SEARCH_PREFIXED=1
         ''}
       '';
     };

@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{
   imports = [
     ./spotlight.nix
   ];
@@ -37,15 +37,6 @@
     build-users-group = "nixbld";
     trusted-users = [ "root" "happygopher" ];
     download-buffer-size = 100000000;
-  };
-
-  # Create /etc/zshrc that loads the nix-darwin environment
-  programs.zsh.enable = true;
-
-  # System-wide environment variables
-  environment = {
-    pathsToLink = [ "/Applications" ]; # links Home 
-    shells = [ pkgs.zsh ];
   };
 
   # Common Homebrew configuration for all macOS hosts

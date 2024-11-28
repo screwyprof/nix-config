@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: {
+{ lib, pkgs, ... }: {
   imports = [
     ./preferences
     ./terminal
@@ -20,9 +20,5 @@
     ];
   };
 
-  xdg = {
-    enable = true;
-    dataHome = "${config.home.homeDirectory}/.local/share";
-    cacheHome = "${config.home.homeDirectory}/.cache";
-  };
+  xdg.enable = true;
 }

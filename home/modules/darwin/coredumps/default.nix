@@ -1,12 +1,12 @@
 { config, lib, ... }:
 
 let
-  homeDir = config.home.homeDirectory;
+  dumpsDir = "${config.xdg.stateHome}/coredump";
 in
 {
   # Create dumps directory
   home.activation.createDumpsDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run mkdir -p ${homeDir}/.local/dumps
+    run mkdir -p ${dumpsDir}
   '';
 
   # Configure core dump location and cleanup via launchd agents (user-specific)
@@ -18,7 +18,7 @@ in
         ProgramArguments = [
           "/bin/sh"
           "-c"
-          "sysctl -w kern.corefile=${homeDir}/.local/dumps/%N.%P.core"
+          "sysctl -w kern.corefile=${dumpsDir}/%N.%P.core"
         ];
         RunAtLoad = true;
       };
@@ -31,7 +31,7 @@ in
         ProgramArguments = [
           "/bin/sh"
           "-c"
-          "find ${homeDir}/.local/dumps -name '*.core' -mtime +7 -delete"
+          "find ${dumpsDir} -name '*.core' -mtime +7 -delete"
         ];
         StartCalendarInterval = [
           {

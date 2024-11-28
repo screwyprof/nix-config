@@ -1,9 +1,11 @@
 {
-  home.sessionPath = [
-    "$PNPM_HOME"
-  ];
+  home = {
+    sessionPath = [
+      "$PNPM_HOME"
+    ];
 
-  home.sessionVariables = {
-    PNPM_HOME = "$HOME/Library/pnpm";
+    sessionVariables = {
+      PNPM_HOME = "$HOME/Library/pnpm";
+    };
   };
 }

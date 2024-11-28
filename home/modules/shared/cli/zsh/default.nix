@@ -24,6 +24,7 @@ in
   home = {
     sessionVariables = {
       NOSYSZSHRC = "1";
+
       TERM = "xterm-256color";
       K9S_EDITOR = "vim";
       YSU_MODE = "ALL"; # or "BESTMATCH"
@@ -69,7 +70,7 @@ in
     history = {
       size = 20000;
       save = 10000;
-      path = "$ZDOTDIR/.zsh_history";
+      path = "$XDG_STATE_HOME/zsh/.zsh_history";
       ignoreDups = true;
       ignoreAllDups = true;
       ignoreSpace = true;
@@ -79,6 +80,11 @@ in
     };
 
     shellAliases = modernCLI // gnuUtils;
+
+    sessionVariables = {
+      ZSH_CACHE_DIR = "$XDG_CACHE_HOME/zsh";
+      ZSH_STATE_DIR = "$XDG_STATE_HOME/zsh";
+    };
 
     zimfw = {
       enable = true;
