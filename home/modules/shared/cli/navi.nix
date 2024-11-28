@@ -1,11 +1,18 @@
 { config, lib, pkgs, ... }:
 
 let
-  officialCheats = pkgs.fetchFromGitHub {
+  naviCheats = pkgs.fetchFromGitHub {
     owner = "denisidoro";
     repo = "cheats";
     rev = "master";
     sha256 = "sha256-wPsAazAGKPhu0MZfZbZ0POUBEMg95frClAQERTDFXUg=";
+  };
+
+  naviTLDR = pkgs.fetchFromGitHub {
+    owner = "denisidoro";
+    repo = "navi-tldr-pages";
+    rev = "master";
+    sha256 = "sha256-/w/0s0HpEHwyBoWD5uOLMJW1pbDFyOBvG4fKhmYPPp4=";
   };
 in
 {
@@ -18,7 +25,8 @@ in
       NAVI_CONFIG = "${config.xdg.configHome}/navi/config.yaml";
     };
 
-    file."${config.xdg.dataHome}/navi/cheats/denisidoro__cheats".source = officialCheats;
+    file."${config.xdg.dataHome}/navi/cheats/denisidoro__cheats".source = naviCheats;
+    file."${config.xdg.dataHome}/navi/cheats/denisidoro__navi-tldr-pages".source = naviTLDR;
   };
 
   xdg.configFile."navi/config.yaml".text = lib.generators.toYAML { } {
@@ -26,6 +34,7 @@ in
       paths = [
         "${config.xdg.dataHome}/navi/cheats"
         "${config.xdg.dataHome}/navi/cheats/denisidoro__cheats"
+        "${config.xdg.dataHome}/navi/cheats/denisidoro__navi-tldr-pages"
       ];
     };
 

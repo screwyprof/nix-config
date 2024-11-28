@@ -47,6 +47,7 @@
         overlays = [
           rust-overlay.overlays.default
           (final: _: {
+            navi = final.callPackage ./pkgs/navi { };
             tinty = final.callPackage ./pkgs/tinty { };
             mysides = final.callPackage ./pkgs/mysides {
               stdenv = if final.stdenv.isDarwin then final.darwin.apple_sdk.stdenv else final.stdenv;
