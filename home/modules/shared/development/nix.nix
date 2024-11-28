@@ -19,7 +19,8 @@ let
     nix-check = "nix flake check";
     nix-cleanup = ''
       nix-collect-garbage -d && \
-      nix store optimise 2>&1 | grep -v "warning: skipping suspicious writable file"
+      nix store optimise 2>&1 | grep -v "warning: skipping suspicious writable file" && \
+      sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +3
     '';
     nix-update = "nix flake update";
     nix-update-nixpkgs = "nix flake lock --update-input nixpkgs";
