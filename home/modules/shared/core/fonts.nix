@@ -2,13 +2,9 @@
   fonts.fontconfig.enable = true;
   home.packages = with pkgs; [
     fontconfig
-    # user fonts
-    (nerdfonts.override {
-      fonts = [
-        "FiraCode"
-        "JetBrainsMono"
-        "Meslo"
-      ];
-    })
+    nerd-fonts.symbols-only
+    nerd-fonts.fira-code
+    nerd-fonts.jetbrains-mono
+    nerd-fonts.meslo-lg
   ];
 }
