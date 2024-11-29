@@ -46,6 +46,12 @@
     };
 
     aliases = {
+      "fd" = "!f() { \
+        target=\${1:-HEAD}; \
+        preview=\"git diff --staged $target --color=always -- {-1} | delta\"; \
+        git diff --staged $target --name-only | fzf -m --ansi --preview \"$preview\"; \
+      }; f";
+
       fakecommit = "git commit --amend --no-edit && git push -f";
       cherrymaster = "git cherry -v master | cut -d ' ' -f3-";
       rmbranches = "git branch | grep -v 'master' | grep -v 'main' | xargs git branch -D";
