@@ -51,24 +51,6 @@ in
     };
 
     zsh = {
-      # plugins = [
-      #   {
-      #     name = "forgit";
-      #     src = pkgs.zsh-forgit;
-      #     file = "share/zsh/zsh-forgit/forgit.plugin.zsh";
-      #   }
-      #   {
-      #     name = "fzf-git.zsh";
-      #     src = pkgs.fetchFromGitHub {
-      #       owner = "junegunn";
-      #       repo = "fzf-git.sh";
-      #       rev = "f730cfa1860acdb64597a0cf060d4949f1cd02a8";
-      #       sha256 = "sha256-7IUCIaP2suAtrvSKvIJ/Oledm+3heZCBcTy56XgtIYo=";
-      #     };
-      #     file = "fzf-git.sh";
-      #   }
-      # ];
-
       initExtra = lib.mkAfter ''
         # fzf-tab
 
@@ -142,11 +124,16 @@ in
           fi'
 
         ## cd<space><tab> - directory completion
-        zstyle ':fzf-tab:complete:cd:*' fzf-preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $word'
+        zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza --tree --all --icons --git-ignore --level=3 --color=always $word'
 
         ## file/directory preview for other completions
-        zstyle ':fzf-tab:complete:*:(files|directories):*' fzf-preview '([[ -d $word ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always $word || ${pkgs.bat}/bin/bat --style=header,numbers,changes --color=always $word)'
+        zstyle ':fzf-tab:complete:*:(files|directories):*' fzf-preview '([[ -d $word ]] && eza --tree --all --icons --git-ignore --level=3 --color=always $word || bat --style=header,numbers,changes --color=always $word)'
       '';
+
+      zimfw.zmodules = lib.mkOrder 300 [
+        "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
+        "${pkgs.zsh-forgit}/share/zsh/zsh-forgit --source forgit.plugin.zsh"
+      ];
     };
   };
 
@@ -155,9 +142,5 @@ in
     bat
     eza
     git
-  ];
-
-  programs.zsh.zimfw.zmodules = lib.mkOrder 300 [
-    "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
   ];
 }

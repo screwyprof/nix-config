@@ -4,7 +4,7 @@
     ./moar.nix
     ./bat.nix
     ./zsh
-    ./fzf
+    ./fzf.nix
     ./cheat.nix
     ./navi.nix
     ./tldr.nix
