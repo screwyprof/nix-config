@@ -59,6 +59,7 @@ in
   programs.zsh = {
     enable = true;
     dotDir = ".config/zsh";
+    #zprof.enable = true;
 
     # these are handled by zim
     autosuggestion.enable = false;
@@ -107,7 +108,7 @@ in
           "zimfw/direnv"
           "zimfw/fzf"
           "zimfw/git"
-          "zimfw/homebrew"
+          #"zimfw/homebrew"
         ])
 
         # Plugin modules
@@ -161,5 +162,11 @@ in
         bindkey '^[b' backward-word     # Option+Left
       '';
     };
+
+    initExtraFirst = ''
+      if [[ -r "''${XDG_CACHE_HOME:-''$HOME/.cache}/p10k-instant-prompt-\''${(%):-%n}.zsh" ]]; then
+        source "''${XDG_CACHE_HOME:-''$HOME/.cache}/p10k-instant-prompt-\''${(%):-%n}.zsh"
+      fi
+    '';
   };
 }   

@@ -21,7 +21,7 @@
     };
   };
 
-  programs.zsh.zimfw.zmodules = lib.mkOrder 300 [
+  programs.zsh.zimfw.zmodules = lib.mkOrder 950 [
     "${toString ./zsh/zim/plugins} --source thefuck.zsh"
   ];
 }
