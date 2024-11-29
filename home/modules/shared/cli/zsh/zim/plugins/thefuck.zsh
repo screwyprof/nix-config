@@ -28,9 +28,11 @@
     }
     zle -N fuck-command-line
     
-    # Use Ctrl+x,f
+    # Ctrl+x,f
     bindkey '^Xf' fuck-command-line
-    bindkey '\ef' fuck-command-line
+
+    # Double Esc
+    bindkey '^[^[' fuck-command-line
 EOL
     zcompile -UR ${target}
   fi
