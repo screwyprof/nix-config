@@ -60,7 +60,6 @@
       "jetbrains-toolbox"
       "tableplus"
       "telegram"
-      "betterdisplay"
     ];
 
     brews = [
