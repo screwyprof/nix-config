@@ -3,6 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+
+    nix-index-database.url = "github:nix-community/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+
     darwin = {
       url = "github:lnl7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -31,7 +35,20 @@
     };
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-homebrew, homebrew-core, homebrew-cask, homebrew-bundle, rust-overlay, ... }@inputs:
+  outputs =
+    { self
+    , nixpkgs
+    , nix-index-database
+    , darwin
+    , home-manager
+    , pre-commit-hooks
+    , nix-homebrew
+    , homebrew-core
+    , homebrew-cask
+    , homebrew-bundle
+    , rust-overlay
+    , ...
+    }@inputs:
     let
 
       devUser = {
@@ -100,7 +117,10 @@
                   (username: {
                     name = username;
                     value = { ... }: {
-                      imports = [ ./home/users/darwin/${username} ];
+                      imports = [
+                        ./home/users/darwin/${username}
+                        nix-index-database.hmModules.nix-index
+                      ];
                     };
                   })
                   users);
