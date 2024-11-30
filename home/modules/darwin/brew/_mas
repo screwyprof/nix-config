@@ -1,0 +1,46 @@
+#compdef mas
+#autoload
+
+# Helper function to get list of commands
+__mas_commands() {
+  local -a commands
+  commands=(
+    'account:Display the Apple ID signed in in the Mac App Store'
+    'home:Open app'\''s Mac App Store web page in the default web browser'
+    'info:Display app information from the Mac App Store'
+    'install:Install previously purchased app(s) from the Mac App Store'
+    'list:List apps installed from the Mac App Store'
+    'lucky:Install the first app returned from searching the Mac App Store'
+    'open:Open app page in App Store.app'
+    'outdated:List pending app updates from the Mac App Store'
+    'purchase:Purchase and install free apps from the Mac App Store'
+    'reset:Reset Mac App Store running processes'
+    'search:Search for apps from the Mac App Store'
+    'signin:Sign in to an Apple ID in the Mac App Store'
+    'signout:Sign out of the Apple ID currently signed in'
+    'uninstall:Uninstall app installed from the Mac App Store'
+    'upgrade:Upgrade outdated app(s) installed from the Mac App Store'
+    'vendor:Open vendor'\''s app web page in the default web browser'
+    'version:Display version number'
+  )
+  _describe -t commands 'mas command' commands
+}
+
+# Main completion function
+_mas() {
+  local curcontext="$curcontext" state state_descr line
+  typeset -A opt_args
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[Show help information]' \
+    '1: :->command' \
+    '*:: :->args' && return 0
+
+  case "$state" in
+    command)
+      __mas_commands
+      ;;
+  esac
+}
+
+_mas "$@"

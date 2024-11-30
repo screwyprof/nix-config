@@ -108,7 +108,7 @@ in
           "zimfw/direnv"
           "zimfw/fzf"
           "zimfw/git"
-          #"zimfw/homebrew"
+          "zimfw/homebrew"
         ])
 
         # Plugin modules

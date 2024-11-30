@@ -19,10 +19,11 @@ fi
   
   # Use -C to skip expensive checks if dump exists and is from today
   autoload -Uz compinit
+
   if [[ -f ${zdumpfile} && $(date +%j) == $(date -r ${zdumpfile} +%j) ]]; then
-    compinit -C -d ${zdumpfile}
+    compinit -C -u -d ${zdumpfile}
   else
-    compinit -d ${zdumpfile} || return 1 
+    compinit -u -d ${zdumpfile} || return 1 
     zcompile ${zdumpfile}
   fi
 
