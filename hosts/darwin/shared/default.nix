@@ -56,6 +56,7 @@
     casks = [
       "1password"
       "bitwarden"
+      "cursor"
       "firefox"
       "jetbrains-toolbox"
       "tableplus"
