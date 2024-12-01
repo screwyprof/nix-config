@@ -133,8 +133,8 @@ in
     home = {
       packages = [ pkgs.zimfw ];
 
-      file.${zimConfigFile}.text = concatStringsSep "\n" (
-        lib.remove "" [
+      file.${zimConfigFile}.text =
+        builtins.concatStringsSep "\n" (lib.remove "" [
           (optionalString cfg.degit "zstyle ':zim:zmodule' use 'degit'")
           (optionalString cfg.disableVersionCheck "zstyle ':zim' disable-version-check yes")
           (optionalString cfg.caseSensitive "zstyle ':zim:completion' case-sensitive yes")
@@ -143,14 +143,13 @@ in
           # Enable double-dot expansion
           "zstyle ':zim:input' double-dot-expand yes"
 
-          # Configure completion cache path
+          # Caching
+          "zstyle ':completion:*' rehash true"
+          "zstyle ':completion:*' accept-exact '*(N)'"
           "zstyle ':completion::complete:*' cache-path '${completionsCacheDir}'"
-
-          # Configure completion dump file
           "zstyle ':zim:completion' dumpfile '${completionDumpFile}'"
 
-        ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules)
-      );
+        ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules));
     };
 
     programs.zsh = {

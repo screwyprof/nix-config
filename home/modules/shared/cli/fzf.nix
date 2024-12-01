@@ -130,10 +130,25 @@ in
         zstyle ':fzf-tab:complete:*:(files|directories):*' fzf-preview '([[ -d $word ]] && eza --tree --all --icons --git-ignore --level=3 --color=always $word || bat --style=header,numbers,changes --color=always $word)'
       '';
 
-      zimfw.zmodules = lib.mkOrder 300 [
-        "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
-        "${pkgs.zsh-forgit}/share/zsh/zsh-forgit --source forgit.plugin.zsh"
-      ];
+      zimfw = {
+        zmodules = lib.mkOrder 300 [
+          "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
+          "${pkgs.zsh-forgit}/share/zsh/zsh-forgit --source forgit.plugin.zsh"
+        ];
+
+        initAfterZim = ''
+          ## Fix fzf completion styles
+          zstyle ':completion:*:options' description no
+          zstyle -d ':completion:*:options' auto-description
+
+          zstyle ':completion:*:corrections' format '$color02-- %d (errors: %e) --$color07'
+          zstyle -d ':completion:*:descriptions'
+
+          zstyle ':completion:*:messages' format '$color05-- %d --$color07'
+          zstyle ':completion:*:warnings' format '$color01-- no matches found --$color07'
+          zstyle -d ':completion:*' format
+        '';
+      };
     };
   };
 

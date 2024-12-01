@@ -53,6 +53,7 @@ in
       htop
       ripgrep
       shellcheck
+      zsh-fast-syntax-highlighting
     ];
   };
 
@@ -99,16 +100,16 @@ in
           "zimfw/input"
           #"zimfw/termtitle"
           "zimfw/utility"
-          "zimfw/magic-enter"
+          #"zimfw/magic-enter"
         ])
 
-        # Core functionality modules
+        # # Core functionality modules
         (lib.mkOrder 200 [
           "zimfw/exa"
           "zimfw/direnv"
           "zimfw/fzf"
           "zimfw/git"
-          "zimfw/homebrew"
+          #"zimfw/homebrew"
         ])
 
         # Plugin modules
@@ -117,22 +118,24 @@ in
           "${pkgs.zsh-you-should-use}/share/zsh/plugins/you-should-use --source you-should-use.plugin.zsh"
         ])
 
-        # Theme (should be before completion and syntax highlighting)
-        # (lib.mkOrder 400 [
-        #   "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
-        #   "${toString ./zim/plugins} --source p10k.zsh"
-        # ])
+        # # Theme (should be before completion and syntax highlighting)
+        # # (lib.mkOrder 400 [
+        # #   "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
+        # #   "${toString ./zim/plugins} --source p10k.zsh"
+        # # ])
 
         # Completion modules
         (lib.mkOrder 500 [
           "${pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
-          "${toString ./zim/plugins} --source completion.zsh"
+          "zimfw/completion"
+          #"${toString ./zim/plugins} --source completion.zsh"
         ])
 
         # Syntax highlighting (must be last)
         (lib.mkOrder 900 [
-          "${toString ./zim/plugins} --source zsh-syntax-highlighting-dracula.zsh"
-          "${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"
+          #"${toString ./zim/plugins} --source zsh-syntax-highlighting-dracula.zsh"
+          #"${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"]
+          "${pkgs.zsh-fast-syntax-highlighting}/share/zsh/site-functions --source fast-syntax-highlighting.plugin.zsh"
           "${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search --source zsh-history-substring-search.zsh"
           "${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
         ])
