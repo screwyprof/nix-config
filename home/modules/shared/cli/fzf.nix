@@ -141,11 +141,11 @@ in
           zstyle ':completion:*:options' description no
           zstyle -d ':completion:*:options' auto-description
 
-          zstyle ':completion:*:corrections' format '$color02-- %d (errors: %e) --$color07'
+          zstyle ':completion:*:corrections' format '-- %d (errors: %e) --'
           zstyle -d ':completion:*:descriptions'
 
-          zstyle ':completion:*:messages' format '$color05-- %d --$color07'
-          zstyle ':completion:*:warnings' format '$color01-- no matches found --$color07'
+          zstyle ':completion:*:messages' format '-- %d --'
+          zstyle ':completion:*:warnings' format '-- no matches found --'
           zstyle -d ':completion:*' format
         '';
       };
