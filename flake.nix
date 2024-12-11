@@ -105,10 +105,6 @@
                   "homebrew/core" = inputs.homebrew-core;
                   "homebrew/cask" = inputs.homebrew-cask;
                   "homebrew/bundle" = inputs.homebrew-bundle;
-                  "custom/windsurf" = {
-                    url = "https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/w/windsurf.rb";
-                    flake = false;
-                  };
                 };
               };
             }
