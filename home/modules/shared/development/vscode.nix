@@ -155,9 +155,9 @@
       "material-icon-theme.files.color" = "#42a5f5";
       "material-icon-theme.folders.color" = "#6bc1ff";
       "material-icon-theme.hidesExplorerArrows" = true;
-      "workbench.colorTheme" = "Dracula";
+      "workbench.colorTheme" = "Dracula Theme";
       "workbench.iconTheme" = "material-icon-theme";
-      "workbench.preferredDarkColorTheme" = "Dracula";
+      "workbench.preferredDarkColorTheme" = "Dracula Theme";
       "workbench.productIconTheme" = "material-product-icons";
 
       # Remote settings
