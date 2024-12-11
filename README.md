@@ -42,7 +42,8 @@ Personal Nix configuration for MacOS (Apple Silicon).
 nix-check              # Check flake for errors
 nix-update             # Update all flake inputs
 nix-update-nixpkgs     # Update only nixpkgs input
-nix-cleanup            # Garbage collection and optimize store
+nix-cleanup            # Delete old generations and collect garbage
+nix-optimise           # Optimize the Nix store (deduplication and hard-linking)
 
 # Development Tools
 nix-fmt               # Format nix files

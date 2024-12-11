@@ -32,11 +32,19 @@
   };
 
   # Nix configuration
-  nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-    build-users-group = "nixbld";
-    trusted-users = [ "root" "happygopher" ];
-    download-buffer-size = 100000000;
+  nix = {
+    settings = {
+      experimental-features = [ "nix-command" "flakes" ];
+      build-users-group = "nixbld";
+      trusted-users = [ "root" "happygopher" ];
+      download-buffer-size = 100000000;
+    };
+
+    gc = {
+      automatic = true;
+      interval = { Weekday = 0; Hour = 0; Minute = 0; };
+      options = "--delete-older-than 7d";
+    };
   };
 
   # Common Homebrew configuration for all macOS hosts

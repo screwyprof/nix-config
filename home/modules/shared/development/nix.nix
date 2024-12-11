@@ -17,11 +17,9 @@ let
   nixAliases = {
     # Basic operations
     nix-check = "nix flake check";
-    nix-cleanup = ''
-      nix-collect-garbage -d && \
-      sudo -H nix store optimise 2>&1 | grep -v "warning: skipping suspicious writable file" && \
-      sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +3
-    '';
+    nix-cleanup = "sudo -H nix-collect-garbage -d";
+    nix-optimise = "sudo -H nix store optimise 2>&1 | grep -v 'warning: skipping suspicious writable file'";
+
     nix-update = "nix flake update";
     nix-update-nixpkgs = "nix flake lock --update-input nixpkgs";
 
