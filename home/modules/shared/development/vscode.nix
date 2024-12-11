@@ -25,10 +25,12 @@
       tamasfe.even-better-toml # TOML support
 
       # Development Tools
+      fill-labs.dependi # Dependency management
       eamodio.gitlens # Git integration
       ms-azuretools.vscode-docker # Docker support
       formulahendry.auto-close-tag # HTML/XML tag closing
       ms-vscode.makefile-tools # Makefile support
+      ms-vscode.live-server # Live server
 
       # Testing and Debugging
       vadimcn.vscode-lldb # LLDB debugger (cause warnings in settings.json)
@@ -36,18 +38,21 @@
       hbenl.vscode-test-explorer # Test explorer UI
 
       # Python Support
-      ms-python.python
-      ms-python.vscode-pylance
+      ms-python.python # Python language support
+      ms-python.vscode-pylance # Pylance language server
+
+      # Remote Development
+      ms-vscode-remote.remote-ssh # Remote SSH support
     ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-      # Additional Tools
+      # Coverage Tools
       {
-        name = "dependi";
-        publisher = "fill-labs";
-        version = "0.7.10";
-        sha256 = "m8W21ztTmEOjDI1KCymeBgQzg9jdgKG9dCFp+U1D818=";
+        name = "vscode-coverage-gutters";
+        publisher = "ryanluker";
+        version = "2.12.0";
+        sha256 = "sha256-Dkc/Wqc122fV1r6IUyHOtuRdpbWHL3elAhfxHcY6xtM";
       }
 
-      #Rust Tools
+      # Rust Tools
       {
         name = "rust-test-lens";
         publisher = "hdevalke";
@@ -69,15 +74,138 @@
     ];
 
     userSettings = {
-      # update settings\
-      "update.mode" = "none";
+      # Language-specific settings
+      "[go]" = {
+        "editor.codeActionsOnSave" = {
+          "source.organizeImports" = "explicit";
+        };
+        "editor.formatOnSave" = true;
+        "editor.snippetSuggestions" = "none";
+      };
+
+      "[python]" = {
+        "editor.codeActionsOnSave" = {
+          "source.organizeImports" = "explicit";
+        };
+        "editor.defaultFormatter" = "ms-python.python";
+        "editor.formatOnSave" = true;
+      };
+      "python.defaultInterpreterPath" = "${pkgs.python312}/bin/python3";
+
+      "[rust]" = {
+        "editor.defaultFormatter" = "rust-lang.rust-analyzer";
+        "editor.formatOnSave" = true;
+        "editor.inlayHints.enabled" = "onUnlessPressed";
+      };
+
+      # Font settings
+      "editor.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+      "editor.fontLigatures" = true;
+      "editor.fontSize" = 20;
+      "editor.lineHeight" = 30;
+      "editor.inlayHints.enabled" = "onUnlessPressed";
+      "editor.inlineSuggest.enabled" = true;
+      "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+      "debug.console.fontFamily" = "'MesloLGMDZ Nerd Font','JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+      "debug.console.fontSize" = 20;
+      "terminal.integrated.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+      "terminal.integrated.fontSize" = 20;
+
+      # Update settings
       "extensions.autoCheckUpdates" = false;
+      "update.mode" = "none";
 
-      # theme settings
+      # File settings
+      "files.associations" = {
+        "*.rs" = "rust";
+      };
+      "json.schemaDownload.enable" = false;
+      "window.openFilesInNewWindow" = "on";
+      "window.zoomLevel" = 1;
+
+      # Go settings
+      "go.lintTool" = "golangci-lint";
+      "go.testOnSave" = false;
+      "go.toolsManagement.autoUpdate" = false;
+      "go.useLanguageServer" = true;
+      "go.testFlags" = [ "-v" ];
+      "go.coverOnSave" = false;
+      "go.coverOnSingleTest" = true;
+      "go.coverOnSingleTestFile" = true;
+      "go.delveConfig" = {
+        "debugAdapter" = "dlv-dap";
+        "showGlobalVariables" = true;
+      };
+      "go.coverageDecorator" = {
+        "type" = "highlight";
+        "coveredHighlightColor" = "rgba(64,128,128,0.2)";
+        "uncoveredHighlightColor" = "rgba(128,64,64,0.2)";
+        "coveredBorderColor" = "rgba(64,128,128,0.4)";
+        "uncoveredBorderColor" = "rgba(128,64,64,0.4)";
+      };
+
+      # LLDB settings
+      "lldb.commandCompletions" = true;
+      "lldb.evaluateForHovers" = true;
+      "lldb.launch.terminal" = "integrated";
+      "lldb.suppressMissingSourceFiles" = true;
+
+      # Theme and icon settings
+      "material-icon-theme.activeIconPack" = "nest";
+      "material-icon-theme.files.color" = "#42a5f5";
+      "material-icon-theme.folders.color" = "#6bc1ff";
+      "material-icon-theme.hidesExplorerArrows" = true;
       "workbench.colorTheme" = "Dracula";
+      "workbench.iconTheme" = "material-icon-theme";
       "workbench.preferredDarkColorTheme" = "Dracula";
-      #"workbench.colorTheme" = "Dark Modern One";
+      "workbench.productIconTheme" = "material-product-icons";
 
+      # Remote settings
+      "remote.SSH.configFile" = "~/.ssh/config";
+
+      # Test Explorer Settings
+      "testExplorer.codeLens" = true;
+      "testExplorer.gutterDecoration" = true;
+      "testExplorer.onStart" = "retire";
+
+      # Coverage Settings
+      "coverage-gutters.coverageFileNames" = [
+        "target/coverage/lcov.info"
+      ];
+      "coverage-gutters.showGutterCoverage" = true;
+      "coverage-gutters.showLineCoverage" = true;
+      "coverage-gutters.showRulerCoverage" = true;
+      "coverage-gutters.highlightdark" = "rgba(64,128,64,0.4)";
+
+      # Rust analyzer settings
+      "rust-analyzer.cargo.features" = "all";
+      "rust-analyzer.check.command" = "clippy";
+      "rust-analyzer.check.extraArgs" = [ ];
+      "rust-analyzer.completion.autoself.enable" = true;
+      "rust-analyzer.files.excludeDirs" = [
+        "**/.git/**"
+        "**/target/**"
+      ];
+      "rust-analyzer.hover.actions.enable" = true;
+      "rust-analyzer.inlayHints.parameterHints.enable" = true;
+      "rust-analyzer.inlayHints.renderColons" = true;
+      "rust-analyzer.inlayHints.typeHints.enable" = true;
+      "rust-analyzer.lens.enable" = true;
+      "rust-analyzer.lens.run.enable" = true;
+      "rust-analyzer.lens.implementations.enable" = true;
+      "rust-analyzer.lens.references.adt.enable" = true;
+      "rust-analyzer.lens.references.method.enable" = true;
+      "rust-analyzer.lens.references.trait.enable" = true;
+
+      # Terminal settings
+      "terminal.integrated.defaultProfile.osx" = "zsh";
+      "terminal.integrated.profiles.osx" = {
+        "zsh" = {
+          "path" = "/etc/profiles/per-user/happygopher/bin/zsh";
+        };
+      };
+
+      # Workbench color customizations
       "workbench.colorCustomizations" = {
         "terminal.foreground" = "#e9e9f4";
         "terminal.background" = "#21222C";
@@ -97,147 +225,6 @@
         "terminal.ansiRed" = "#FF5555";
         "terminal.ansiWhite" = "#F8F8F2";
         "terminal.ansiYellow" = "#F1FA8C";
-      };
-
-      # Icon settings
-      "workbench.iconTheme" = "material-icon-theme";
-      "workbench.productIconTheme" = "material-product-icons";
-
-      # Optional: Material Icon Theme customization
-      "material-icon-theme.folders.color" = "#6bc1ff";
-      "material-icon-theme.files.color" = "#42a5f5";
-
-      "material-icon-theme.activeIconPack" = "nest"; # Choose icon pack: none, angular, nest, ngrx, react, redux, vue, etc.
-      "material-icon-theme.hidesExplorerArrows" = true; # Clean folder style
-
-      # Editor settings
-      "editor" = {
-        "fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
-        "fontLigatures" = true;
-        "fontSize" = 20;
-        "lineHeight" = 30;
-      };
-
-      "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
-
-      # Terminal settings
-      "terminal.integrated" = {
-        "fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
-        "fontSize" = 20;
-        "profiles.osx" = {
-          "zsh" = {
-            "path" = "/usr/bin/login";
-            "args" = [ "-fp" "\${env:USER}" "-c" "exec zsh" ];
-          };
-        };
-      };
-
-      # Language-specific settings
-      "[go]" = {
-        "editor.codeActionsOnSave" = {
-          "source.organizeImports" = "explicit";
-        };
-        "editor.formatOnSave" = true;
-        "editor.snippetSuggestions" = "none";
-      };
-
-      # Go settings
-      "go" = {
-        "delveConfig" = {
-          "debugAdapter" = "dlv-dap";
-          "showGlobalVariables" = true;
-        };
-        "lintTool" = "golangci-lint";
-        "testOnSave" = false;
-        "toolsManagement.autoUpdate" = false;
-        "useLanguageServer" = true;
-        "testFlags" = [
-          "-v"
-        ];
-        "coverOnSave" = false;
-        "coverOnSingleTest" = true;
-        "coverOnSingleTestFile" = true;
-        "coverageDecorator" = {
-          "type" = "highlight";
-          "coveredHighlightColor" = "rgba(64,128,128,0.2)";
-          "uncoveredHighlightColor" = "rgba(128,64,64,0.2)";
-          "coveredBorderColor" = "rgba(64,128,128,0.4)";
-          "uncoveredBorderColor" = "rgba(128,64,64,0.4)";
-        };
-      };
-
-      # Go debugger settings
-      "go.delveConfig" = {
-        "debugAdapter" = "dlv-dap";
-        "showGlobalVariables" = true;
-      };
-
-      # File associations
-      "files.associations" = {
-        "*.rs" = "rust";
-      };
-
-      # Limit rust-analyzer to Rust files
-      "[rust]" = {
-        "editor.defaultFormatter" = "rust-lang.rust-analyzer";
-        "editor.formatOnSave" = true;
-      };
-
-      # Rust settings
-      "rust-analyzer" = {
-        "checkOnSave.command" = "clippy";
-        "cargo.allFeatures" = true;
-        "completion.autoimport.enable" = true;
-        "inlayHints.enable" = true;
-        "inlayHints.parameterHints.enable" = true;
-        "inlayHints.typeHints.enable" = true;
-        "files.excludePatterns" = [
-          "**/.git/**"
-          "**/target/**"
-        ];
-      };
-
-      # Debug settings
-      "debug" = {
-        "console" = {
-          "fontFamily" = "'MesloLGMDZ Nerd Font','JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
-          "fontSize" = 20;
-        };
-      };
-
-      # LLDB specific settings
-      "lldb" = {
-        "commandCompletions" = true;
-        "evaluateForHovers" = true;
-        "launch" = {
-          "terminal" = "integrated";
-        };
-        "suppressMissingSourceFiles" = true;
-      };
-
-      # Remote SSH settings
-      "remote.SSH.configFile" = "~/.ssh/config";
-
-      # Window settings
-      "window" = {
-        "zoomLevel" = 1;
-        "openFilesInNewWindow" = "on";
-      };
-
-      # Editor settings
-      "editor.inlineSuggest.enabled" = true;
-
-      # Python settings
-      "python.defaultInterpreterPath" = "${pkgs.python312}/bin/python3";
-      "python.formatting.provider" = "black";
-      "python.linting.enabled" = true;
-      "python.linting.pylintEnabled" = true;
-      "[python]" = {
-        "editor.formatOnSave" = true;
-        "editor.defaultFormatter" = "ms-python.python";
-        "editor.codeActionsOnSave" = {
-          "source.organizeImports" = "explicit";
-        };
       };
     };
   };
