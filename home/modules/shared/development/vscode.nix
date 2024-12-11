@@ -19,7 +19,7 @@
       usernamehw.errorlens # Inline error display
 
       # Language Support
-      bbenoist.nix # Nix language
+      jnoortheen.nix-ide # Nix language
       golang.go # Go language
       rust-lang.rust-analyzer # Rust language (commented out)
       tamasfe.even-better-toml # TOML support
@@ -155,9 +155,9 @@
       "material-icon-theme.files.color" = "#42a5f5";
       "material-icon-theme.folders.color" = "#6bc1ff";
       "material-icon-theme.hidesExplorerArrows" = true;
-      "workbench.colorTheme" = "Dracula Theme";
+      "workbench.colorTheme" = "Dracula";
+      "workbench.preferredDarkColorTheme" = "Dracula";
       "workbench.iconTheme" = "material-icon-theme";
-      "workbench.preferredDarkColorTheme" = "Dracula Theme";
       "workbench.productIconTheme" = "material-product-icons";
 
       # Remote settings
