@@ -16,7 +16,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
-    nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+    nix-homebrew = {
+      url = "github:zhaofengli-wip/nix-homebrew";
+      inputs.brew-src = {
+        url = "github:Homebrew/brew";
+        flake = false;
+      };
+    };
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
       flake = false;
@@ -99,6 +105,10 @@
                   "homebrew/core" = inputs.homebrew-core;
                   "homebrew/cask" = inputs.homebrew-cask;
                   "homebrew/bundle" = inputs.homebrew-bundle;
+                  "custom/windsurf" = {
+                    url = "https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/w/windsurf.rb";
+                    flake = false;
+                  };
                 };
               };
             }
