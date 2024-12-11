@@ -14,35 +14,33 @@
     extensions = with pkgs.vscode-extensions; [
       # Theme and UI
       dracula-theme.theme-dracula
-      pkief.material-icon-theme # File icons
-      pkief.material-product-icons # UI icons
-      usernamehw.errorlens # Inline error display
+      pkief.material-icon-theme
+      pkief.material-product-icons
+      usernamehw.errorlens
 
       # Language Support
-      jnoortheen.nix-ide # Nix language
-      golang.go # Go language
-      rust-lang.rust-analyzer # Rust language (commented out)
-      tamasfe.even-better-toml # TOML support
+      jnoortheen.nix-ide
+      golang.go
+      rust-lang.rust-analyzer
+      tamasfe.even-better-toml
 
       # Development Tools
-      fill-labs.dependi # Dependency management
-      eamodio.gitlens # Git integration
-      ms-azuretools.vscode-docker # Docker support
-      formulahendry.auto-close-tag # HTML/XML tag closing
-      ms-vscode.makefile-tools # Makefile support
-      ms-vscode.live-server # Live server
+      fill-labs.dependi
+      eamodio.gitlens
+      ms-azuretools.vscode-docker
+      formulahendry.auto-close-tag
+      ms-vscode.makefile-tools
+      ms-vscode.live-server
 
       # Testing and Debugging
-      vadimcn.vscode-lldb # LLDB debugger (cause warnings in settings.json)
-      ms-vscode.test-adapter-converter # Test adapter support
-      hbenl.vscode-test-explorer # Test explorer UI
+      vadimcn.vscode-lldb
 
       # Python Support
-      ms-python.python # Python language support
-      ms-python.vscode-pylance # Pylance language server
+      ms-python.python
+      ms-python.vscode-pylance
 
       # Remote Development
-      ms-vscode-remote.remote-ssh # Remote SSH support
+      ms-vscode-remote.remote-ssh
     ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
       # Coverage Tools
       {
@@ -64,12 +62,6 @@
         publisher = "jscearcy";
         version = "4.2.0";
         sha256 = "x1pmrw8wYHWyNIJqVdoh+vasbHDG/A4m8vDZU0DnPzo=";
-      }
-      {
-        name = "vscode-rust-test-adapter";
-        publisher = "swellaby";
-        version = "0.11.0";
-        sha256 = "IgfcIRF54JXm9l2vVjf7lFJOVSI0CDgDjQT+Hw6FO4Q=";
       }
     ];
 
@@ -155,18 +147,19 @@
       "material-icon-theme.files.color" = "#42a5f5";
       "material-icon-theme.folders.color" = "#6bc1ff";
       "material-icon-theme.hidesExplorerArrows" = true;
-      "workbench.colorTheme" = "Dracula";
-      "workbench.preferredDarkColorTheme" = "Dracula";
       "workbench.iconTheme" = "material-icon-theme";
       "workbench.productIconTheme" = "material-product-icons";
+      "workbench.colorTheme" = "Dracula";
+      "workbench.preferredDarkColorTheme" = "Dracula";
+
+      # VSCode Icons settings
+      "vsicons.dontShowNewVersionMessage" = true;
+      "vsicons.presets.hideExplorerArrows" = true;
+      "vsicons.presets.foldersAllDefaultIcon" = false;
+      "vsicons.customIconFolderPath" = "~/.vscode/vscode-icons";
 
       # Remote settings
       "remote.SSH.configFile" = "~/.ssh/config";
-
-      # Test Explorer Settings
-      "testExplorer.codeLens" = true;
-      "testExplorer.gutterDecoration" = true;
-      "testExplorer.onStart" = "retire";
 
       # Coverage Settings
       "coverage-gutters.coverageFileNames" = [
