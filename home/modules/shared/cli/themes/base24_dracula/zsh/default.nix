@@ -10,14 +10,18 @@
 
   programs.zsh = {
     sessionVariables = {
-      FAST_WORK_DIR = "$XDG_CONFIG_HOME/fsh";
       ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE = "fg=13";
     };
 
-    zimfw.zmodules = lib.mkOrder 400 [
-      "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
-      "${toString ./.} --source p10k.zsh"
-      "${toString ./.} --source zsh-dracula-ansi.sh"
-    ];
+    zimfw = {
+      initAfterZim = ''
+        fast-theme "XDG:dracula" &>/dev/null || true
+      '';
+      zmodules = lib.mkOrder 400 [
+        "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
+        "${toString ./.} --source p10k.zsh"
+        "${toString ./.} --source zsh-dracula-ansi.sh"
+      ];
+    };
   };
 }
