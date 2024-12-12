@@ -66,6 +66,7 @@
       "bitwarden"
       "cursor"
       "firefox"
+      "iterm2"
       "jetbrains-toolbox"
       "tableplus"
       "telegram"

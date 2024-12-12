@@ -11,8 +11,8 @@ let
   naviTLDR = pkgs.fetchFromGitHub {
     owner = "denisidoro";
     repo = "navi-tldr-pages";
-    rev = "master";
-    sha256 = "sha256-/w/0s0HpEHwyBoWD5uOLMJW1pbDFyOBvG4fKhmYPPp4=";
+    rev = "bc33fa6014f089b6ff9f8f65016b37cf32651f6b";
+    sha256 = "sha256-WptrGpwhSXcLO5y9sYb02x2dWmrjNAtVLQDT0pdb2N0=";
   };
 in
 {

@@ -2,26 +2,42 @@
 
 Personal Nix configuration for MacOS (Apple Silicon).
 
+## Prerequisites
+
+1. Make sure Git is available:
+   ```bash
+   # For MacOS, install Xcode Command Line Tools:
+   xcode-select --install
+   ```
+
 ## Installation
 
 1. Install Nix by following the official installation guide:
    [Nix Installation Guide](https://nixos.org/download)
 
-2. Enable flakes by creating the nix configuration directory and file:
+2. Enable flakes and configure Nix:
    ```bash
    mkdir -p ~/.config/nix
    echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+   echo "download-buffer-size = 100000000" >> ~/.config/nix/nix.conf
    ```
 
-3. Build and switch to the configuration:
+3. Clone and build the configuration:
    ```bash
+   # For first-time build (when darwin-rebuild is not yet available):
+   nix run nix-darwin -- switch --flake '.#macbook'
+   
+   # For subsequent builds, either use:
    darwin-rebuild switch --flake '.#macbook'
+   # or the provided alias:
+   nix-rebuild-host
    ```
 
 4. Set up pre-commit hooks:
    ```bash
    nix develop
-   pre-commit install
+   # once shell is open, run:
+   exit
    ```
    This will install the following hooks:
    - nixpkgs-fmt (Nix code formatter)
