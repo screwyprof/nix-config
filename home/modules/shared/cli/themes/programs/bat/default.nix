@@ -1,0 +1,3 @@
+{
+  dracula = import ./dracula;
+}

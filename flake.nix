@@ -4,6 +4,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
+    nix-colors.url = "github:misterio77/nix-colors";
+
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -48,6 +50,7 @@
     , darwin
     , home-manager
     , pre-commit-hooks
+    , nix-colors
     , nix-homebrew
     , homebrew-core
     , homebrew-cask
@@ -117,6 +120,7 @@
                 backupFileExtension = "bak";
                 extraSpecialArgs = {
                   inherit inputs devUser;
+                  inherit nix-colors;
                   isDarwin = true;
                 };
                 users = builtins.listToAttrs (map
