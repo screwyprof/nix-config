@@ -1,8 +1,4 @@
-{ lib, pkgs, ... }: {
-
-  home.packages = with pkgs; [
-    iterm2
-  ];
+{ lib, ... }: {
 
   home.activation = {
     iterm2Settings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
