@@ -75,3 +75,19 @@ nix-rebuild-host      # Format, check, and rebuild system
 - [Nix Darwin](https://github.com/LnL7/nix-darwin)
 - [Home Manager](https://github.com/nix-community/home-manager)
 - [Nix-Homebrew](https://github.com/zhaofengli/nix-homebrew)
+
+## Post-Installation Steps
+
+### Safari Extensions
+1. After Noir is installed via masApps, enable it in Safari:
+   - Open Safari
+   - Go to Safari > Settings > Extensions
+   - Enable Noir
+   - Configure Noir settings to your preference
+2. Enable and configure AdGuard:
+   - Open Safari > Settings > Extensions
+   - Enable AdGuard
+   - Click on AdGuard icon in Safari toolbar to:
+     - Enable filters you want to use
+     - Configure custom rules (if needed)
+     - Enable/disable protection for specific websites

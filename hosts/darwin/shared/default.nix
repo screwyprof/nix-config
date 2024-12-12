@@ -78,6 +78,8 @@
 
     masApps = {
       "Bear" = 1091189122;
+      "Noir" = 1592917505;
+      "AdGuard for Safari" = 1440147259;
     };
   };
 }
