@@ -1,16 +1,22 @@
+{ nix-colors }:
 {
   dracula = {
     scheme = import ../schemes/base24-dracula.nix;
     programs = {
-      zsh = (import ../programs/zsh).dracula;
-      bat = (import ../programs/bat).dracula;
+      zsh = ../programs/zsh/dracula;
+      bat = ../programs/bat/dracula;
     };
   };
 
   gruvbox = {
-    scheme = import ../schemes/base24-gruvbox.nix;
+    scheme = {
+      inherit (nix-colors.colorSchemes.gruvbox-dark-medium) name slug author palette;
+      variant = "dark";
+    };
+    fallbackTheme = "dracula";
     programs = {
-      bat = (import ../programs/bat).gruvbox or null;
+      # bat doesn't have gruvbox theme yet, will fallback to dracula
+      # bat = ../programs/bat/gruvbox;
     };
   };
 }

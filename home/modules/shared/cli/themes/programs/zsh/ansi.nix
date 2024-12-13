@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, ... }:
 
 let
   inherit (config.colorScheme) palette;
@@ -31,25 +31,25 @@ let
       put_template_custom() { printf '\033]%s%s\033\\' "$@" > "''${TTY}"; }
     fi
 
-    # Regular Colors
-    put_template 0  "${formatRGB palette.base00}" # Black
-    put_template 1  "${formatRGB palette.base08}" # Red
-    put_template 2  "${formatRGB palette.base0B}" # Green
-    put_template 3  "${formatRGB palette.base0A}" # Yellow
-    put_template 4  "${formatRGB palette.base0D}" # Blue
-    put_template 5  "${formatRGB palette.base0E}" # Magenta
-    put_template 6  "${formatRGB palette.base0C}" # Cyan
-    put_template 7  "${formatRGB palette.base05}" # White
+    # 16 color space
+    put_template 0  "${formatRGB palette.ansiBlack}"        # Black
+    put_template 1  "${formatRGB palette.ansiRed}"          # Red
+    put_template 2  "${formatRGB palette.ansiGreen}"        # Green
+    put_template 3  "${formatRGB palette.ansiYellow}"       # Yellow
+    put_template 4  "${formatRGB palette.ansiBlue}"         # Blue
+    put_template 5  "${formatRGB palette.ansiMagenta}"      # Magenta
+    put_template 6  "${formatRGB palette.ansiCyan}"         # Cyan
+    put_template 7  "${formatRGB palette.ansiWhite}"        # White
 
-    # Bright Colors
-    put_template 8  "${formatRGB palette.base03}"  # Bright Black
-    put_template 9  "${formatRGB palette.base08}"  # Bright Red
-    put_template 10 "${formatRGB palette.base0B}"  # Bright Green
-    put_template 11 "${formatRGB palette.base0A}"  # Bright Yellow
-    put_template 12 "${formatRGB palette.base0D}"  # Bright Blue
-    put_template 13 "${formatRGB palette.base0E}"  # Bright Magenta
-    put_template 14 "${formatRGB palette.base0C}"  # Bright Cyan
-    put_template 15 "${formatRGB palette.base07}"  # Bright White
+    # Bright colors
+    put_template 8  "${formatRGB palette.ansiBrightBlack}"  # Bright Black
+    put_template 9  "${formatRGB palette.ansiBrightRed}"    # Bright Red
+    put_template 10 "${formatRGB palette.ansiBrightGreen}"  # Bright Green
+    put_template 11 "${formatRGB palette.ansiBrightYellow}" # Bright Yellow
+    put_template 12 "${formatRGB palette.ansiBrightBlue}"   # Bright Blue
+    put_template 13 "${formatRGB palette.ansiBrightMagenta}"# Bright Magenta
+    put_template 14 "${formatRGB palette.ansiBrightCyan}"   # Bright Cyan
+    put_template 15 "${formatRGB palette.ansiBrightWhite}"  # Bright White
 
     # Special handling for iTerm2
     if [ -n "$ITERM_SESSION_ID" ]; then

@@ -2,7 +2,6 @@
   programs.bat = {
     enable = true;
     config = {
-      theme = "Dracula";
       style = "numbers,changes,header";
       pager = "moar";
       map-syntax = [

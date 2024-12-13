@@ -1,18 +1,10 @@
-{ config, lib, ... }:
-let
-  theme = "base24_dracula";
-  themeFileName = "${theme}.tmTheme";
-in
 {
-  programs = {
-    bat = {
-      config.theme = lib.mkForce theme;
-
-      themes = {
-        "${theme}" = {
-          src = ./.;
-          file = themeFileName;
-        };
+  programs.bat = {
+    config.theme = "base24-dracula";
+    themes = {
+      "base24-dracula" = {
+        src = ./.;
+        file = "base24_dracula.tmTheme";
       };
     };
   };
