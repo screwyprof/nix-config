@@ -152,12 +152,6 @@
       "workbench.colorTheme" = "Dracula";
       "workbench.preferredDarkColorTheme" = "Dracula";
 
-      # VSCode Icons settings
-      "vsicons.dontShowNewVersionMessage" = true;
-      "vsicons.presets.hideExplorerArrows" = true;
-      "vsicons.presets.foldersAllDefaultIcon" = false;
-      "vsicons.customIconFolderPath" = "~/.vscode/vscode-icons";
-
       # Remote settings
       "remote.SSH.configFile" = "~/.ssh/config";
 
