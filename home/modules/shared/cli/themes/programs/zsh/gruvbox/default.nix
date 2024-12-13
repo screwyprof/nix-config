@@ -1,12 +1,10 @@
-{ config }:
+{ config, ... }:
 
 let
   inherit (config.colorScheme) palette;
 in
 {
   imports = [ ./ansi.nix ]; # Import ANSI color configuration
-
-  xdg.configFile."fsh/dracula.ini".source = ./fsh.ini;
 
   programs.zsh = {
     sessionVariables = {
@@ -37,7 +35,7 @@ in
 
     zimfw = {
       initAfterZim = ''
-        fast-theme "XDG:dracula" &>/dev/null || true
+        fast-theme "forest" &>/dev/null || true
       '';
     };
   };

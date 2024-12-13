@@ -2,7 +2,7 @@
 
 let
   presets = import ./presets { inherit nix-colors; };
-  activePreset = presets.dracula;
+  activePreset = presets.gruvbox;
 
   # Helper to get program theme config, with fallback support
   getProgramTheme = program:

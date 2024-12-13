@@ -1,0 +1,80 @@
+{ config, lib, ... }:
+
+let
+  inherit (config.colorScheme) palette;
+  inherit (config.lib.theme) formatRGB;
+
+  # Generate ANSI escape sequences
+  ansiSequences = ''
+    # Terminal-specific escape sequence handling
+    if [ -z "''${TTY}" ] && ! TTY=$(tty); then
+      put_template() { true; }
+      put_template_var() { true; }
+      put_template_custom() { true; }
+    elif [ -n "''${TMUX}" ] || [ "''${TERM%%[-.]*}" = "tmux" ]; then
+      # Tell tmux to pass the escape sequences through
+      put_template() { printf '\033Ptmux;\033\033]4;%d;rgb:%s\033\033\\\033\\' "$@" > "''${TTY}"; }
+      put_template_var() { printf '\033Ptmux;\033\033]%d;rgb:%s\033\033\\\033\\' "$@" > "''${TTY}"; }
+      put_template_custom() { printf '\033Ptmux;\033\033]%s%s\033\033\\\033\\' "$@" > "''${TTY}"; }
+    elif [ "''${TERM%%[-.]*}" = "screen" ]; then
+      # GNU screen (screen, screen-256color, screen-256color-bce)
+      put_template() { printf '\033P\033]4;%d;rgb:%s\007\033\\' "$@" > "''${TTY}"; }
+      put_template_var() { printf '\033P\033]%d;rgb:%s\007\033\\' "$@" > "''${TTY}"; }
+      put_template_custom() { printf '\033P\033]%s%s\007\033\\' "$@" > "''${TTY}"; }
+    elif [ "''${TERM%%-*}" = "linux" ]; then
+      put_template() { [ "$1" -lt 16 ] && printf "\e]P%x%s" "$1" "$(echo "$2" | sed 's/\///g')" > "''${TTY}"; }
+      put_template_var() { true; }
+      put_template_custom() { true; }
+    else
+      put_template() { printf '\033]4;%d;rgb:%s\033\\' "$@" > "''${TTY}"; }
+      put_template_var() { printf '\033]%d;rgb:%s\033\\' "$@" > "''${TTY}"; }
+      put_template_custom() { printf '\033]%s%s\033\\' "$@" > "''${TTY}"; }
+    fi
+
+    # 16 color space
+    put_template 0  "${formatRGB palette.base00}" # Black
+    put_template 1  "${formatRGB palette.base08}" # Red
+    put_template 2  "${formatRGB palette.base0B}" # Green
+    put_template 3  "${formatRGB palette.base0A}" # Yellow
+    put_template 4  "${formatRGB palette.base0D}" # Blue
+    put_template 5  "${formatRGB palette.base0E}" # Magenta
+    put_template 6  "${formatRGB palette.base0C}" # Cyan
+    put_template 7  "${formatRGB palette.base05}" # White
+
+    # Bright colors
+    put_template 8  "${formatRGB palette.base02}" # Bright Black
+    put_template 9  "${formatRGB palette.base08}" # Bright Red
+    put_template 10 "${formatRGB palette.base0B}" # Bright Green
+    put_template 11 "${formatRGB palette.base0A}" # Bright Yellow
+    put_template 12 "${formatRGB palette.base0D}" # Bright Blue
+    put_template 13 "${formatRGB palette.base0E}" # Bright Magenta
+    put_template 14 "${formatRGB palette.base0C}" # Bright Cyan
+    put_template 15 "${formatRGB palette.base07}" # Bright White
+
+    # Special handling for iTerm2
+    if [ -n "$ITERM_SESSION_ID" ]; then
+      # iTerm2 proprietary escape codes
+      put_template_custom Pg ${palette.base05} # foreground
+      put_template_custom Ph ${palette.base00} # background
+      put_template_custom Pi ${palette.base05} # bold color
+      put_template_custom Pj ${palette.base02} # selection color
+      put_template_custom Pk ${palette.base05} # selected text color
+      put_template_custom Pl ${palette.base05} # cursor
+      put_template_custom Pm ${palette.base00} # cursor text
+    else
+      put_template_var 10 "${formatRGB palette.base05}" # foreground
+      put_template_var 11 "${formatRGB palette.base00}" # background
+      put_template_custom 12 ";7" # cursor (reverse video)
+    fi
+
+    # Clean up
+    unset -f put_template
+    unset -f put_template_var
+    unset -f put_template_custom
+  '';
+in
+{
+  programs.zsh = {
+    initExtra = ansiSequences;
+  };
+}

@@ -13,10 +13,9 @@
       inherit (nix-colors.colorSchemes.gruvbox-dark-medium) name slug author palette;
       variant = "dark";
     };
-    fallbackTheme = "dracula";
     programs = {
-      # bat doesn't have gruvbox theme yet, will fallback to dracula
-      # bat = ../programs/bat/gruvbox;
+      zsh = ../programs/zsh/gruvbox;
+      bat = ../programs/bat/gruvbox-dark;
     };
   };
 }
