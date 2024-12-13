@@ -6,6 +6,14 @@ let
 
   # Generate ANSI escape sequences
   ansiSequences = ''
+    # Dracula
+    # Set all 16 colors at once (0-15) plus foreground, background, and cursor colors
+    printf "\033]4;0;#${palette.base00};1;#${palette.base08};2;#${palette.base0B};3;#${palette.base0A};4;#${palette.base0D};5;#${palette.base0E};6;#${palette.base0C};7;#${palette.base05};8;#${palette.base03};9;#${palette.base08};10;#${palette.base0B};11;#${palette.base0A};12;#${palette.base0D};13;#${palette.base0E};14;#${palette.base0C};15;#${palette.base07}\007"
+    printf "\033]10;#${palette.base05};#${palette.base00};#${palette.base05}\007"  # foreground;background;cursor
+    printf "\033]17;#${palette.base02}\007"  # selection background
+    printf "\033]19;#${palette.base05}\007"  # selected text
+    printf "\033]5;0;#${palette.base05}\007" # bold text
+
     # Terminal-specific escape sequence handling
     if [ -z "''${TTY}" ] && ! TTY=$(tty); then
       put_template() { true; }

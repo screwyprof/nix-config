@@ -6,6 +6,8 @@ in
 {
   imports = [ ./ansi.nix ]; # Import ANSI color configuration
 
+  xdg.configFile."fsh/gruvbox-dark.ini".source = ./fsh.ini;
+
   programs.zsh = {
     sessionVariables = {
       # Base colors
@@ -35,7 +37,7 @@ in
 
     zimfw = {
       initAfterZim = ''
-        fast-theme "forest" &>/dev/null || true
+        fast-theme "XDG:gruvbox-dark" &>/dev/null || true
       '';
     };
   };

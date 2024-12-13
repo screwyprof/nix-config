@@ -12,7 +12,9 @@
   config = {
     programs.zsh.initExtra = ''
       # Apply iTerm2 colors
-      ${config.iterm2Colors}
+      if [ -n "$ITERM_SESSION_ID" ]; then
+        ${config.iterm2Colors}
+      fi
     '';
   };
 }

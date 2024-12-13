@@ -1,23 +1,14 @@
-{ config, lib, nix-colors, ... }:
+{ config, nix-colors, ... }:
 
 let
   presets = import ./presets { inherit nix-colors; };
-  activePreset = presets.gruvbox;
-
-  # Helper to get program theme config, with fallback support
-  getProgramTheme = program:
-    let
-      requestedTheme = activePreset.programs.${program} or null;
-      fallbackTheme = presets.${activePreset.fallbackTheme or "dracula"}.programs.${program} or null;
-    in
-    if requestedTheme != null then requestedTheme
-    else fallbackTheme;
+  activePreset = presets.dracula;
 
   # Helper to safely import program configs
   importProgram = program:
     let
       baseModule = ./programs/${program}/default.nix;
-      themeModule = getProgramTheme program;
+      themeModule = activePreset.programs.${program} or null;
       baseImport =
         if builtins.pathExists baseModule
         then [ (import baseModule) ]
