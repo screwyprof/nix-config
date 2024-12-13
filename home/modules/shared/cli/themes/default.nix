@@ -33,12 +33,13 @@ let
   hexToDec = hex: (builtins.fromTOML "n = 0x${hex}").n;
 in
 {
-  imports = [
-    nix-colors.homeManagerModules.default
-  ]
-  ++ importProgram "zsh"
-  ++ importProgram "bat"
-  ;
+  imports =
+    importProgram "zsh"
+    ++ importProgram "bat"
+    ++ importProgram "iterm2"
+    ++ [
+      nix-colors.homeManagerModules.default
+    ];
 
   colorScheme = activePreset.scheme;
   lib.theme = {

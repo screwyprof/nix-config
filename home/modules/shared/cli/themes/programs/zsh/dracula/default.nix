@@ -1,4 +1,4 @@
-{ config }:
+{ config, ... }:
 
 let
   inherit (config.colorScheme) palette;
