@@ -4,8 +4,6 @@ let
   inherit (config.colorScheme) palette;
 in
 {
-  imports = [ ./ansi.nix ];
-
   programs.zsh = {
     sessionVariables = {
       # Base colors

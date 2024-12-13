@@ -1,4 +1,6 @@
 {
+  imports = [ ./ansi.nix ]; # Import ANSI color configuration
+
   home = {
     sessionVariables = {
       LS_COLORS = "di=34:ln=35:so=32:pi=33:ex=31:bd=36:cd=33:su=31:sg=36:tw=32:ow=33";
