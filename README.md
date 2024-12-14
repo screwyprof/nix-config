@@ -71,6 +71,40 @@ Note: After first build, `~/Projects` symlink will be created and will start wor
 - Nix-Homebrew integration with managed taps
 - Pre-commit hooks for Nix code quality
 
+## Development Shells
+
+This configuration provides development shells for various programming languages. These shells provide isolated development environments with all necessary tools and dependencies.
+
+### Available Shells
+
+- **Go Development Shell**:
+  ```bash
+  # Run a command in the Go environment
+  nix develop '/Users/happygopher/nix-config#go' --command go test -v ./...
+  
+  # Or enter the shell
+  nix develop '/Users/happygopher/nix-config#go'
+  ```
+  Provides: Go 1.23, gopls, delve, golangci-lint, and other Go tools.
+
+- **Rust Development Shell**:
+  ```bash
+  # Run a command in the Rust environment
+  nix develop '/Users/happygopher/nix-config#rust' --command cargo test
+  
+  # Or enter the shell
+  nix develop '/Users/happygopher/nix-config#rust'
+  ```
+  Provides: Rust toolchain (defined in rust-toolchain.toml), cargo extensions, and coverage tools.
+
+### Usage Notes
+
+- Use single quotes around the flake path to prevent shell globbing: `'/path/to/nix-config#shell'`
+- You have to use a full path to the flake or the shell will not be found
+- The shells are project-agnostic and can be used with any project of the respective language
+- Each shell provides its own isolated environment with specific tools and configurations
+- Development shells are defined in `dev/<language>/shell.nix`
+
 ## Useful Commands
 
 ```bash

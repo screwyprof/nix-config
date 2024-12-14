@@ -60,6 +60,8 @@ pkgs.mkShell {
     export CARGO_NET_GIT_FETCH_WITH_CLI="true"
     
     echo "Rust development environment loaded"
+    echo "Rust version: $(rustc --version)"
+    echo "Cargo version: $(cargo --version)"
     
     # Check if cargo-llvm-cov is available in PATH after adding cargo bin
     if ! type cargo-llvm-cov >/dev/null 2>&1; then

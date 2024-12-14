@@ -166,12 +166,7 @@
       # Development shells
       devShells = forAllSystems (system:
         let
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [
-              inputs.rust-overlay.overlays.default
-            ];
-          };
+          pkgs = nixpkgsFor.${system};
         in
         {
           default = pkgs.mkShell {
@@ -181,6 +176,7 @@
 
           # Import the Rust shell
           rust = import ./dev/rust/shell.nix { inherit pkgs; };
+          go = import ./dev/go/shell.nix { inherit pkgs; };
         });
 
       # Packages
