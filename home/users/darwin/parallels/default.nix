@@ -2,7 +2,6 @@
   imports = [
     ./terminal
     ./preferences
-    ../../../modules/shared
   ];
 
   home = {

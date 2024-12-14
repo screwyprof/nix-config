@@ -1,8 +1,8 @@
-{ devUser, ... }: {
+{ systemAdmin, ... }: {
   programs.git = {
     enable = true;
-    userName = devUser.fullName;
-    userEmail = devUser.email;
+    userName = systemAdmin.fullName;
+    userEmail = systemAdmin.email;
 
     delta = {
       enable = true;

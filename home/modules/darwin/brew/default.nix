@@ -1,10 +1,4 @@
 { inputs, lib, ... }:
-# let
-#   brewPrefix =
-#     if pkgs.stdenv.isDarwin && pkgs.stdenv.isAarch64
-#     then "/opt/homebrew"
-#     else "/usr/local";
-# in
 {
   programs.zsh = {
     initExtra = ''

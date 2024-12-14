@@ -3,12 +3,12 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-
     nix-colors.url = "github:misterio77/nix-colors";
-
-    nix-index-database.url = "github:nix-community/nix-index-database";
-    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
-
+    pre-commit-hooks.url = "github:cachix/git-hooks.nix";
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     darwin = {
       url = "github:lnl7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -17,12 +17,14 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    pre-commit-hooks.url = "github:cachix/git-hooks.nix";
     nix-homebrew = {
       url = "github:zhaofengli-wip/nix-homebrew";
-      inputs.brew-src = {
-        url = "github:Homebrew/brew";
-        flake = false;
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        brew-src = {
+          url = "github:Homebrew/brew";
+          flake = false;
+        };
       };
     };
     homebrew-core = {
@@ -43,60 +45,68 @@
     };
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , nix-index-database
-    , darwin
-    , home-manager
-    , pre-commit-hooks
-    , nix-colors
-    , nix-homebrew
-    , homebrew-core
-    , homebrew-cask
-    , homebrew-bundle
-    , rust-overlay
-    , ...
-    }@inputs:
+  outputs = inputs@{ self, nixpkgs, darwin, home-manager, ... }:
     let
+      inherit (nixpkgs) lib;
 
-      devUser = {
+      # System administrator (for nix, homebrew, etc.)
+      systemAdmin = {
+        username = "happygopher";
         fullName = "Happy Gopher";
         email = "max@happygopher.nl";
       };
 
+      # Systems supported
       supportedSystems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ];
-      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+      forAllSystems = lib.genAttrs supportedSystems;
 
-      nixpkgsForSystem = system: import nixpkgs {
-        inherit system;
-        overlays = [
-          rust-overlay.overlays.default
-          (final: _: {
-            navi = final.callPackage ./pkgs/navi { };
-            tinty = final.callPackage ./pkgs/tinty { };
-            mysides = final.callPackage ./pkgs/mysides {
-              stdenv = if final.stdenv.isDarwin then final.darwin.apple_sdk.stdenv else final.stdenv;
-            };
-          })
-        ];
-        config.allowUnfree = true;
+      # Generate nixpkgs for each system
+      nixpkgsFor = forAllSystems (system:
+        import nixpkgs {
+          inherit system;
+          overlays = [
+            inputs.rust-overlay.overlays.default
+            (final: _: {
+              # Platform-agnostic packages
+              navi = final.callPackage ./pkgs/navi { };
+              tinty = final.callPackage ./pkgs/tinty { };
+            })
+            (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
+              # macOS-specific packages
+              mysides = final.callPackage ./pkgs/mysides {
+                inherit (final.darwin.apple_sdk) stdenv;
+              };
+            })
+          ];
+          config.allowUnfree = true;
+        });
+
+      # homebrew configuration
+      homebrewConfig = {
+        enable = true;
+        enableRosetta = true;
+        mutableTaps = false;
+        user = lib.mkDefault systemAdmin.username; # Admin user for Homebrew installation
+        taps = {
+          "homebrew/core" = inputs.homebrew-core;
+          "homebrew/cask" = inputs.homebrew-cask;
+          "homebrew/bundle" = inputs.homebrew-bundle;
+        };
       };
 
-      mkDarwinConfig = { hostname, system, users }:
+      # Darwin system configuration builder
+      mkDarwinSystem = { hostname, system, users ? [ systemAdmin.username ], ... }@args:
         darwin.lib.darwinSystem {
           inherit system;
           specialArgs = {
-            inherit inputs devUser;
-            isDarwin = true;
-            pkgs = nixpkgsForSystem system;
+            inherit inputs hostname systemAdmin;
           };
           modules = [
+            # Base configuration
             ./hosts/darwin/shared
             ./hosts/darwin/${hostname}
 
-            home-manager.darwinModules.home-manager
-
+            # User configuration
             {
               users.users = builtins.listToAttrs (map
                 (username: {
@@ -107,23 +117,32 @@
                   };
                 })
                 users);
+            }
 
+            # Home manager configuration
+            home-manager.darwinModules.home-manager
+            {
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
                 backupFileExtension = "bak";
                 extraSpecialArgs = {
-                  inherit inputs devUser;
-                  inherit nix-colors;
-                  isDarwin = true;
+                  inherit inputs systemAdmin;
+                  inherit (inputs) nix-colors;
+                  pkgs = nixpkgsFor.${system};
                 };
                 users = builtins.listToAttrs (map
                   (username: {
                     name = username;
                     value = { ... }: {
                       imports = [
-                        ./home/users/darwin/${username}
-                        nix-index-database.hmModules.nix-index
+                        ./home/modules/shared # system independent modules
+                        ./home/modules/darwin # system specific modules
+                        (./home/users/darwin + "/${username}") # user specific modules
+                        inputs.nix-index-database.hmModules.nix-index
+                      ];
+                      nixpkgs.overlays = [
+                        inputs.rust-overlay.overlays.default
                       ];
                     };
                   })
@@ -131,60 +150,48 @@
               };
             }
 
-            nix-homebrew.darwinModules.nix-homebrew
-            {
-              nix-homebrew = {
-                user = "happygopher";
-
-                enable = true;
-                enableRosetta = true;
-                mutableTaps = false;
-
-                taps = {
-                  "homebrew/core" = inputs.homebrew-core;
-                  "homebrew/cask" = inputs.homebrew-cask;
-                  "homebrew/bundle" = inputs.homebrew-bundle;
-                };
-              };
-            }
-          ];
+            # Homebrew configuration
+            inputs.nix-homebrew.darwinModules.nix-homebrew
+            { nix-homebrew = homebrewConfig; }
+          ] ++ (args.modules or [ ]);
         };
-    in
-    {
+
+      # System configurations
       darwinConfigurations = {
-        parallels = mkDarwinConfig {
+        parallels = mkDarwinSystem {
           hostname = "parallels-vm";
           system = "aarch64-darwin";
-          users = [ "parallels" ];
+          users = [ "parallels" "happygopher" ];
         };
 
-        macbook = mkDarwinConfig {
+        macbook = mkDarwinSystem {
           hostname = "macbook";
           system = "aarch64-darwin";
           users = [ "happygopher" ];
         };
       };
 
+      # Development shells
       devShells = forAllSystems (system:
-        let pkgs = nixpkgsForSystem system;
-        in {
+        let pkgs = nixpkgsFor.${system}; in {
           default = pkgs.mkShell {
             inherit (self.checks.${system}.pre-commit-check) shellHook;
-            buildInputs = [
-              pkgs.mysides
-              pkgs.darwin.apple_sdk.frameworks.CoreServices
-              pkgs.darwin.apple_sdk.frameworks.Foundation
-              self.checks.${system}.pre-commit-check.enabledPackages
-            ];
+            buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;
           };
         });
 
-      packages = forAllSystems (system: {
-        inherit (nixpkgsForSystem system) mysides;
-      });
+      # Packages
+      packages = forAllSystems (system:
+        let
+          pkgs = nixpkgsFor.${system};
+        in
+        lib.optionalAttrs pkgs.stdenv.isDarwin {
+          inherit (pkgs) mysides;
+        });
 
+      # Checks
       checks = forAllSystems (system: {
-        pre-commit-check = pre-commit-hooks.lib.${system}.run {
+        pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
             nixpkgs-fmt.enable = true;
@@ -194,5 +201,8 @@
           };
         };
       });
+    in
+    {
+      inherit darwinConfigurations devShells packages checks;
     };
-} 
+}
