@@ -3,8 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    nix-colors.url = "github:misterio77/nix-colors";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
+    nix-colors.url = "github:misterio77/nix-colors";
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -45,11 +45,12 @@
     };
     nix-dev = {
       url = "path:./dev/nix";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+      };
     };
   };
-
-  outputs = inputs@{ nixpkgs, darwin, home-manager, pre-commit-hooks, ... }:
+  outputs = inputs@{ nixpkgs, darwin, home-manager, nix-dev, pre-commit-hooks, ... }:
     let
       inherit (nixpkgs) lib;
 
@@ -159,13 +160,14 @@
 
       # Checks
       checks = forAllSystems (system: {
-        pre-commit-check = pre-commit-hooks.lib.${system}.run {
+        pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
             nixpkgs-fmt.enable = true;
             statix.enable = true;
             deadnix.enable = true;
             nil.enable = true;
+            flake-checker.enable = true;
           };
         };
       });
