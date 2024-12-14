@@ -2,13 +2,16 @@
 
 Personal Nix configuration for MacOS (Apple Silicon).
 
+## Features
+- Nix-Darwin system configuration
+- Home Manager for user environment
+- Nix-Homebrew integration with managed taps
+- Development shells for Go, Rust, and Nix
+- Pre-commit hooks for Nix code quality
+
 ## Prerequisites
 
-1. Sign in to your iCloud account:
-   - Open System Settings
-   - Click "Sign in with your Apple ID"
-   - Sign in with your Apple ID and password
-   - This enables App Store access and iCloud features
+1. Sign in to your iCloud account
 
 2. Make sure Git is available:
    ```bash
@@ -16,97 +19,132 @@ Personal Nix configuration for MacOS (Apple Silicon).
    xcode-select --install
    ```
 
-### Optional: iCloud Drive Setup
-
-If you want to use `~/Projects` folder synced with iCloud:
-
-1. Open the Apple menu and select System Settings
-2. Click your name at the top of the sidebar
-3. Click iCloud on the right
-4. Click iCloud Drive
-5. Make sure iCloud Drive is turned on
-6. Turn on Desktop & Documents Folders
-7. Click Done
-
-Note: After first build, `~/Projects` symlink will be created and will start working once `iCloud` sync completes.
-
-## Installation
-
-1. Install Nix by following the official installation guide:
-   [Nix Installation Guide](https://nixos.org/download)
-
-2. Enable flakes and configure Nix:
+3. Install Nix package manager:
    ```bash
-   mkdir -p ~/.config/nix
-   echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
-   echo "download-buffer-size = 100000000" >> ~/.config/nix/nix.conf
+   sh <(curl -L https://nixos.org/nix/install)
    ```
 
-3. Clone and build the configuration:
+4. *Optionally* Install Rosetta 2:
    ```bash
-   # For first-time build (when darwin-rebuild is not yet available):
-   nix run nix-darwin -- switch --flake '.#macbook'
-   
-   # For subsequent builds, either use:
-   darwin-rebuild switch --flake '.#macbook'
-   # or the provided alias:
-   nix-rebuild-host
+   # Install Rosetta 2 (required for some packages)
+   softwareupdate --install-rosetta --agree-to-license
    ```
 
-4. Set up pre-commit hooks:
+5. Clone this repository:
    ```bash
-   nix develop
-   # once shell is open, run:
-   exit
+   git clone https://github.com/your-username/nix-config.git ~/.config/nix-config
+   cd ~/.config/nix-config
    ```
-   This will install the following hooks:
-   - nixpkgs-fmt (Nix code formatter)
-   - statix (Nix linter)
-   - deadnix (Dead code finder)
-   - nil (Nix LSP linter)
 
-## Features
-- Nix-Darwin system configuration
-- Home Manager for user environment
-- Nix-Homebrew integration with managed taps
-- Pre-commit hooks for Nix code quality
+## Build the System
+
+```bash
+# For first-time build (when darwin-rebuild is not yet available):
+nix run nix-darwin -- switch --flake '.#macbook'
+
+# For subsequent builds, either use any of the following:
+- darwin-rebuild switch --flake '.#macbook'
+- nix-rebuild macbook
+- nix-rebuild-host
+   ```
+
+## Post-Installation
+
+### Safari Extensions
+
+1. After Noir is installed via masApps, enable it in Safari:
+   - Open Safari
+   - Go to Safari > Settings > Extensions
+   - Enable Noir
+   - Configure Noir settings to your preference
+
+2. Enable and configure AdGuard:
+   - Open Safari > Settings > Extensions
+   - Enable AdGuard
+   - Click on AdGuard icon in Safari toolbar to:
+     - Enable filters you want to use
+     - Configure custom rules (if needed)
+     - Enable/disable protection for specific websites
+
+## System Management
+
+The configuration provides a flexible `nix-rebuild` command that can rebuild any configuration:
+
+```bash
+nix-rebuild <config-name>   # Rebuild any configuration by name
+```
+
+For convenience, there are also aliases for common configurations:
+```bash
+nix-rebuild-host   # Rebuild macbook configuration
+nix-rebuild-mac    # Rebuild parallels configuration
+```
+
+## Development Environment
+
+This project uses [direnv](https://direnv.net/) to automatically load the development environment when you enter the project directory.
+
+1. Allow direnv:
+   ```bash
+   direnv allow
+   ```
+
+This will automatically:
+- Load the Nix development environment
+- Set up pre-commit hooks for:
+  - nixpkgs-fmt (Nix code formatter)
+  - statix (Nix linter)
+  - deadnix (dead code elimination)
+
+The hooks will run automatically when you commit changes to Nix files.
 
 ## Development Shells
 
-This configuration provides development shells for various programming languages. These shells provide isolated development environments with all necessary tools and dependencies.
+Quick access to development environments:
+```bash
+dev go               # Enter Go development shell
+dev rust             # Enter Rust development shell
+dev nix              # Enter Nix development shell
 
-### Available Shells
+# Or run commands directly
+dev go make build    # Run make build in Go environment
+dev rust cargo test  # Run cargo test in Rust environment
+```
 
-- **Go Development Shell**:
-  ```bash
-  # Run a command in the Go environment
-  nix develop '/Users/happygopher/nix-config#go' --command go test -v ./...
-  
-  # Or enter the shell
-  nix develop '/Users/happygopher/nix-config#go'
-  ```
-  Provides: Go 1.23, gopls, delve, golangci-lint, and other Go tools.
-
-- **Rust Development Shell**:
-  ```bash
-  # Run a command in the Rust environment
-  nix develop '/Users/happygopher/nix-config#rust' --command cargo test
-  
-  # Or enter the shell
-  nix develop '/Users/happygopher/nix-config#rust'
-  ```
-  Provides: Rust toolchain (defined in rust-toolchain.toml), cargo extensions, and coverage tools.
-
-### Usage Notes
-
-- Use single quotes around the flake path to prevent shell globbing: `'/path/to/nix-config#shell'`
-- You have to use a full path to the flake or the shell will not be found
-- The shells are project-agnostic and can be used with any project of the respective language
-- Each shell provides its own isolated environment with specific tools and configurations
+*Usage Notes*:
+- Use `dev <shell>` for quick access to any development shell
+- Each shell provides its own isolated environment with specific tools
 - Development shells are defined in `dev/<language>/shell.nix`
 
-## Useful Commands
+### Go Development Shell
 
+```bash
+dev go              # Enter shell
+dev go make build   # Run command
+```
+
+Provides: golang (from go.mod or latest), gopls, delve, golangci-lint, and other Go tools.
+
+### Rust Development Shell
+
+```bash
+dev rust            # Enter shell
+dev rust cargo test # Run command
+```
+
+Provides: Rust toolchain (from rust-toolchain.toml), cargo extensions, and coverage tools.
+
+### Nix Development Shell
+
+```bash
+dev nix            # Enter basic shell
+```
+
+Provides:
+- Formatting and linting: nixpkgs-fmt, statix, deadnix, nil
+- Development tools: nix-prefetch-github, nix-prefetch-git
+
+Available commands:
 ```bash
 # Basic Operations
 nix-check              # Check flake for errors
@@ -118,10 +156,16 @@ nix-optimise           # Optimize the Nix store (deduplication and hard-linking)
 # Development Tools
 nix-fmt               # Format nix files
 nix-lint              # Lint nix files
-
-# System Rebuild (MacOS)
-nix-rebuild-host      # Format, check, and rebuild system
 ```
+
+For additional features like [pre-commit hooks](https://github.com/cachix/pre-commit-hooks.nix):
+```bash
+nix develop ./dev/nix  # Enter flake shell with hooks
+```
+
+This adds:
+- Pre-commit hooks for auto-formatting and linting
+- Project-standard hook configurations
 
 ## Resources
 - [Official Nix Website](https://nixos.org)
@@ -129,19 +173,3 @@ nix-rebuild-host      # Format, check, and rebuild system
 - [Nix Darwin](https://github.com/LnL7/nix-darwin)
 - [Home Manager](https://github.com/nix-community/home-manager)
 - [Nix-Homebrew](https://github.com/zhaofengli/nix-homebrew)
-
-## Post-Installation Steps
-
-### Safari Extensions
-1. After Noir is installed via masApps, enable it in Safari:
-   - Open Safari
-   - Go to Safari > Settings > Extensions
-   - Enable Noir
-   - Configure Noir settings to your preference
-2. Enable and configure AdGuard:
-   - Open Safari > Settings > Extensions
-   - Enable AdGuard
-   - Click on AdGuard icon in Safari toolbar to:
-     - Enable filters you want to use
-     - Configure custom rules (if needed)
-     - Enable/disable protection for specific websites

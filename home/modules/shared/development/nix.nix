@@ -1,45 +1,35 @@
+# System-wide Nix configuration
 { pkgs, ... }:
 
-let
-  nixDevTools = with pkgs; [
-    # Nix formatting and linting
-    nixpkgs-fmt # Nix code formatter
-    statix # Lints and suggestions for Nix code
-    deadnix # Find dead code in .nix files
-    nixpkgs-lint # Semantic linter using tree-sitter
-
-    # Nix development tools
-    nix-prefetch-github
-    nix-prefetch-git
-    nixpkgs-hammering
-  ];
-
-  nixAliases = {
-    # Basic operations
-    nix-check = "nix flake check";
-    nix-cleanup = "sudo -H nix-collect-garbage -d";
-    nix-optimise = "sudo -H nix store optimise 2>&1 | grep -v 'warning: skipping suspicious writable file'";
-
-    nix-update = "nix flake update";
-    nix-update-nixpkgs = "nix flake lock --update-input nixpkgs";
-
-    # Individual tools for development
-    nix-fmt = "nixpkgs-fmt .";
-    nix-lint = "nixpkgs-lint";
-  } // (if pkgs.stdenv.isDarwin then {
-    nix-rebuild-host = "nix-fmt && nix flake check && darwin-rebuild switch --flake '.#macbook'";
-    nix-rebuild-mac = "nix-fmt && nix flake check && darwin-rebuild switch --flake '.#parallels'";
-  } else { });
-in
 {
-  home.packages = nixDevTools;
+  # System-specific rebuild commands
+  programs.zsh = {
+    initExtra = ''
+      function nix-rebuild() {
+        if [[ "$(uname)" == "Darwin" ]]; then
+          darwin-rebuild switch --flake ".#$1"
+        else
+          nixos-rebuild switch --flake ".#$1"
+        fi
+      }
 
-  programs = {
-    direnv = {
-      enable = true;
-      nix-direnv.enable = true;
-    };
+      function dev() {
+        local shell="$1"
+        shift  # Remove first argument
+        if [ $# -eq 0 ]; then
+          # No additional arguments, just enter the shell
+          nix develop "$HOME/nix-config/dev/$shell"
+        else
+          # Execute command in the shell
+          nix develop "$HOME/nix-config/dev/$shell" --command "$@"
+        fi
+      }
+    '';
 
-    zsh.shellAliases = nixAliases;
+    shellAliases =
+      if pkgs.stdenv.isDarwin then {
+        nix-rebuild-host = "nix-rebuild macbook";
+        nix-rebuild-mac = "nix-rebuild parallels";
+      } else { };
   };
 }

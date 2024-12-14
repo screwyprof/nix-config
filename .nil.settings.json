@@ -1,0 +1,10 @@
+{
+  "nix": {
+    "flake": {
+      "autoEvalInputs": true
+    },
+    "formatting": {
+      "command": ["nixpkgs-fmt"]
+    }
+  }
+}

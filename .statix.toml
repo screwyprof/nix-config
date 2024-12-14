@@ -1,0 +1,3 @@
+# Statix configuration
+disabled = []
+ignore = [".direnv"]

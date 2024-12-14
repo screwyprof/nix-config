@@ -38,6 +38,7 @@
       build-users-group = "nixbld";
       trusted-users = [ "root" "happygopher" ];
       download-buffer-size = 100000000;
+      warn-dirty = false;
     };
 
     gc = {

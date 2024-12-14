@@ -43,9 +43,13 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-dev = {
+      url = "path:./dev/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs@{ self, nixpkgs, darwin, home-manager, ... }:
+  outputs = inputs@{ nixpkgs, darwin, home-manager, pre-commit-hooks, ... }:
     let
       inherit (nixpkgs) lib;
 
@@ -148,6 +152,24 @@
           ] ++ (args.modules or [ ]);
         };
 
+      # Development shells
+      devShells = forAllSystems (system: {
+        inherit (inputs.nix-dev.devShells.${system}) default;
+      });
+
+      # Checks
+      checks = forAllSystems (system: {
+        pre-commit-check = pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            nixpkgs-fmt.enable = true;
+            statix.enable = true;
+            deadnix.enable = true;
+            nil.enable = true;
+          };
+        };
+      });
+
       # System configurations
       darwinConfigurations = {
         parallels = mkDarwinSystem {
@@ -163,22 +185,6 @@
         };
       };
 
-      # Development shells
-      devShells = forAllSystems (system:
-        let
-          pkgs = nixpkgsFor.${system};
-        in
-        {
-          default = pkgs.mkShell {
-            inherit (self.checks.${system}.pre-commit-check) shellHook;
-            buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;
-          };
-
-          # Import the Rust shell
-          rust = import ./dev/rust/shell.nix { inherit pkgs; };
-          go = import ./dev/go/shell.nix { inherit pkgs; };
-        });
-
       # Packages
       packages = forAllSystems (system:
         let
@@ -188,18 +194,6 @@
           inherit (pkgs) mysides;
         });
 
-      # Checks
-      checks = forAllSystems (system: {
-        pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
-          src = ./.;
-          hooks = {
-            nixpkgs-fmt.enable = true;
-            statix.enable = true;
-            deadnix.enable = true;
-            nil.enable = true;
-          };
-        };
-      });
     in
     {
       inherit darwinConfigurations devShells packages checks;

@@ -1,0 +1,4 @@
+# Deadnix configuration
+no-lambda-pattern-names = true
+no-underscore = true
+exclude = [".direnv"]
