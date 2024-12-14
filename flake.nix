@@ -60,38 +60,38 @@
       supportedSystems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ];
       forAllSystems = lib.genAttrs supportedSystems;
 
+      # Common overlays
+      overlays = [
+        inputs.rust-overlay.overlays.default
+        (final: _: {
+          # Platform-agnostic packages
+          navi = final.callPackage ./pkgs/navi { };
+          tinty = final.callPackage ./pkgs/tinty { };
+        })
+        (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
+          # macOS-specific packages
+          mysides = final.callPackage ./pkgs/mysides {
+            inherit (final.darwin.apple_sdk) stdenv;
+          };
+        })
+      ];
+
       # Generate nixpkgs for each system
       nixpkgsFor = forAllSystems (system:
         import nixpkgs {
-          inherit system;
-          overlays = [
-            inputs.rust-overlay.overlays.default
-            (final: _: {
-              # Platform-agnostic packages
-              navi = final.callPackage ./pkgs/navi { };
-              tinty = final.callPackage ./pkgs/tinty { };
-            })
-            (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
-              # macOS-specific packages
-              mysides = final.callPackage ./pkgs/mysides {
-                inherit (final.darwin.apple_sdk) stdenv;
-              };
-            })
-          ];
+          inherit system overlays;
           config.allowUnfree = true;
         });
 
-      # homebrew configuration
-      homebrewConfig = {
-        enable = true;
-        enableRosetta = true;
-        mutableTaps = false;
-        user = lib.mkDefault systemAdmin.username; # Admin user for Homebrew installation
-        taps = {
-          "homebrew/core" = inputs.homebrew-core;
-          "homebrew/cask" = inputs.homebrew-cask;
-          "homebrew/bundle" = inputs.homebrew-bundle;
-        };
+      # Common home-manager configuration
+      mkHomeManagerConfig = { username, ... }: {
+        imports = [
+          ./home/modules/shared # system independent modules
+          ./home/modules/darwin # system specific modules
+          (./home/users/darwin + "/${username}") # user specific modules
+          inputs.nix-index-database.hmModules.nix-index
+        ];
+        nixpkgs.overlays = [ inputs.rust-overlay.overlays.default ];
       };
 
       # Darwin system configuration builder
@@ -108,15 +108,10 @@
 
             # User configuration
             {
-              users.users = builtins.listToAttrs (map
-                (username: {
-                  name = username;
-                  value = {
-                    name = username;
-                    home = "/Users/${username}";
-                  };
-                })
-                users);
+              users.users = lib.genAttrs users (username: {
+                name = username;
+                home = "/Users/${username}";
+              });
             }
 
             # Home manager configuration
@@ -131,28 +126,25 @@
                   inherit (inputs) nix-colors;
                   pkgs = nixpkgsFor.${system};
                 };
-                users = builtins.listToAttrs (map
-                  (username: {
-                    name = username;
-                    value = { ... }: {
-                      imports = [
-                        ./home/modules/shared # system independent modules
-                        ./home/modules/darwin # system specific modules
-                        (./home/users/darwin + "/${username}") # user specific modules
-                        inputs.nix-index-database.hmModules.nix-index
-                      ];
-                      nixpkgs.overlays = [
-                        inputs.rust-overlay.overlays.default
-                      ];
-                    };
-                  })
-                  users);
+                users = lib.genAttrs users (username: mkHomeManagerConfig { inherit username; });
               };
             }
 
             # Homebrew configuration
             inputs.nix-homebrew.darwinModules.nix-homebrew
-            { nix-homebrew = homebrewConfig; }
+            {
+              nix-homebrew = {
+                enable = true;
+                enableRosetta = true;
+                mutableTaps = false;
+                user = lib.mkDefault systemAdmin.username; # Admin user for Homebrew installation
+                taps = {
+                  "homebrew/core" = inputs.homebrew-core;
+                  "homebrew/cask" = inputs.homebrew-cask;
+                  "homebrew/bundle" = inputs.homebrew-bundle;
+                };
+              };
+            }
           ] ++ (args.modules or [ ]);
         };
 
