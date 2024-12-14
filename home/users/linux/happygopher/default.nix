@@ -4,10 +4,7 @@
     ../../../home/modules/linux/colima.nix
   ];
 
-  home = {
-    username = "happygopher";
-    homeDirectory = "/home/happygopher";
-  };
+  home = { };
 
   xdg.dataHome = "${config.home.homeDirectory}/.local/share";
 }

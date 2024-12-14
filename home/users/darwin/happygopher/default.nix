@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }: {
+{ config, pkgs, ... }: {
   imports = [
     ./preferences
     ./terminal
@@ -11,9 +11,11 @@
 
   # Group all home settings together
   home = {
-    username = "happygopher";
-    homeDirectory = lib.mkForce "/Users/happygopher";
-    stateVersion = "24.05";
+    stateVersion = "24.11";
+
+    file = {
+      "Projects".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Documents/Projects";
+    };
 
     # Darwin-specific packages
     packages = with pkgs; [

@@ -4,11 +4,31 @@ Personal Nix configuration for MacOS (Apple Silicon).
 
 ## Prerequisites
 
-1. Make sure Git is available:
+1. Sign in to your iCloud account:
+   - Open System Settings
+   - Click "Sign in with your Apple ID"
+   - Sign in with your Apple ID and password
+   - This enables App Store access and iCloud features
+
+2. Make sure Git is available:
    ```bash
    # For MacOS, install Xcode Command Line Tools:
    xcode-select --install
    ```
+
+### Optional: iCloud Drive Setup
+
+If you want to use `~/Projects` folder synced with iCloud:
+
+1. Open the Apple menu and select System Settings
+2. Click your name at the top of the sidebar
+3. Click iCloud on the right
+4. Click iCloud Drive
+5. Make sure iCloud Drive is turned on
+6. Turn on Desktop & Documents Folders
+7. Click Done
+
+Note: After first build, `~/Projects` symlink will be created and will start working once `iCloud` sync completes.
 
 ## Installation
 

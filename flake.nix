@@ -95,25 +95,19 @@
             ./hosts/darwin/shared
             ./hosts/darwin/${hostname}
 
-            nix-homebrew.darwinModules.nix-homebrew
-            {
-              nix-homebrew = {
-                user = "happygopher";
-
-                enable = true;
-                enableRosetta = true;
-                mutableTaps = false;
-
-                taps = {
-                  "homebrew/core" = inputs.homebrew-core;
-                  "homebrew/cask" = inputs.homebrew-cask;
-                  "homebrew/bundle" = inputs.homebrew-bundle;
-                };
-              };
-            }
-
             home-manager.darwinModules.home-manager
+
             {
+              users.users = builtins.listToAttrs (map
+                (username: {
+                  name = username;
+                  value = {
+                    name = username;
+                    home = "/Users/${username}";
+                  };
+                })
+                users);
+
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
@@ -134,6 +128,23 @@
                     };
                   })
                   users);
+              };
+            }
+
+            nix-homebrew.darwinModules.nix-homebrew
+            {
+              nix-homebrew = {
+                user = "happygopher";
+
+                enable = true;
+                enableRosetta = true;
+                mutableTaps = false;
+
+                taps = {
+                  "homebrew/core" = inputs.homebrew-core;
+                  "homebrew/cask" = inputs.homebrew-cask;
+                  "homebrew/bundle" = inputs.homebrew-bundle;
+                };
               };
             }
           ];
