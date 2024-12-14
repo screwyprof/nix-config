@@ -8,7 +8,6 @@
     ./golang.nix
     ./node.nix
     ./python.nix
-    ./rust.nix
     ./vscode.nix
   ];
 }

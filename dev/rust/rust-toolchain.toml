@@ -1,0 +1,14 @@
+[toolchain]
+channel = "nightly"
+components = [
+    "rustc",
+    "rust-std",
+    "rust-src",
+    "rust-analyzer",
+    "rust-docs",
+    "rustfmt",
+    "cargo",
+    "clippy",
+    "llvm-tools-preview"
+]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]

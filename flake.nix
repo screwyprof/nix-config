@@ -165,11 +165,22 @@
 
       # Development shells
       devShells = forAllSystems (system:
-        let pkgs = nixpkgsFor.${system}; in {
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [
+              inputs.rust-overlay.overlays.default
+            ];
+          };
+        in
+        {
           default = pkgs.mkShell {
             inherit (self.checks.${system}.pre-commit-check) shellHook;
             buildInputs = self.checks.${system}.pre-commit-check.enabledPackages;
           };
+
+          # Import the Rust shell
+          rust = import ./dev/rust/shell.nix { inherit pkgs; };
         });
 
       # Packages
