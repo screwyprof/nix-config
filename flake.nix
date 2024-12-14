@@ -155,7 +155,7 @@
         parallels = mkDarwinConfig {
           hostname = "parallels-vm";
           system = "aarch64-darwin";
-          users = [ "parallels" "testuser" ];
+          users = [ "parallels" ];
         };
 
         macbook = mkDarwinConfig {
