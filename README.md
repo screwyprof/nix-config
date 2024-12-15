@@ -1,17 +1,16 @@
 # Nix Configuration
 
-Personal Nix configuration for MacOS (Apple Silicon).
+Personal Nix configuration for macOS and Linux systems.
 
-## Features
-- Nix-Darwin system configuration
-- Home Manager for user environment
-- Nix-Homebrew integration with managed taps
-- Development shells for Go, Rust, and Nix
-- Pre-commit hooks for Nix code quality
+## Setup
 
-## Prerequisites
+### Prerequisites
 
-1. Sign in to your iCloud account
+1. Sign in to your iCloud account and enable iCloud Drive:
+   - Open System Settings > Apple ID
+   - Sign in if needed
+   - Enable iCloud Drive
+   - Wait for initial sync to complete
 
 2. Make sure Git is available:
    ```bash
@@ -26,7 +25,6 @@ Personal Nix configuration for MacOS (Apple Silicon).
 
 4. *Optionally* Install Rosetta 2:
    ```bash
-   # Install Rosetta 2 (required for some packages)
    softwareupdate --install-rosetta --agree-to-license
    ```
 
@@ -36,136 +34,112 @@ Personal Nix configuration for MacOS (Apple Silicon).
    cd ~/.config/nix-config
    ```
 
-## Build the System
+### Initial Build
 
 ```bash
-# For first-time build (when darwin-rebuild is not yet available):
+# For first-time build:
 nix run nix-darwin -- switch --flake '.#macbook'
 
-# For subsequent builds, either use any of the following:
-- darwin-rebuild switch --flake '.#macbook'
-- nix-rebuild macbook
-- nix-rebuild-host
-   ```
+# For subsequent builds:
+nix-rebuild-host    # For local MacBook
+nix-rebuild-mac     # For Parallels VM
+```
 
-## Post-Installation
+### Post-Installation Setup
 
-### Safari Extensions
+#### Safari Extensions
 
-1. After Noir is installed via masApps, enable it in Safari:
-   - Open Safari
-   - Go to Safari > Settings > Extensions
+1. Enable Noir:
+   - Open Safari > Settings > Extensions
    - Enable Noir
-   - Configure Noir settings to your preference
+   - Configure preferences
 
-2. Enable and configure AdGuard:
+2. Configure AdGuard:
    - Open Safari > Settings > Extensions
    - Enable AdGuard
-   - Click on AdGuard icon in Safari toolbar to:
-     - Enable filters you want to use
-     - Configure custom rules (if needed)
-     - Enable/disable protection for specific websites
+   - Configure filters and rules
 
 ## System Management
 
-The configuration provides a flexible `nix-rebuild` command that can rebuild any configuration:
+### Common Commands
 
 ```bash
+# System rebuilds
 nix-rebuild <config-name>   # Rebuild any configuration by name
+nix-rebuild-host           # Rebuild macbook configuration
+nix-rebuild-mac            # Rebuild parallels configuration
+
+# Maintenance
+nix-cleanup               # Delete old generations and collect garbage
+nix-optimise             # Optimize the Nix store
 ```
 
-For convenience, there are also aliases for common configurations:
+## Development
+
+This configuration uses [direnv](https://direnv.net/) to automatically:
+- Load development environment
+- Install pre-commit hooks
+- Set up language-specific tools
+
+Just run:
 ```bash
-nix-rebuild-host   # Rebuild macbook configuration
-nix-rebuild-mac    # Rebuild parallels configuration
+direnv allow
 ```
 
-## Development Environment
+### Nix Development Tools
 
-This project uses [direnv](https://direnv.net/) to automatically load the development environment when you enter the project directory.
+All Nix development tools are managed through home-manager (`home/modules/shared/development/nix.nix`):
+- Formatting and linting (nixpkgs-fmt, statix, deadnix, nil)
+- Development utilities (nix-prefetch-github, nix-prefetch-git)
+- Flake checking and hammering
 
-1. Allow direnv:
-   ```bash
-   direnv allow
-   ```
+Common commands:
+```bash
+nix-fmt            # Format Nix files
+nix-lint           # Lint Nix files
+nix-check          # Check flake
+nix-update         # Update flake inputs
+```
 
-This will automatically:
-- Load the Nix development environment
-- Set up pre-commit hooks for:
-  - nixpkgs-fmt (Nix code formatter)
-  - statix (Nix linter)
-  - deadnix (dead code elimination)
+### Pre-commit Hooks
 
-The hooks will run automatically when you commit changes to Nix files.
+The repository uses pre-commit hooks for Nix files:
+- Format checking (nixpkgs-fmt)
+- Static analysis (statix)
+- Dead code detection (deadnix)
+- Language server checks (nil)
+- Flake checking
 
-## Development Shells
+The hooks are automatically installed by direnv. To enable them manually:
+```bash
+nix develop
+```
+
+### Language-Specific Development Shells
 
 Quick access to development environments:
 ```bash
 dev go               # Enter Go development shell
 dev rust             # Enter Rust development shell
-dev nix              # Enter Nix development shell
 
 # Or run commands directly
 dev go make build    # Run make build in Go environment
 dev rust cargo test  # Run cargo test in Rust environment
 ```
 
-*Usage Notes*:
-- Use `dev <shell>` for quick access to any development shell
-- Each shell provides its own isolated environment with specific tools
-- Development shells are defined in `dev/<language>/shell.nix`
-
-### Go Development Shell
-
+#### Go Development Shell
+Provides: golang, gopls, delve, golangci-lint
 ```bash
 dev go              # Enter shell
 dev go make build   # Run command
 ```
 
-Provides: golang (from go.mod or latest), gopls, delve, golangci-lint, and other Go tools.
-
-### Rust Development Shell
-
+#### Rust Development Shell
+Provides: Rust toolchain, cargo extensions, coverage tools
 ```bash
 dev rust            # Enter shell
 dev rust cargo test # Run command
 ```
-
-Provides: Rust toolchain (from rust-toolchain.toml), cargo extensions, and coverage tools.
-
-### Nix Development Shell
-
-```bash
-dev nix            # Enter basic shell
-```
-
-Provides:
-- Formatting and linting: nixpkgs-fmt, statix, deadnix, nil
-- Development tools: nix-prefetch-github, nix-prefetch-git
-
-Available commands:
-```bash
-# Basic Operations
-nix-check              # Check flake for errors
-nix-update             # Update all flake inputs
-nix-update-nixpkgs     # Update only nixpkgs input
-nix-cleanup            # Delete old generations and collect garbage
-nix-optimise           # Optimize the Nix store (deduplication and hard-linking)
-
-# Development Tools
-nix-fmt               # Format nix files
-nix-lint              # Lint nix files
-```
-
-For additional features like [pre-commit hooks](https://github.com/cachix/pre-commit-hooks.nix):
-```bash
-nix develop ./dev/nix  # Enter flake shell with hooks
-```
-
-This adds:
-- Pre-commit hooks for auto-formatting and linting
-- Project-standard hook configurations
 
 ## Resources
 - [Official Nix Website](https://nixos.org)

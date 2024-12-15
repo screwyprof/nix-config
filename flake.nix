@@ -43,14 +43,8 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-dev = {
-      url = "path:./dev/nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
   };
-  outputs = inputs@{ nixpkgs, darwin, home-manager, nix-dev, pre-commit-hooks, ... }:
+  outputs = inputs@{ self, nixpkgs, darwin, home-manager, pre-commit-hooks, ... }:
     let
       inherit (nixpkgs) lib;
 
@@ -154,18 +148,29 @@
         };
 
       # Development shells
-      devShells = forAllSystems (system: {
-        inherit (inputs.nix-dev.devShells.${system}) default;
-      });
+      devShells = forAllSystems (system:
+        let
+          pkgs = nixpkgsFor.${system};
+        in
+        {
+          default = pkgs.mkShell {
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+          };
+        });
 
       # Checks
       checks = forAllSystems (system: {
-        pre-commit = pre-commit-hooks.lib.${system}.run {
+        pre-commit-check = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
             nixpkgs-fmt.enable = true;
             statix.enable = true;
-            deadnix.enable = true;
+            deadnix = {
+              enable = true;
+              settings = {
+                noLambdaPatternNames = true;
+              };
+            };
             nil.enable = true;
             flake-checker.enable = true;
           };
