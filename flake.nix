@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
+    nix-filter.url = "github:numtide/nix-filter";
     nix-colors.url = "github:misterio77/nix-colors";
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
@@ -44,7 +45,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-  outputs = inputs@{ self, nixpkgs, darwin, home-manager, pre-commit-hooks, ... }:
+  outputs = inputs@{ self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-filter, ... }:
     let
       inherit (nixpkgs) lib;
 
@@ -161,7 +162,18 @@
       # Checks
       checks = forAllSystems (system: {
         pre-commit-check = pre-commit-hooks.lib.${system}.run {
-          src = ./.;
+          src = nix-filter.lib.filter {
+            root = self;
+            include = [
+              (nix-filter.lib.matchExt "nix")
+              "flake.lock"
+            ];
+            exclude = [
+              ".direnv"
+              ".git"
+              "result"
+            ];
+          };
           hooks = {
             nixpkgs-fmt.enable = true;
             statix.enable = true;
