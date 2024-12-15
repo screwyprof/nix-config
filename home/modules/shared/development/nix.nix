@@ -41,7 +41,7 @@
 
     shellAliases = {
       nix-check = "nix flake check";
-      nix-cleanup = "sudo -H nix-collect-garbage -d";
+      nix-cleanup = "sudo -H nix-collect-garbage --delete-older-than 3d";
       nix-optimise = "sudo -H nix store optimise 2>&1 | grep -v 'warning: skipping suspicious writable file'";
       nix-update = "nix flake update";
       nix-update-nixpkgs = "nix flake lock --update-input nixpkgs";
