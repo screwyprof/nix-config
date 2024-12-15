@@ -10,7 +10,9 @@ Personal Nix configuration for macOS and Linux systems.
    - Open System Settings > Apple ID
    - Sign in if needed
    - Enable iCloud Drive
-   - Wait for initial sync to complete
+   - Turn on Desktop & Documents Folders
+
+   Note: After first build, `~/Projects` symlink will be created and will start working once `iCloud` sync completes.
 
 2. Make sure Git is available:
    ```bash
@@ -18,17 +20,24 @@ Personal Nix configuration for macOS and Linux systems.
    xcode-select --install
    ```
 
-3. Install Nix package manager:
-   ```bash
-   sh <(curl -L https://nixos.org/nix/install)
-   ```
-
-4. *Optionally* Install Rosetta 2:
+3. *Optionally* Install Rosetta 2:
    ```bash
    softwareupdate --install-rosetta --agree-to-license
    ```
 
-5. Clone this repository:
+4. Install Nix package manager:
+   ```bash
+   sh <(curl -L https://nixos.org/nix/install)
+   ```
+
+5. Enable flakes and configure Nix:
+   ```bash
+   mkdir -p ~/.config/nix
+   echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+   echo "download-buffer-size = 100000000" >> ~/.config/nix/nix.conf
+   ```
+
+6. Clone this repository:
    ```bash
    git clone https://github.com/your-username/nix-config.git ~/.config/nix-config
    cd ~/.config/nix-config
