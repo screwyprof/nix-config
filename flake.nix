@@ -98,10 +98,10 @@
         darwin.lib.darwinSystem {
           inherit system;
           specialArgs = {
-            inherit inputs hostname systemAdmin;
+            inherit inputs hostname systemAdmin self;
           };
           modules = [
-            # Base configuration
+            # Host configuration
             ./hosts/darwin/shared
             ./hosts/darwin/${hostname}
 
@@ -200,7 +200,6 @@
         lib.optionalAttrs pkgs.stdenv.isDarwin {
           inherit (pkgs) mysides;
         });
-
     in
     {
       inherit darwinConfigurations devShells packages checks;
