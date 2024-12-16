@@ -31,10 +31,10 @@
         shift  # Remove first argument
         if [ $# -eq 0 ]; then
           # No additional arguments, just enter the shell
-          nix develop "$HOME/nix-config/dev/$shell"
+          nix develop "$HOME/nix-config/dev/$shell" --impure
         else
           # Execute command in the shell
-          nix develop "$HOME/nix-config/dev/$shell" --command "$@"
+          nix develop "$HOME/nix-config/dev/$shell" --impure --command "$@"
         fi
       }
     '';
