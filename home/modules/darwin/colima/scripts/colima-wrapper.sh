@@ -47,6 +47,11 @@ check_colima_status() {
     timeout ${TIMEOUT_STATUS} colima "${VERBOSE_FLAG:-}" -p "${PROFILE}" status >/dev/null 2>&1
 }
 
+show_colima_status() {
+    debug "Showing Colima status" || true
+    colima "${VERBOSE_FLAG:-}" -p "${PROFILE}" status
+}
+
 is_colima_running() {
     if check_colima_status; then
         debug "Colima is running" || true
@@ -163,7 +168,7 @@ main() {
         "daemon") run_daemon ;;
         "start") start_colima ;;
         "stop") stop_colima ;;
-        "status") is_colima_running ;;
+        "status") show_colima_status ;;
         "clean") clean_state ;;
         "help") show_help ;;
         *)

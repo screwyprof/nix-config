@@ -20,7 +20,8 @@ let
   ];
 
   paths = {
-    currentProfileDir = "${homeDir}/.colima/${defaultProfile}";
+    colimaConfigDir = "${config.xdg.configHome}/colima";
+    currentProfileDir = "${config.xdg.configHome}/colima/${defaultProfile}";
     wrapperScript = lib.getExe wrapperScript;
     systemPath = lib.makeBinPath requiredPackages + ":/usr/bin:/usr/sbin";
   };
@@ -33,6 +34,8 @@ let
   envVars = {
     HOME = homeDir;
     PATH = paths.systemPath;
+    XDG_CONFIG_HOME = config.xdg.configHome;
+    COLIMA_HOME = paths.colimaConfigDir;
   };
 in
 {
@@ -43,18 +46,25 @@ in
 
       # Install configuration files
       file = {
-        ".colima/docker/colima.yaml".source = ./configs/docker.yaml;
-        ".colima/k8s/colima.yaml".source = ./configs/k8s.yaml;
+        "${paths.colimaConfigDir}/docker/colima.yaml".source = ./configs/docker.yaml;
+        "${paths.colimaConfigDir}/k8s/colima.yaml".source = ./configs/k8s.yaml;
       };
 
       # Clean up previous installation
       activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLaunchAgents" ] ''
         export PATH="${paths.systemPath}:$PATH"
+        export XDG_CONFIG_HOME="${config.xdg.configHome}"
+        export COLIMA_HOME="${paths.colimaConfigDir}"
 
         verboseEcho "Cleaning up Colima..."
         run "${paths.wrapperScript}" ${defaultProfile} clean
         run rm -f "/tmp/colima-${defaultProfile}.lock" || true
       '';
+
+      # Add COLIMA_HOME to the shell environment
+      sessionVariables = {
+        COLIMA_HOME = paths.colimaConfigDir;
+      };
     };
 
     launchd.agents.colima = {
@@ -90,8 +100,8 @@ in
         cstatus = mkColimaAlias "status";
         cdelete = mkColimaAlias "delete";
         clist = "colima list";
-        clog = "tail -f ~/.colima/${defaultProfile}/colima.log";
-        clogerr = "tail -f ~/.colima/${defaultProfile}/colima.error.log";
+        clog = "tail -f ${paths.currentProfileDir}/colima.log";
+        clogerr = "tail -f ${paths.currentProfileDir}/colima.error.log";
       };
   };
 }
