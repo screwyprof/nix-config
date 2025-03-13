@@ -24,12 +24,7 @@
   };
 
   # Enable TouchID for sudo
-  security.pam.enableSudoTouchIdAuth = true;
-
-  # Enable necessary services
-  services = {
-    nix-daemon.enable = true;
-  };
+  security.pam.services.sudo_local.touchIdAuth = true;
 
   # Nix configuration
   nix = {
@@ -67,10 +62,13 @@
       "bitwarden"
       "cursor"
       "firefox"
+      "google-chrome"
       "iterm2"
       "jetbrains-toolbox"
       "tableplus"
       "telegram"
+      "windsurf"
+      "zoom"
     ];
 
     brews = [
