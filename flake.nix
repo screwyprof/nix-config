@@ -29,11 +29,11 @@
       };
     };
     homebrew-core = {
-      url = "github:homebrew/homebrew-core";
+      url = "github:Homebrew/homebrew-core";
       flake = false;
     };
     homebrew-cask = {
-      url = "github:homebrew/homebrew-cask";
+      url = "github:Homebrew/homebrew-cask";
       flake = false;
     };
     homebrew-bundle = {
