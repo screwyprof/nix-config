@@ -54,7 +54,7 @@
 
     caskArgs = {
       appdir = "~/Applications";
-      require_sha = true;
+      require_sha = false;
     };
 
     casks = [
@@ -62,6 +62,7 @@
       "bitwarden"
       "cursor"
       "firefox"
+      "google-chrome"
       "google-chrome"
       "iterm2"
       "jetbrains-toolbox"

@@ -137,6 +137,7 @@
       },
       "original": {
         "owner": "Homebrew",
+        "owner": "Homebrew",
         "repo": "homebrew-cask",
         "type": "github"
       }
@@ -152,6 +153,7 @@
         "type": "github"
       },
       "original": {
+        "owner": "Homebrew",
         "owner": "Homebrew",
         "repo": "homebrew-core",
         "type": "github"
