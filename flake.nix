@@ -67,6 +67,7 @@
           # Platform-agnostic packages
           navi = final.callPackage ./pkgs/navi { };
           tinty = final.callPackage ./pkgs/tinty { };
+          thefuck = final.callPackage ./pkgs/thefuck { };
         })
         (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
           # macOS-specific packages
@@ -91,7 +92,6 @@
           (./home/users/darwin + "/${username}") # user specific modules
           inputs.nix-index-database.hmModules.nix-index
         ];
-        nixpkgs.overlays = [ inputs.rust-overlay.overlays.default ];
       };
 
       # Darwin system configuration builder
