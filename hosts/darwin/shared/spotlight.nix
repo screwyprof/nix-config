@@ -7,13 +7,17 @@ let
     target_dir="$2"
     app_name=$(basename "$source_app" .app)
     target="$target_dir/$app_name.app"
-    temp_app="/tmp/$app_name.app"
+    temp_dir="/tmp/launcher-$$"
+    temp_app="$temp_dir/$app_name.app"
     
     echo "Creating launcher for $app_name" >&2
     echo "Source: $source_app" >&2
     echo "Target: $target" >&2
     
-    cat > launcher.applescript << EOF
+    # Create temporary directory
+    mkdir -p "$temp_dir"
+    
+    cat > "$temp_dir/launcher.applescript" << EOF
     try
         tell application "Finder"
             open POSIX file "$source_app"
@@ -23,7 +27,7 @@ let
     end try
     EOF
     
-    osacompile -o "$temp_app" launcher.applescript
+    osacompile -o "$temp_app" "$temp_dir/launcher.applescript"
     rm -rf "$target"
     mv "$temp_app" "$target"
     
@@ -36,7 +40,8 @@ let
       fi
     fi
     
-    rm launcher.applescript
+    # Clean up temporary directory
+    rm -rf "$temp_dir"
     echo "launcher for $app_name created" >&2
   '';
 

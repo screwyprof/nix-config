@@ -20,7 +20,7 @@
     initExtra = ''
       function nix-rebuild() {
         if [[ "$(uname)" == "Darwin" ]]; then
-          darwin-rebuild switch --flake ".#$1"
+          sudo --preserve-env darwin-rebuild switch --flake ".#$1"
         else
           nixos-rebuild switch --flake ".#$1"
         fi

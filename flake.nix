@@ -106,6 +106,11 @@
             ./hosts/darwin/shared
             ./hosts/darwin/${hostname}
 
+            # System configuration
+            {
+              system.primaryUser = systemAdmin.username;
+            }
+
             # User configuration
             {
               users.users = lib.genAttrs users (username: {
