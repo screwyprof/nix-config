@@ -63,7 +63,6 @@
       "cursor"
       "firefox"
       "google-chrome"
-      "google-chrome"
       "iterm2"
       "jetbrains-toolbox"
       "tableplus"
