@@ -46,10 +46,14 @@
   # Common Homebrew configuration for all macOS hosts
   homebrew = {
     enable = true;
+
+    global = {
+      autoUpdate = true; # Enable global auto-update to prevent HOMEBREW_NO_AUTO_UPDATE
+    };
+
     onActivation = {
-      autoUpdate = false;
       cleanup = "zap";
-      upgrade = false;
+      upgrade = true;
     };
 
     caskArgs = {
