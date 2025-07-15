@@ -61,6 +61,26 @@ in
         run rm -f "/tmp/colima-${defaultProfile}.lock" || true
       '';
 
+      # Manual reload is REQUIRED - home-manager's setupLaunchAgents doesn't auto-load
+      activation.reloadColimaAgent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        verboseEcho "Reloading Colima launchd agent..."
+        
+        # Unload the old agent if it's running
+        if /bin/launchctl list "${agent.label}" >/dev/null 2>&1; then
+          verboseEcho "Unloading existing Colima agent..."
+          run /bin/launchctl unload "${agent.plist}" 2>/dev/null || true
+          
+          # Wait a moment for the unload to complete
+          run sleep 2
+        fi
+        
+        # Load the new agent
+        verboseEcho "Loading updated Colima agent..."
+        run /bin/launchctl load "${agent.plist}"
+        
+        verboseEcho "Colima agent reloaded successfully"
+      '';
+
       # Add COLIMA_HOME to the shell environment
       sessionVariables = {
         COLIMA_HOME = paths.colimaConfigDir;
@@ -92,7 +112,7 @@ in
 
     programs.zsh.shellAliases =
       let
-        mkColimaAlias = cmd: "colima ${cmd} -p";
+        mkColimaAlias = cmd: "colima ${cmd} -p ${defaultProfile}";
       in
       {
         cstart = mkColimaAlias "start --save-config=false";
@@ -102,6 +122,12 @@ in
         clist = "colima list";
         clog = "tail -f ${paths.currentProfileDir}/colima.log";
         clogerr = "tail -f ${paths.currentProfileDir}/colima.error.log";
+
+        # Convenience aliases that work without profile names
+        colima-status = mkColimaAlias "status";
+        colima-start = mkColimaAlias "start --save-config=false";
+        colima-stop = mkColimaAlias "stop";
+        colima-restart = "cstop && sleep 2 && cstart";
       };
   };
 }
