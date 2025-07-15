@@ -13,6 +13,7 @@ in
 python.pkgs.buildPythonApplication rec {
   pname = "thefuck";
   version = "3.32";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "nvbn";
@@ -20,6 +21,10 @@ python.pkgs.buildPythonApplication rec {
     rev = version;
     sha256 = "sha256-bRCy95owBJaxoyCNQF6gEENoxCkmorhyKzZgU1dQN6I=";
   };
+
+  build-system = with python.pkgs; [
+    setuptools
+  ];
 
   propagatedBuildInputs = with python.pkgs; [
     colorama

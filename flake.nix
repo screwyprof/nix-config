@@ -20,13 +20,6 @@
     };
     nix-homebrew = {
       url = "github:zhaofengli-wip/nix-homebrew";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        brew-src = {
-          url = "github:Homebrew/brew";
-          flake = false;
-        };
-      };
     };
     homebrew-core = {
       url = "github:Homebrew/homebrew-core";
