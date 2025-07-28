@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ config, pkgs, ... }: {
   home.sessionVariables = {
     VISUAL = "code";
   };
@@ -191,7 +191,7 @@
           "terminal.integrated.defaultProfile.osx" = "zsh";
           "terminal.integrated.profiles.osx" = {
             "zsh" = {
-              "path" = "/etc/profiles/per-user/happygopher/bin/zsh";
+              "path" = "${config.home.homeDirectory}/.nix-profile/bin/zsh";
             };
           };
 

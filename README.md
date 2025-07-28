@@ -74,13 +74,16 @@ nix-rebuild-mac     # For Parallels VM
 
 ```bash
 # System rebuilds
-nix-rebuild <config-name>   # Rebuild any configuration by name
 nix-rebuild-host           # Rebuild macbook configuration
 nix-rebuild-mac            # Rebuild parallels configuration
 
-# Maintenance
-nix-cleanup               # Delete old generations and collect garbage
-nix-optimise             # Optimize the Nix store
+# Updates (daily use)
+nix-update                 # Update all flake inputs
+nix-update-nixpkgs         # Update only packages
+
+# Emergency maintenance (rarely needed)
+nix-cleanup                # Manual cleanup + optimization (auto-GC handles this)
+nix-store-size             # Check store disk usage
 ```
 
 ## Development
@@ -102,12 +105,12 @@ All Nix development tools are managed through home-manager (`home/modules/shared
 - Development utilities (nix-prefetch-github, nix-prefetch-git)
 - Flake checking and hammering
 
-Common commands:
+Essential commands:
 ```bash
 nix-fmt            # Format Nix files
-nix-lint           # Lint Nix files
-nix-check          # Check flake
-nix-update         # Update flake inputs
+nix-check          # Check flake (includes linting via pre-commit hooks)
+nix-update         # Update all flake inputs
+nix-update-nixpkgs # Update only packages
 ```
 
 ### Pre-commit Hooks

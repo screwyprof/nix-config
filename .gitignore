@@ -1,4 +1,5 @@
 /result
+/.idea
 .DS_Store
 .pre-commit-config.yaml
 /.direnv

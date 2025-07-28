@@ -83,7 +83,7 @@
           ./home/modules/shared # system independent modules
           ./home/modules/darwin # system specific modules
           (./home/users/darwin + "/${username}") # user specific modules
-          inputs.nix-index-database.hmModules.nix-index
+          inputs.nix-index-database.homeModules.nix-index
         ];
       };
 
