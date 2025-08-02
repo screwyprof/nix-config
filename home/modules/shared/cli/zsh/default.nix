@@ -60,7 +60,7 @@ in
 
   programs.zsh = {
     enable = true;
-    dotDir = ".config/zsh";
+    dotDir = "${config.xdg.configHome}/zsh";
     #zprof.enable = true;
 
     # these are handled by zim

@@ -60,15 +60,13 @@
       # Common overlays
       overlays = [
         inputs.rust-overlay.overlays.default
-        (final: _: {
-          # Platform-agnostic packages
-          navi = final.callPackage ./pkgs/navi { };
-        })
+        # Custom packages overlay - currently empty
+        # (final: _: {
+        #   # Platform-agnostic packages
+        # })
         (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
           # macOS-specific packages
-          mysides = final.callPackage ./pkgs/mysides {
-            inherit (final.darwin.apple_sdk) stdenv;
-          };
+          mysides = final.callPackage ./pkgs/mysides { };
         })
       ];
 

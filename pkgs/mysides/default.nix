@@ -15,10 +15,8 @@ stdenv.mkDerivation {
     sha256 = "sha256-aAZOGeU8lvMPxBIHKbNNe5WVHvSfRpjgnqJ6qV4Jw00=";
   };
 
-  buildInputs = [
-    darwin.apple_sdk.frameworks.CoreServices
-    darwin.apple_sdk.frameworks.Foundation
-  ];
+  # Frameworks are provided by the compiler toolchain on macOS
+  buildInputs = [ ];
 
   # Set deployment target
   MACOSX_DEPLOYMENT_TARGET = "11.0";

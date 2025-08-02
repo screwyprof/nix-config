@@ -25,8 +25,7 @@ let
 
   # macOS specific dependencies
   darwinDeps = with pkgs; [
-    darwin.apple_sdk.frameworks.CoreServices
-    darwin.apple_sdk.frameworks.CoreFoundation
+    # CoreServices and CoreFoundation are no longer needed as of nixpkgs 25.05
   ];
 
   # All Rust-related environment variables
