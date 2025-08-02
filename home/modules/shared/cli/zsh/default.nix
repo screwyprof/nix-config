@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   # Modern CLI replacements
@@ -73,7 +73,7 @@ in
     history = {
       size = 20000;
       save = 10000;
-      path = "$XDG_STATE_HOME/zsh/.zsh_history";
+      path = "${config.xdg.stateHome}/zsh/.zsh_history";
       ignoreDups = true;
       ignoreAllDups = true;
       ignoreSpace = true;
