@@ -60,10 +60,11 @@
       # Common overlays
       overlays = [
         inputs.rust-overlay.overlays.default
-        # Custom packages overlay - currently empty
-        # (final: _: {
-        #   # Platform-agnostic packages
-        # })
+        # Custom packages overlay
+        (final: _: {
+          # Platform-agnostic packages
+          alias-teacher = final.callPackage ./pkgs/alias-teacher { };
+        })
         (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
           # macOS-specific packages
           mysides = final.callPackage ./pkgs/mysides { };

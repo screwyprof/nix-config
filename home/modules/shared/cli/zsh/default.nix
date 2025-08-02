@@ -116,7 +116,7 @@ in
         # Plugin modules
         (lib.mkOrder 300 [
           "${toString ./zim/plugins} --source enhanced-paste.zsh"
-          "${pkgs.zsh-you-should-use}/share/zsh/plugins/you-should-use --source you-should-use.plugin.zsh"
+          "${pkgs.alias-teacher}/share/zsh/plugins/alias-teacher --source alias-teacher.plugin.zsh"
         ])
 
         # # Theme (should be before completion and syntax highlighting)
