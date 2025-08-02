@@ -8,5 +8,6 @@
     ./node.nix
     ./python.nix
     ./vscode.nix
+    ./claude.nix
   ];
 }

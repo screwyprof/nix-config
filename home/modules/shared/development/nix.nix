@@ -4,6 +4,7 @@
 {
   # Development tools
   home.packages = with pkgs; [
+    cachix
     nixpkgs-fmt
     statix
     deadnix
