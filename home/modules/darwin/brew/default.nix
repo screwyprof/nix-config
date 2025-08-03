@@ -1,7 +1,7 @@
 { inputs, lib, ... }:
 {
   programs.zsh = {
-    initExtra = ''
+    initContent = lib.mkAfter ''
       if (( ! ''${fpath[(Ie)''${HOMEBREW_PREFIX}/share/zsh/site-functions]} )); then
         fpath=(''${HOMEBREW_PREFIX}/share/zsh/site-functions ''${fpath})
       fi

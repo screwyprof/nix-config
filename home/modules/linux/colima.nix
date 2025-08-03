@@ -63,7 +63,7 @@
       clogerr = "bat -f ~/.colima/colima.error.log";
     };
 
-    initExtra = ''
+    initContent = lib.mkAfter ''
       # Set DOCKER_HOST when Colima is running
       if command -v colima >/dev/null 2>&1; then
         if colima status >/dev/null 2>&1; then

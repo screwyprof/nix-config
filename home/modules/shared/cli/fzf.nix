@@ -51,7 +51,7 @@ in
     };
 
     zsh = {
-      initExtra = lib.mkAfter ''
+      initContent = lib.mkAfter ''
         # fzf-tab
 
         ## Use fzf default options

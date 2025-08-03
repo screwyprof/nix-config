@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, lib, ... }:
 
 let
   inherit (config.colorScheme) palette;
@@ -83,6 +83,6 @@ let
 in
 {
   programs.zsh = {
-    initExtra = ansiSequences;
+    initContent = lib.mkAfter ansiSequences;
   };
 }

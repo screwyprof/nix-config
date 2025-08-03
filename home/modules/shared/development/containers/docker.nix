@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, lib, ... }: {
   home.packages = with pkgs; [
     docker
     docker-compose
@@ -21,7 +21,7 @@
       dra = "docker system prune --volumes";
     };
 
-    initExtra = ''
+    initContent = lib.mkAfter ''
       # Docker helper functions
       docker-rm-containers() {
         docker stop $(docker ps -aq)

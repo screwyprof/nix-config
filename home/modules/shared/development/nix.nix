@@ -1,5 +1,5 @@
 # System-wide Nix configuration
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   # Development tools
@@ -18,7 +18,7 @@
 
   # System-specific rebuild commands
   programs.zsh = {
-    initExtra = ''
+    initContent = lib.mkAfter ''
       function nix-rebuild() {
         if [[ "$(uname)" == "Darwin" ]]; then
           sudo --preserve-env darwin-rebuild switch --flake ".#$1"

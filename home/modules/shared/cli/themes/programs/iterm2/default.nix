@@ -10,7 +10,7 @@
   };
 
   config = {
-    programs.zsh.initExtra = ''
+    programs.zsh.initContent = lib.mkAfter ''
       # Apply iTerm2 colors
       if [ -n "$ITERM_SESSION_ID" ]; then
         ${config.iterm2Colors}

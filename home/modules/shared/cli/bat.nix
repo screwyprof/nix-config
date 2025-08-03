@@ -40,7 +40,7 @@
       prettybat = "${pkgs.bat-extras.prettybat}/bin/prettybat";
     };
 
-    initExtra = lib.mkAfter ''
+    initContent = lib.mkAfter ''
       # Enhanced tail -f with bat
       tail() {
         if [[ "$1" == "-f" ]]; then

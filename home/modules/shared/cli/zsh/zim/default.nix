@@ -171,7 +171,7 @@ in
         })
       ];
 
-      initExtra = lib.mkAfter ''
+      initContent = lib.mkAfter ''
         # Pre-Zim initialization hook
         ${cfg.initBeforeZim}
         # Download zimfw plugin manager if missing
