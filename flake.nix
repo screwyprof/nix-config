@@ -60,6 +60,7 @@
         (final: _: {
           # Platform-agnostic packages
           alias-teacher = final.callPackage ./pkgs/alias-teacher { };
+          bmad-method = final.callPackage ./pkgs/bmad-method { };
         })
         (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
           # macOS-specific packages

@@ -9,5 +9,6 @@
     ./python.nix
     ./vscode.nix
     ./claude.nix
+    ./ai-tools.nix
   ];
 }
