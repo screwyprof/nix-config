@@ -2,6 +2,15 @@
 
 Personal Nix configuration for macOS and Linux systems.
 
+**Documentation:**
+
+- [docs/brief.md](docs/brief.md) - Project vision and philosophy
+- [docs/architecture.md](docs/architecture.md) - Technical architecture
+- [docs/bmad-method.md](docs/bmad-method.md) - BMad workflow guide
+- [docs/DECISIONS.md](docs/DECISIONS.md) - Decision journal (why things were done)
+- [docs/features/](docs/features/) - Feature evolution tracking
+- [CLAUDE.md](CLAUDE.md) - Guide for AI assistants
+
 ## Setup
 
 ### Prerequisites
@@ -15,22 +24,26 @@ Personal Nix configuration for macOS and Linux systems.
    Note: After first build, `~/Projects` symlink will be created and will start working once `iCloud` sync completes.
 
 2. Make sure Git is available:
+
    ```bash
    # For MacOS, install Xcode Command Line Tools:
    xcode-select --install
    ```
 
 3. *Optionally* Install Rosetta 2:
+
    ```bash
    softwareupdate --install-rosetta --agree-to-license
    ```
 
 4. Install Nix package manager:
+
    ```bash
    sh <(curl -L https://nixos.org/nix/install)
    ```
 
 5. Enable flakes and configure Nix:
+
    ```bash
    mkdir -p ~/.config/nix
    echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
@@ -38,6 +51,7 @@ Personal Nix configuration for macOS and Linux systems.
    ```
 
 6. Clone this repository:
+
    ```bash
    git clone https://github.com/your-username/nix-config.git ~/.config/nix-config
    cd ~/.config/nix-config
@@ -89,11 +103,13 @@ nix-store-size             # Check store disk usage
 ## Development
 
 This configuration uses [direnv](https://direnv.net/) to automatically:
+
 - Load development environment
 - Install pre-commit hooks
 - Set up language-specific tools
 
 Just run:
+
 ```bash
 direnv allow
 ```
@@ -101,11 +117,13 @@ direnv allow
 ### Nix Development Tools
 
 All Nix development tools are managed through home-manager (`home/modules/shared/development/nix.nix`):
+
 - Formatting and linting (nixpkgs-fmt, statix, deadnix, nil)
 - Development utilities (nix-prefetch-github, nix-prefetch-git)
 - Flake checking and hammering
 
 Essential commands:
+
 ```bash
 nix-fmt            # Format Nix files
 nix-check          # Check flake (includes linting via pre-commit hooks)
@@ -116,6 +134,7 @@ nix-update-nixpkgs # Update only packages
 ### Pre-commit Hooks
 
 The repository uses pre-commit hooks for Nix files:
+
 - Format checking (nixpkgs-fmt)
 - Static analysis (statix)
 - Dead code detection (deadnix)
@@ -123,6 +142,7 @@ The repository uses pre-commit hooks for Nix files:
 - Flake checking
 
 The hooks are automatically installed by direnv. To enable them manually:
+
 ```bash
 nix develop
 ```
@@ -130,6 +150,7 @@ nix develop
 ### Language-Specific Development Shells
 
 Quick access to development environments:
+
 ```bash
 dev go               # Enter Go development shell
 dev rust             # Enter Rust development shell
@@ -140,22 +161,28 @@ dev rust cargo test  # Run cargo test in Rust environment
 ```
 
 #### Go Development Shell
+
 Provides: golang, gopls, delve, golangci-lint
+
 ```bash
 dev go              # Enter shell
 dev go make build   # Run command
 ```
 
 #### Rust Development Shell
+
 Provides: Rust toolchain, cargo extensions, coverage tools
+
 ```bash
 dev rust            # Enter shell
 dev rust cargo test # Run command
 ```
 
 ## Resources
+
 - [Official Nix Website](https://nixos.org)
 - [Nix Manual](https://nixos.org/manual/nix/stable/)
 - [Nix Darwin](https://github.com/LnL7/nix-darwin)
 - [Home Manager](https://github.com/nix-community/home-manager)
 - [Nix-Homebrew](https://github.com/zhaofengli/nix-homebrew)
+- [BMad-Method](https://github.com/bmadcode/BMAD-METHOD) - AI development framework used in this project
