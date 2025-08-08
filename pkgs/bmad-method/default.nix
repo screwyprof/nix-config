@@ -7,16 +7,16 @@
 
 buildNpmPackage rec {
   pname = "bmad-method";
-  version = "4.34.0";
+  version = "4.35.3";
 
   src = fetchFromGitHub {
     owner = "bmadcode";
     repo = "BMAD-METHOD";
     rev = "v${version}";
-    hash = "sha256-O5pdS2g8u35jc2Kl5H+/A3rvsH6a4yniq89BWjPTfhQ=";
+    hash = "sha256-aTC5rMILXVWQm/XkSQLkkMgJdnLPE8oe7yfifcxKsTg=";
   };
 
-  npmDepsHash = "sha256-ocel1BUai6DJI4c05B4N0WUrhwTxUk1PLSIsVDeE/3c=";
+  npmDepsHash = "sha256-fuP7yiafVdj/Zj5RMD7pw+t5XXUE3v9R0AAL2iYNN5E=";
 
   # The package requires Node.js v20+
   nodejs = nodejs_20;
