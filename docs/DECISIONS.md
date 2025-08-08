@@ -41,3 +41,21 @@ A chronological record of decisions made in `nix-config`, capturing what sparked
 **Future Me Notes:** For NPM packages: Always use `lib.fakeHash` for BOTH hashes when updating versions! The silent failure is the worst part - you think you updated but didn't. We should think about improving this process.
 
 ---
+
+## 003: Package markdown-tree-parser for BMad sharding
+
+**Context:** While investigating `BMad`'s document sharding feature (`*shard-doc`), discovered it expects `md-tree` command to be available but doesn't provide it. BMad assumes users will install `@kayvan/markdown-tree-parser` globally via npm.
+
+**The Discovery:** Found in `.bmad-core/tasks/shard-doc.md` that BMad checks for `markdownExploder: true` in config, then tries to run `md-tree explode` command. Without this tool, BMad falls back to manual sharding.
+
+**What we tried:**
+
+1. Check if `BMad` bundles the tool → No, it expects global install
+2. Look for alternative → None, BMad specifically needs `md-tree`
+3. Package it in Nix → Success! Provides exact command BMad expects
+
+**Outcome:** Created Nix package for markdown-tree-parser `v1.6.0`, added to flake overlays, included in `ai-tools.nix`. Now BMad's sharding works seamlessly without manual npm installs.
+
+**Future Me Notes:** This makes `BMad` more self-contained in our Nix environment. The `md-tree` command is now available system-wide.
+
+---

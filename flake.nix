@@ -61,6 +61,7 @@
           # Platform-agnostic packages
           alias-teacher = final.callPackage ./pkgs/alias-teacher { };
           bmad-method = final.callPackage ./pkgs/bmad-method { };
+          markdown-tree-parser = final.callPackage ./pkgs/markdown-tree-parser { };
         })
         (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
           # macOS-specific packages
@@ -205,7 +206,9 @@
         let
           pkgs = nixpkgsFor.${system};
         in
-        lib.optionalAttrs pkgs.stdenv.isDarwin {
+        {
+          inherit (pkgs) alias-teacher bmad-method markdown-tree-parser;
+        } // lib.optionalAttrs pkgs.stdenv.isDarwin {
           inherit (pkgs) mysides;
         });
     in
