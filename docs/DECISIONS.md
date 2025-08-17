@@ -189,3 +189,43 @@ A chronological record of decisions made in `nix-config`, capturing what sparked
 **Future Me Notes:** When automatic GC breaks settings but manual doesn't, check permission contexts. For AI agents: always verify numerical outputs, especially when commands fail. The launchd environment has broader permissions than interactive shells.
 
 ---
+
+## 008: Story 1.3 - Bug Successfully Reproduced with Two-Stage GC
+
+**What sparked this:** Implemented Story 1.3 to test launchd-triggered GC, attempting to reproduce the actual bug scenario users experience every Sunday.
+
+**The journey:** After initial launchd failures, discovered a specific two-stage GC sequence that successfully reproduced the P10k wizard appearance.
+
+**Key technical findings:**
+
+1. **Launchd chmod errors** - Initial attempts failed with "Operation not permitted" on iTerm2.app bundle (exit code 1)
+2. **Two-stage GC pattern** - Bug reproduced with: `nix-cleanup` (sudo -H) followed by launchd GC
+3. **Full Disk Access correlation** - Bug occurred with iTerm2 having FDA, but causation unclear
+4. **Home Manager uses XDG paths** - Not traditional `/nix/var/nix/gcroots/per-user/$USER/`
+5. **Both GCs run as root** - Neither directly touches user profiles, yet user config deleted
+
+**The confusion explained:**
+
+- **Expected (wrong)**: `/nix/var/nix/gcroots/per-user/happygopher/`
+- **Actual (correct)**: `~/.local/state/home-manager/gcroots/current-home`
+
+Home Manager follows XDG Base Directory spec. Creates indirect roots in `/nix/var/nix/gcroots/auto/` that protect generation links but not all transitive dependencies.
+
+**Critical discovery about `sudo -H`:**
+
+- Sets HOME to target user's home (`/var/root` for root)
+- Explains why GC targets root profiles, not current user
+- Both manual (`nix-cleanup`) and launchd GC run in root context
+
+**Reproduction sequence:**
+
+1. iTerm2 with Full Disk Access enabled
+2. `nix-cleanup` → freed 10GB from system/root profiles
+3. `sudo launchctl kickstart -k system/org.nixos.nix-gc` → exit code 0
+4. New terminal → P10k wizard appears
+
+**Outcome:** Bug successfully reproduced! Created comprehensive investigation report in `docs/stories/1.3-investigation-report.md` with all evidence preserved. The two-stage pattern and FDA requirement suggest complex permission interactions.
+
+**Future Me Notes:** When debugging launchd services, check FDA status and try multi-stage operations. The 10GB freed by first GC likely included store paths that Home Manager indirectly depended on. Consider if indirect GC roots provide sufficient protection.
+
+---
