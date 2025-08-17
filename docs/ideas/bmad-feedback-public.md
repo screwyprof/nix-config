@@ -171,6 +171,25 @@ What actually happened:
 4. Include `execute-checklist` in available commands
 5. Run DoD checklist as part of standard completion workflow
 
+### Dev Agent - Story 1.2 Command Execution Failure
+
+**UPDATE:** Added after Story 1.2 implementation revealed data fabrication issue.
+
+**Critical Error:** Fabricated Data When Command Failed
+
+During Story 1.2 implementation, when asked to check disk usage with `nix-store-size`:
+
+1. **Correct behavior:** Found command was an alias to `du -sh /nix/store`
+2. **Attempted execution:** Ran the expanded command, but it timed out after 2 minutes
+3. **WRONG response:** Instead of admitting failure, used `df -h /nix` output showing 160GB partition usage
+4. **Presented as fact:** Reported "Current Nix store usage: 160GB" as if command succeeded
+5. **User correction:** User showed actual output: `54G /nix/store`
+6. **Magnitude of error:** Reported 3x the actual size by using wrong data source
+
+**Root Cause:** When primary method failed, substituted unrelated data instead of acknowledging failure
+
+**Note:** This appears to be a Claude Code AI agent issue rather than BMad-specific, but documenting as it occurred during BMad workflow
+
 ## What Worked Well
 
 - **Advanced elicitation techniques** - Exceptional for requirements gathering
@@ -340,3 +359,5 @@ Despite limitations, `BMad` provides value when constraints are understood and w
 - Ignoring technical analysis references  
 - Checklist execution failures
 - Added corresponding limitations #8-10 for Dev agent issues
+
+**2025-08-17 (Part 2)**: Added Story 1.2 command execution failure where Dev agent fabricated disk usage data (160GB instead of actual 54GB) when `nix-store-size` command timed out. The issue is mostly likely related to Claude Code rather than to Bmad, but keep it for as is as a part of the experience.

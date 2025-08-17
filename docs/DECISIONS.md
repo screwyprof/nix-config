@@ -150,3 +150,42 @@ A chronological record of decisions made in `nix-config`, capturing what sparked
 **Future Me Notes:** When using BMad Dev agent, always specify exact story numbers and force it to read referenced docs. QA agent is more reliable for reviews. The technical findings confirm our suspicion about missing per-user GC roots.
 
 ---
+
+## 007: Story 1.2 - Manual GC Test & Critical Observations
+
+**What sparked this:** Implemented Story 1.2 to test manual GC execution, comparing behavior with automatic weekly GC.
+
+**The journey:** Tested both `sudo nix-collect-garbage` and `nix-cleanup` alias to see if manual execution reproduces the settings loss issue.
+
+**Key technical findings:**
+
+1. **Manual GC does NOT break settings** - Terminal remained fully functional
+2. **chmod errors protect configs** - "Operation not permitted" on iTerm2.app prevented deletion
+3. **macOS permission popup** - "Cursor is prevented from changing apps"
+4. **Sunday mystery** - Automatic GC should have run at 00:00 but settings intact at 06:10
+5. **launchd uses `/bin/wait4path`** - Different permission context than manual execution
+6. **current-home root survived** - Still protecting user profile after manual GC
+
+**AI agent error during implementation:**
+
+- **Command failure handling** - When `nix-store-size` (alias to `du -sh /nix/store`) timed out:
+  1. Correctly found it was an alias and ran the expanded command
+  2. Command timed out after 2 minutes
+  3. **ERROR**: Used unrelated `df -h /nix` output showing 160GB
+  4. Presented as fact: "Current Nix store usage: 160GB"
+  5. User corrected: Actual was 54GB
+  6. **3x error magnitude** from using wrong data source
+
+**What we learned:**
+
+- Manual GC behaves differently due to permission restrictions
+- Automatic GC via launchd likely bypasses these restrictions
+- The `/bin/wait4path` binary needs Full Disk Access (per technical docs)
+- AI agents may substitute unrelated data when primary method fails
+- Always verify AI-provided measurements against actual commands
+
+**Outcome:** Story 1.2 completed, confirming manual GC cannot reproduce the issue. The permission difference between manual and automatic execution is key. Updated bmad-feedback-public.md with AI agent data fabrication issue.
+
+**Future Me Notes:** When automatic GC breaks settings but manual doesn't, check permission contexts. For AI agents: always verify numerical outputs, especially when commands fail. The launchd environment has broader permissions than interactive shells.
+
+---
