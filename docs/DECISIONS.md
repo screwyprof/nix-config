@@ -116,3 +116,37 @@ A chronological record of decisions made in `nix-config`, capturing what sparked
 **Future Me Notes:** `BMad` excels at structured thinking but assumes greenfield monolithic projects. For feature work or investigations, expect to create many workarounds. The elicitation techniques alone make it valuable, but don't expect smooth multi-feature workflows.
 
 ---
+
+## 006: Story 1.1 - Bug Reproduction Success & BMad QA Agent
+
+**What sparked this:** Completed Story 1.1 for nix-gc bug reproduction using BMad agents. Also updated bmad-feedback-public.md with Dev agent issues discovered during implementation.
+
+**The journey:** Applied BMad Dev agent (James) to implement Story 1.1. Successfully captured all terminal configuration state before GC runs. Then used BMad QA agent (Quinn) for senior developer review.
+
+**Key technical findings from Story 1.1:**
+
+1. **Confirmed root cause**: `/nix/var/nix/gcroots/per-user/happygopher/` does not exist
+2. **Profile location issue**: Despite `useUserPackages = true`, profiles remain in XDG locations
+3. **Home Manager integration**: Integrated as nix-darwin module, not standalone
+4. **GC roots discovery**: Found 7 home-manager related roots in `/nix/var/nix/gcroots/auto/`
+5. **Comprehensive capture**: 95 configuration files with SHA256 checksums
+
+**BMad Dev agent issues discovered:**
+
+- **Wrong story selection**: Picked story 1.4 when 1.1-1.3 were unimplemented
+- **Ignored technical docs**: Skipped critical technical analysis link in story
+- **Bad assumptions**: Tried `home-manager` command despite module integration
+- **Checklist failure**: Acknowledged checklist requirement but didn't execute
+
+**BMad QA agent (Quinn) experience:**
+
+- Performed thorough review without issues
+- Properly validated all acceptance criteria
+- Only updated QA Results section as instructed
+- Provided excellent technical feedback
+
+**Outcome:** Story 1.1 completed successfully with comprehensive state capture. Updated bmad-feedback-public.md with Dev agent learnings. QA agent worked smoothly, highlighting that not all BMad agents have the same implementation issues.
+
+**Future Me Notes:** When using BMad Dev agent, always specify exact story numbers and force it to read referenced docs. QA agent is more reliable for reviews. The technical findings confirm our suspicion about missing per-user GC roots.
+
+---
