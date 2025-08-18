@@ -291,6 +291,62 @@ When refining existing documents:
 - Absolute statements that aren't always true
 - Missing context for assertions
 
+### 22. Evidence-Based Claims and Source Attribution
+
+When making claims or stating facts:
+
+- **Always provide sources**: Link to documentation, issues, or discussions
+- **Distinguish proven from assumed**: 
+  - Proven: "FDA bypasses protections ([test results in report](#test-results))"
+  - Assumed: "FDA may bypass protections (no documentation found)"
+- **Mark undocumented behaviors**: "Empirically observed but not documented by vendor"
+- **Cite your testing**: Include commands and outputs that prove claims
+- **Acknowledge missing evidence**: "Could not find official documentation for X"
+
+#### Examples of Good Attribution
+
+- ✓ "FDA is required for Terminal ([OS X Daily](https://osxdaily.com/...))"
+- ✓ "The 'protect' flag exists (output: `mount | grep /nix`)"
+- ✓ "No Apple documentation found for this behavior"
+- ✗ "FDA allows bypassing protections" (no evidence provided)
+- ✗ "This is how it works" (no source or test)
+
+### 23. Self-Contained Investigation Reports
+
+Investigation reports must stand alone:
+
+- **Include all evidence inline**: Commands, outputs, and findings in the document
+- **No temporary file references**: Copy content, don't reference `temp/analysis.txt`
+- **Complete command documentation**: Show what was run AND what it produced
+- **Reproducible investigations**: Reader should be able to verify findings
+
+#### Investigation Structure
+
+1. **Methodology**: What/how you tested
+2. **Commands with outputs**: Full evidence trail
+3. **Findings**: What the evidence shows
+4. **Conclusions**: What you can prove vs what remains unknown
+
+### 24. Comprehensive Pattern Investigation
+
+When investigating patterns or issues:
+
+- **Search broadly first**: Don't stop at first example
+- **Quantify findings**: "Found 49 symlinks and 3 config files with embedded paths"
+- **Categorize systematically**: Group findings by type, risk, protection status
+- **Check multiple dimensions**: Different users, profiles, contexts
+
+#### Example Investigation Flow
+
+```bash
+# Don't just check one file
+grep "pattern" single-file.conf  # ✗ Too narrow
+
+# Check comprehensively
+find ~/.config -type f -exec grep -l "pattern" {} \;  # ✓ Broad search
+# Then categorize and analyze results
+```
+
 ## Remember
 
 The goal is clear, actionable, honest documentation that helps the next person (human or AI) accomplish their task efficiently. When in doubt, err on the side of clarity and completeness over brevity.

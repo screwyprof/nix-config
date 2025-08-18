@@ -221,6 +221,53 @@ This isn't a `BMad` issue - it's a fundamental question about how much documenta
 2. Some form of persistent artifacts helped me track complex investigations
 3. The "right" amount of documentation is probably project-specific
 
+### SM (Bob) - Story 1.4 Course Corrections
+
+Story 1.4 required two separate course corrections due to context limitations and workflow complexity.
+
+#### Timeline of Events
+
+1. **Story 1.4 existed**: Created earlier with original task list
+2. **After Stories 1.1-1.3**: Task list became outdated based on discoveries
+3. **First course correction**: SM updated Story 1.4 tasks based on findings
+4. **Dev agent work**: Started investigation but Claude Code context window limit approached
+5. **Second course correction**: Had to wrap up and return to SM to reduce AI context limitations
+
+#### First Course Correction (After Story 1.3)
+
+Story 1.4's original task list was outdated after discoveries from Stories 1.1-1.3. Updated tasks to focus on investigating WHY the bug happens, addressing QA's confusion points from successful reproduction.
+
+#### Dev Agent Partial Implementation
+
+Dev agent:
+
+- Started investigation work
+- Created investigation report with some findings
+- Prematurely created postmortem without completing investigation (wasn't folllowing the task)
+- Left 5 critical gaps unanswered
+- Claude Code context window approaching limit, forcing wrap up
+
+#### Second Course Correction
+
+I asked SM to correct the course based on what Dev had done.
+
+#### Discovery made - Story purpose mismatch
+
+- Original Story 1.4 included "Screenshots of P10k wizard" in tasks
+- But bug was already reproduced and confirmed in Story 1.3
+- SM was instructed to look at the preceeding Story 1.3
+- SM kept checklist items that were no longer relevant
+  
+**Story update awareness**: Stories can become outdated as discoveries are made in earlier stories
+
+**Lesson learned**: Iterative work in baby steps IS CRUCIAL. I should have:
+
+- Committed the first course correction
+- Committed the dev work
+- Then done the second correction
+
+Instead, I got carried away trying to do everything at once. Self-discipline is required to work in baby steps to avoid confusion. Mea culpa, silly me.
+
 ## What Worked Well
 
 - **Advanced elicitation techniques** - Exceptional for requirements gathering
@@ -228,6 +275,7 @@ This isn't a `BMad` issue - it's a fundamental question about how much documenta
 - **Template structures** - Clear information requirements
 - **Flexible workflow** - Could skip agents when appropriate
 - **Epic/Story organization** - Clear work breakdown
+- **Course correction capability** - SM agent can update outdated stories based on discoveries
 
 ## Limitations, Workarounds, and Recommendations
 
@@ -402,3 +450,10 @@ This turned into a longer case study than expected. If this isn't the right plac
 - Added recommendations for goal reminders and investigation artifact patterns in BMad
 
 **2025-08-17 (Part 4)**: Revised for clarity - changed "User" to first person throughout, fixed inconsistent voice, added disclaimer about unconventional usage, and philosophical note about documentation balance in AI workflows
+
+**2025-08-18**: Added SM (Bob) - Story 1.4 Course Corrections section documenting:
+
+- Two-phase course correction due to Claude Code context window limits
+- Timeline clarification: Story existed → became outdated → first correction → dev work → context limit → second correction
+- Discovery: Stories can become outdated as earlier stories make discoveries
+- Added course correction capability to "What Worked Well"

@@ -229,3 +229,90 @@ Home Manager follows XDG Base Directory spec. Creates indirect roots in `/nix/va
 **Future Me Notes:** When debugging launchd services, check FDA status and try multi-stage operations. The 10GB freed by first GC likely included store paths that Home Manager indirectly depended on. Consider if indirect GC roots provide sufficient protection.
 
 ---
+
+## 009: Story 1.4 Course Corrections - AI Agent Patterns & BMad Lessons
+
+**What sparked this:** Story 1.4 required two course corrections after dev agent ran out of context mid-investigation. Revealed important patterns about AI agent behavior and BMad workflow limitations.
+
+**The journey:** Original Story 1.4 tasks became outdated after discoveries in Stories 1.1-1.3. First correction updated tasks, then dev agent started work but Claude Code context window approached limit. Had to return to SM agent for second correction.
+
+**Key AI agent patterns discovered:**
+
+1. **General AI patterns** (added to ai-agents-lessons.md):
+   - Stating assumptions as facts without verification
+   - Narrow investigation scope (stopping at first finding)
+   - Missing command documentation in reports
+   - Accepting initial hypothesis despite contradictory evidence
+   - Not using available resources (diving in without reading docs)
+   - Incomplete investigation closure (not acknowledging unknowns)
+
+2. **BMad-specific issues**:
+   - Story purpose mismatch (keeping outdated checklist items)
+   - Handoff document duplication (169 lines repeating story content)
+   - No support for context limit handling mid-story
+
+**Critical lesson about workflow:**
+
+Should have committed incrementally:
+
+1. First course correction
+2. Dev agent work
+3. Second course correction
+
+Instead, tried to do everything at once and created confusion. Self-discipline required for baby steps.
+
+**What we learned:**
+
+- AI agents need explicit guidance to document evidence, not assumptions
+- BMad stories can become outdated as earlier stories make discoveries
+- Context window limits are real constraints requiring workflow adaptation
+- Handoff documents should be navigation aids, not content duplicators
+- Course correction is a valuable BMad capability that should be formalized
+
+**Outcome:** Successfully corrected Story 1.4 to focus on completing investigation before postmortem. Updated ai-agents-lessons.md with 6 new patterns. Enhanced bmad-feedback-public.md with course correction experience.
+
+**Future Me Notes:** When working with AI agents across long sessions, commit frequently. When course correcting, focus on WHAT needs investigation, not prescriptive HOW. BMad's SM agent can effectively update outdated stories - use this capability proactively.
+
+---
+
+## 010: Story 1.4 Investigation - FDA, Mount Flags, and GC Root Mysteries
+
+**What sparked this:** After successfully reproducing the bug in Story 1.3, needed to understand WHY it happens. QA was confused about permission differences, FDA role, and deletion mechanisms.
+
+**The journey:** Dev agent investigated 4 key questions through systematic testing and research.
+
+**Key technical findings:**
+
+1. **FDA enables chmod on protected paths**:
+   - `/nix` mounted with "protect" flag (NOT read-only)
+   - Without FDA: chmod fails with "Operation not permitted"
+   - With FDA: chmod succeeds on same paths
+   - No Apple documentation found explaining this behavior
+
+2. **User configs deleted through missing transitive GC roots**:
+   - Home Manager protects its generation: `~/.local/state/home-manager/gcroots/current-home`
+   - But embedded store paths in configs (like `.zim/init.zsh`) have NO roots
+   - Found: 49 protected symlinks, but config files with hardcoded paths vulnerable
+   - Critical discovery: P10k config store path had 0 roots despite being actively used
+
+3. **Two-stage GC pattern explained**:
+   - Stage 1: Manual GC with FDA removes chmod-protected .app bundles (10GB)
+   - Stage 2: launchd can complete without hitting chmod errors
+   - launchd service uses `/bin/sh -c` which lacks FDA
+
+4. **Profile protection mechanisms**:
+   - System profiles: Direct GC roots, always protected
+   - User nix profiles: Auto/indirect roots, protected if profile exists
+   - Home Manager: Generation protected, but embedded paths NOT
+
+**Unanswered questions remain:**
+
+- Why does Home Manager use hardcoded paths instead of indirection?
+- Can launchd services be granted FDA? (Evidence says no)
+- What exactly is the "protect" mount flag? (Undocumented by Apple)
+
+**Outcome:** Investigation incomplete but significant progress made. Now understand FDA's role, how configs get deleted, and why two-stage pattern works. Need to complete remaining investigation gaps before creating valid postmortem.
+
+**Future Me Notes:** The bug is real and reproducible. Root cause involves missing transitive GC roots combined with FDA permission differences. When investigating system behaviors, always check mount flags, test with/without FDA, and trace GC root chains completely.
+
+---
