@@ -1,8 +1,11 @@
-{ self, systemAdmin, ... }:
+{ self, lib, pkgs, systemAdmin, ... }:
 {
   imports = [
     ./spotlight.nix
   ];
+
+  # Remove old default Nix profile (nix-darwin manages Nix declaratively)
+  environment.profiles = lib.mkForce [ "/run/current-system/sw" ];
 
   # System configuration
   system = {
@@ -28,6 +31,7 @@
 
   # Nix configuration
   nix = {
+    package = pkgs.nix;
     settings = {
       experimental-features = [ "nix-command" "flakes" ];
       build-users-group = "nixbld";
