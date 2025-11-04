@@ -112,7 +112,6 @@
       "jetbrains-toolbox"
       "tableplus"
       "telegram"
-      "windsurf"
       "zoom"
     ];
 

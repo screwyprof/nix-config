@@ -34,7 +34,6 @@ in
       EZA_ICONS_AUTO = "1";
 
       PATH = lib.concatStringsSep ":" [
-        "$HOME/.codeium/windsurf/bin" # windsurf is weird...
         "$HOME/.local/bin"
         "${pkgs.coreutils}/bin"
         "${pkgs.findutils}/bin"
