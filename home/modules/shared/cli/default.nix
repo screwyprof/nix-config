@@ -6,7 +6,6 @@
     ./zsh
     ./fzf.nix
     ./cheat.nix
-    ./navi.nix
     ./tldr.nix
     ./zoxide.nix
   ];
