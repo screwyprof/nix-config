@@ -1,11 +1,15 @@
-{ self, lib, pkgs, systemAdmin, ... }:
+{ self, lib, pkgs, systemAdmin, config, ... }:
 {
   imports = [
     ./spotlight.nix
   ];
 
-  # Remove old default Nix profile (nix-darwin manages Nix declaratively)
-  environment.profiles = lib.mkForce [ "/run/current-system/sw" ];
+  # Remove old default Nix profile but keep nix-darwin defaults
+  environment.profiles = lib.mkForce [
+    "/run/current-system/sw"
+    "/etc/profiles/per-user/$USER" # Home-manager user packages (dynamically resolved)
+    "$HOME/.nix-profile"
+  ];
 
   # System configuration
   system = {
