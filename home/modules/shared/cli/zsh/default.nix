@@ -53,7 +53,14 @@ in
       htop
       ripgrep
       shellcheck
+      # ZIM modules - ensure they don't get GC'd
       zsh-fast-syntax-highlighting
+      zsh-history-substring-search
+      zsh-autosuggestions
+      zsh-completions
+      alias-teacher
+      zsh-powerlevel10k
+      pkgs.zim-plugins
     ];
   };
 
@@ -114,26 +121,26 @@ in
 
         # Plugin modules
         (lib.mkOrder 300 [
-          "${toString ./zim/plugins} --source enhanced-paste.zsh"
+          "${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source enhanced-paste.zsh"
           "${pkgs.alias-teacher}/share/zsh/plugins/alias-teacher --source alias-teacher.plugin.zsh"
         ])
 
         # # Theme (should be before completion and syntax highlighting)
         # # (lib.mkOrder 400 [
         # #   "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k --source powerlevel10k.zsh-theme"
-        # #   "${toString ./zim/plugins} --source p10k.zsh"
+        # #   "${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source p10k.zsh"
         # # ])
 
         # Completion modules
         (lib.mkOrder 500 [
           "${pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
           "zimfw/completion"
-          #"${toString ./zim/plugins} --source completion.zsh"
+          #"${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source completion.zsh"
         ])
 
         # Syntax highlighting (must be last)
         (lib.mkOrder 900 [
-          #"${toString ./zim/plugins} --source zsh-syntax-highlighting-dracula.zsh"
+          #"${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source zsh-syntax-highlighting-dracula.zsh"
           #"${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"]
           "${pkgs.zsh-fast-syntax-highlighting}/share/zsh/site-functions --source fast-syntax-highlighting.plugin.zsh"
           "${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search --source zsh-history-substring-search.zsh"

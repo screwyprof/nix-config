@@ -157,5 +157,7 @@ in
     bat
     eza
     git
+    zsh-fzf-tab
+    zsh-forgit
   ];
 }
