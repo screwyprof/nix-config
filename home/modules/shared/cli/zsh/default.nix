@@ -4,7 +4,7 @@ let
   # Modern CLI replacements
   modernCLI = with pkgs; {
     tree = "${eza}/bin/eza --tree --all --icons --git-ignore --color=always";
-    #du = "${du-dust}/bin/dust";
+    #du = "${dust}/bin/dust";
     #df = "${duf}/bin/duf";
     #top = "${htop}/bin/htop";
   };
@@ -49,7 +49,7 @@ in
       procs
       eza
       duf
-      du-dust
+      dust
       htop
       ripgrep
       shellcheck
@@ -142,7 +142,7 @@ in
         (lib.mkOrder 900 [
           #"${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source zsh-syntax-highlighting-dracula.zsh"
           #"${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting --source zsh-syntax-highlighting.zsh"]
-          "${pkgs.zsh-fast-syntax-highlighting}/share/zsh/site-functions --source fast-syntax-highlighting.plugin.zsh"
+          "${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting --source fast-syntax-highlighting.plugin.zsh"
           "${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search --source zsh-history-substring-search.zsh"
           "${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions --source zsh-autosuggestions.zsh"
         ])

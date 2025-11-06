@@ -1,12 +1,12 @@
 { pkgs, ... }: {
   home = {
     packages = with pkgs; [
-      moar
+      moor
     ];
 
     sessionVariables = {
-      PAGER = "${pkgs.moar}/bin/moar";
-      MOAR = ''
+      PAGER = "${pkgs.moor}/bin/moor";
+      MOOR = ''
         --style=dracula \
         --wrap \
         --statusbar=bold \
@@ -21,8 +21,8 @@
 
   programs.zsh = {
     shellAliases = {
-      more = "${pkgs.moar}/bin/moar";
-      less = "${pkgs.moar}/bin/moar";
+      more = "${pkgs.moor}/bin/moor";
+      less = "${pkgs.moor}/bin/moor";
     };
   };
 }

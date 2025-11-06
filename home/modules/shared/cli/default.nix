@@ -1,7 +1,7 @@
 {
   imports = [
     ./themes
-    ./moar.nix
+    ./moor.nix
     ./bat.nix
     ./zsh
     ./fzf.nix

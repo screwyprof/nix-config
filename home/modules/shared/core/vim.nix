@@ -2,7 +2,7 @@
   programs.vim = {
     enable = true;
     defaultEditor = true;
-    packageConfigurable = pkgs.vim_configurable;
+    packageConfigurable = pkgs.vim-full;
 
     settings = {
       # Display

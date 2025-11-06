@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
     nix-filter.url = "github:numtide/nix-filter";
     nix-colors.url = "github:misterio77/nix-colors";
@@ -12,10 +13,12 @@
     };
     darwin = {
       url = "github:lnl7/nix-darwin";
+      #url = "github:nix-darwin/nix-darwin/nix-darwin-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
       url = "github:nix-community/home-manager";
+      #url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-homebrew = {
@@ -45,7 +48,7 @@
       # System administrator (for nix, homebrew, etc.)
       systemAdmin = {
         username = "happygopher";
-        fullName = "Happy Gopher";
+        name = "Happy Gopher";
         email = "max@happygopher.nl";
       };
 
@@ -61,6 +64,7 @@
           # Platform-agnostic packages
           alias-teacher = final.callPackage ./pkgs/alias-teacher { };
           bmad-method = final.callPackage ./pkgs/bmad-method { };
+          bat = final.callPackage ./pkgs/bat { };
           markdown-tree-parser = final.callPackage ./pkgs/markdown-tree-parser { };
           zim-plugins = final.callPackage ./pkgs/zim-plugins { };
         })

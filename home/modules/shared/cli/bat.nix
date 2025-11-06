@@ -3,7 +3,7 @@
     enable = true;
     config = {
       style = "numbers,changes,header";
-      pager = "moar";
+      pager = "moor";
       map-syntax = [
         "*.vim:VimL"
         ".vimrc:VimL"
