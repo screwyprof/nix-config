@@ -18,6 +18,7 @@ in
         "--preview-window=right:60%:border-none"
         "--bind=ctrl-/:toggle-preview"
         "--ansi"
+        "--algo=v2"
       ];
 
       # dracula
@@ -53,6 +54,8 @@ in
     zsh = {
       initContent = lib.mkAfter ''
         # fzf-tab
+        # Source fzf keybindings directly
+        source <(${pkgs.fzf}/bin/fzf --zsh)
 
         ## Use fzf default options
         zstyle ':fzf-tab:*' use-fzf-default-opts yes

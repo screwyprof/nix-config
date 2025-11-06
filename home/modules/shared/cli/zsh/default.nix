@@ -114,7 +114,7 @@ in
         (lib.mkOrder 200 [
           "zimfw/exa"
           "zimfw/direnv"
-          "zimfw/fzf"
+          #"zimfw/fzf"
           "zimfw/git"
           #"zimfw/homebrew"
         ])
