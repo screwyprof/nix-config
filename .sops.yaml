@@ -1,0 +1,7 @@
+keys:
+  - &macbook  age1dfc52ljpdprn5ttee3cgqkv0met3fzjrkda54nc0gythn6ka79eq2a36jw
+  - &recovery age17c6a3vevy3gdrzt6zawdckdy7z3hllahuhy0t5ajmq2dra2p9u7s5sydjw
+creation_rules:
+  - path_regex: secrets.ya?ml$
+    key_groups:
+    - age: [*macbook, *recovery]

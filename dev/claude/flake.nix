@@ -1,15 +1,13 @@
 {
-  description = "Nix project development tools";
-
-  # Optional: Use flake-utils to support multiple systems with less boilerplate
-  # inputs.flake-utils.url = "github:numtide/flake-utils";
+  description = "Claude Code Development Environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     claude-code.url = "github:sadjow/claude-code-nix";
+    sops-nix.url = "github:Mic92/sops-nix";
   };
 
-  outputs = { nixpkgs, claude-code, ... }: {
+  outputs = { nixpkgs, claude-code, sops-nix, ... }: {
     devShells.aarch64-darwin.default =
       let
         pkgs = import nixpkgs {
@@ -17,15 +15,17 @@
           config.allowUnfree = true;
         };
 
+        version = "2025.8.4";
+
         mcp-sequential-thinking = pkgs.buildNpmPackage {
           pname = "mcp-servers-sequential-thinking";
-          version = "master";
+          inherit version;
 
           src = pkgs.fetchFromGitHub {
             owner = "modelcontextprotocol";
             repo = "servers";
-            rev = "master";
-            hash = "sha256-DzyxjbE6famKru3a3GIFDoP8WWqGL+oUlitJP8Zqt/M=";
+            rev = version;
+            hash = "sha256-wD0OToLGy9Jyid4PaC8+dqAkIhDQY0c9CT7gcTLMz2Y=";
           };
 
           npmDepsHash = "sha256-qIsj4XCMqFxqsfjZzs/eDM57U+BI3yJ6h6sdMHXgLvU=";
@@ -55,7 +55,14 @@
       in
 
       pkgs.mkShell {
-        buildInputs = [ mcp-sequential-thinking ];
+        buildInputs = with pkgs; [
+          mcp-sequential-thinking
+          # Documentation tools
+          markdownlint-cli
+          # Secrets management
+          sops
+          age
+        ];
 
         shellHook = ''
           set -euo pipefail
@@ -71,7 +78,7 @@
           PROJECT_HASH=$(printf '%s\n' "$PROJECT_ROOT" | shasum -a 256 | cut -c1-8)
 
           # 3) Isolated state dir via XDG
-          if [ -n "$XDG_STATE_HOME" ]; then
+          if [ -n "''${XDG_STATE_HOME:-}" ]; then
             STATE_BASE="$XDG_STATE_HOME"
           else
             STATE_BASE="$HOME/.local/state"
@@ -88,23 +95,34 @@
             echo "⚠️ .mcp.json exists, skipping creation"
           fi
 
-          # 5) Suggest init if needed
+          # 5) Export CLAUDE_PROJECT_DIR for potential use
+          export CLAUDE_PROJECT_DIR="$PROJECT_ROOT"
+
+          # 5.1) Custom Claude API
+          export ZHIPU_API_KEY="$(cat ~/.config/sops-nix/secrets/zhipu_api_key)"
+          export ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic
+          export ANTHROPIC_AUTH_TOKEN=$ZHIPU_API_KEY
+          export ANTHROPIC_MODEL=glm-4.6
+          export ANTHROPIC_DEFAULT_HAIKU_MODEL=glm-4.5-air
+          export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+          
+          # 6) Suggest init if needed
           if [ ! -d .claude ]; then
             echo "💡 No .claude directory found. You can initialize project settings by running 'claude /init'."
           fi
 
-          # 6) Summary message
+          # 7) Summary message
           cat <<-EOF
 
-          🔧 Claude Code dev shell ready
+          🔧 Claude Dev Shell Ready
 
+            • CLAUDE_PROJECT_DIR: $CLAUDE_PROJECT_DIR
             • CLAUDE_CONFIG_DIR: $CLAUDE_CONFIG_DIR
-            • Project .claude/ (settings) → repo
-            • Runtime state → $STATE_BASE/claude/$PROJECT_HASH
 
           Available commands:
             • claude           Start Claude Code (isolated state)
             • claude mcp list  List configured MCP servers
+            • markdownlint     Lint markdown files
 
           EOF
         '';

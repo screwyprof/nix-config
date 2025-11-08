@@ -40,8 +40,12 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
-  outputs = inputs@{ self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-filter, ... }:
+  outputs = inputs@{ self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-filter, sops-nix, ... }:
     let
       inherit (nixpkgs) lib;
 
@@ -84,10 +88,11 @@
       # Common home-manager configuration
       mkHomeManagerConfig = { username, ... }: {
         imports = [
+          inputs.sops-nix.homeManagerModules.sops
+          inputs.nix-index-database.homeModules.nix-index
           ./home/modules/shared # system independent modules
           ./home/modules/darwin # system specific modules
-          (./home/users/darwin + "/${username}") # user specific modules
-          inputs.nix-index-database.homeModules.nix-index
+          (./home/users/darwin + "/${username}") # user specific modules 
         ];
       };
 
@@ -131,6 +136,9 @@
                 users = lib.genAttrs users (username: mkHomeManagerConfig { inherit username; });
               };
             }
+
+            # Secrets management
+            inputs.sops-nix.darwinModules.sops
 
             # Homebrew configuration
             inputs.nix-homebrew.darwinModules.nix-homebrew

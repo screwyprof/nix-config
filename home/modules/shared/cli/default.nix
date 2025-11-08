@@ -8,5 +8,6 @@
     ./cheat.nix
     ./tldr.nix
     ./zoxide.nix
+    ./secrets.nix
   ];
 }
