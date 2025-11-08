@@ -1,6 +1,5 @@
 {
   imports = [
-    ./themes
     ./moor.nix
     ./bat.nix
     ./zsh

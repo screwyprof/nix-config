@@ -3,5 +3,6 @@
     ./core
     ./cli
     ./development
+    ./themes
   ];
 }
