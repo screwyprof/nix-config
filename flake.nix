@@ -165,6 +165,9 @@
         in
         {
           default = pkgs.mkShell {
+            buildInputs = with pkgs; [
+              pre-commit # Make pre-commit available in dev shell
+            ];
             inherit (self.checks.${system}.pre-commit-check) shellHook;
           };
         });
