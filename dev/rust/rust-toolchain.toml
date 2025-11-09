@@ -11,4 +11,5 @@ components = [
     "clippy",
     "llvm-tools-preview"
 ]
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+[unstable]
+coverage_attribute = true

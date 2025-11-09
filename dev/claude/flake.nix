@@ -73,18 +73,12 @@
             return 1
           fi
 
-          # 2) Project root & stable hash
-          PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-          PROJECT_HASH=$(printf '%s\n' "$PROJECT_ROOT" | shasum -a 256 | cut -c1-8)
+          # 2) Project root & stable hash (only set if not already defined for shell stacking)
+          PROJECT_ROOT="''${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+          PROJECT_HASH="''${PROJECT_HASH:-$(printf '%s\n' "$PROJECT_ROOT" | shasum -a 256 | cut -c1-8)}"
 
           # 3) Isolated state dir via XDG
-          if [ -n "''${XDG_STATE_HOME:-}" ]; then
-            STATE_BASE="$XDG_STATE_HOME"
-          else
-            STATE_BASE="$HOME/.local/state"
-          fi
-
-          export CLAUDE_CONFIG_DIR="$STATE_BASE/claude/$PROJECT_HASH"
+          export CLAUDE_CONFIG_DIR="''${XDG_STATE_HOME:-$HOME/.local/state}/claude/$PROJECT_HASH"
           export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=true
           mkdir -p "$CLAUDE_CONFIG_DIR"
 

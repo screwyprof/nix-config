@@ -153,6 +153,44 @@ dev rust            # Enter shell
 dev rust cargo test # Run command
 ```
 
+### Stacking Development Environments
+
+You can combine multiple development environments using direnv. Create a `.envrc` file in your project:
+
+```bash
+# Example .envrc for a Go + Claude project
+use flake "/Users/happygopher/nix-config/dev/go"
+use flake "/Users/happygopher/nix-config/dev/claude"
+```
+
+Or for a Rust + Claude project:
+```bash
+# Example .envrc for a Rust + Claude project
+use flake "/Users/happygopher/nix-config/dev/rust"
+use flake "/Users/happygopher/nix-config/dev/claude"
+```
+
+Or combine all three:
+```bash
+# Example .envrc for Go + Rust + Claude project
+use flake "/Users/happygopher/nix-config/dev/go"
+use flake "/Users/happygopher/nix-config/dev/rust"
+use flake "/Users/happygopher/nix-config/dev/claude"
+```
+
+Then activate the environment:
+```bash
+direnv allow
+```
+
+**What happens when stacking:**
+- Each environment's tools are added to PATH
+- Environment variables are properly isolated using project-specific hashes
+- Same project hash is used across all environments for consistency
+- All tools from all environments become available in your shell
+
+**Note:** Shell aliases from development environments are not available when using direnv (only when using `dev shell` directly). Use full commands like `cargo build`, `go test`, etc.
+
 ## Resources
 - [Official Nix Website](https://nixos.org)
 - [Nix Manual](https://nixos.org/manual/nix/stable/)
