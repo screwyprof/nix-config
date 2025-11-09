@@ -1,24 +1,21 @@
-{ nix-colors }:
-
 {
   dracula = {
-    scheme = import ../schemes/base24-dracula.nix;
+    format = "base24";
+    scheme = "base24-dracula";
     programs = {
-      zsh = ../programs/zsh/dracula;
-      bat = ../programs/bat/dracula;
-      iterm2 = ../programs/iterm2/dracula;
+      zsh = "dracula";
+      bat = "dracula";
+      iterm2 = "dracula";
     };
   };
 
   gruvbox = {
-    scheme = {
-      inherit (nix-colors.colorSchemes.gruvbox-dark-medium) name slug author palette;
-      variant = "dark";
-    };
+    format = "base16";
+    scheme = "gruvbox-dark-medium";
     programs = {
-      zsh = ../programs/zsh/gruvbox;
-      bat = ../programs/bat/gruvbox-dark;
-      iterm2 = ../programs/iterm2/gruvbox;
+      zsh = "gruvbox";
+      bat = "gruvbox-dark";
+      iterm2 = "gruvbox";
     };
   };
 }

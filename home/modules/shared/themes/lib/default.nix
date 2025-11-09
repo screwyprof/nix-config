@@ -19,6 +19,14 @@ in
 {
   inherit hexToRGB formatRGB;
 
+  # Import a module at path, requiring it to exist or throwing helpful error
+  requireModuleAtPath = path:
+    if builtins.pathExists path
+    then [ (import path) ]
+    else
+      throw "Theme path not found: ${toString path}
+Please check if this theme exists for the specified program";
+
   # Additional helper functions we might add later
-  inherit (lib) mkOption types; # Re-export common lib functions
+  # inherit (lib) mkOption types; # Re-export common lib functions
 }
