@@ -39,6 +39,26 @@ source test/test_helper.zsh
     echo "$output" | grep -q "GiD.*git.*diff" || echo "$output" | grep -q "GiD:"
 }
 
+@test "git status in ALL mode shows all git status variants" {
+    # arrange
+    run $TEST_SHELL '
+        # arrange: load helper and setup environment
+        source test/test_helper.zsh
+        setup_hardcore_all_mode
+        setup_common_git_aliases
+
+        # act
+        _check_aliases "git status" "git status"
+        _flush_ysu_buffer
+    '
+
+    # assert - ALL mode should show best match + additional recommendations
+    echo "$output" | grep -q "Found existing alias for.*git status" || { echo "❌ Missing exact match for git status"; exit 1; }
+    echo "$output" | grep -q "You should use:.*GwS" || { echo "❌ Missing best match GwS"; exit 1; }
+    echo "$output" | grep -q "Gws" || { echo "❌ Missing additional recommendation Gws"; exit 1; }
+    echo "$output" | grep -q "Gdi" || { echo "❌ Missing additional recommendation Gdi"; exit 1; }
+}
+
 @test "git diff --cached shows only cached-related aliases" {
     # arrange
     run $TEST_SHELL '

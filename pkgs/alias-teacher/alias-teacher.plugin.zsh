@@ -292,9 +292,9 @@ function _check_aliases() {
                 ysu_message "alias" "$value" "$best_match"
 
                 
-                # Show related aliases even in hardcore mode for discovery
-                # Use the same logic as BESTMATCH mode - show related if typed starts with best_match_value
-                if [[ -n "$best_match" && "$typed" =~ "^$best_match_value " ]]; then
+                # Show related aliases in ALL mode for discovery
+                # In ALL mode, show related aliases for both exact matches and sub-commands
+                if [[ -n "$best_match" && ("$typed" = "$best_match_value" || "$typed" =~ "^$best_match_value ") ]]; then
                     local -a related_aliases=()
                     local -a typed_parts=(${(s/ /)typed})
                     local typed_base="$typed_parts[1]"
