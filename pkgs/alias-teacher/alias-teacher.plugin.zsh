@@ -296,7 +296,79 @@ function _check_aliases() {
                     local -a related_aliases=()
                     for key in "${(@k)aliases}"; do
                         local alias_value="${aliases[$key]}"
-                        if [[ "$key" != "$best_match" && "$alias_value" = "$typed "* ]]; then
+                        # Check if this alias starts with the typed command + space OR
+                        # if the typed command contains this alias as a prefix with additional flags
+                        # OR if this alias starts with the base command of typed
+                        # Parse command structure for better matching
+                        local -a typed_parts=(${(s/ /)typed})
+                        local typed_base="$typed_parts[1]"           # git
+                        local typed_main_cmd="$typed_parts[2]"       # diff (or empty if just 'git')
+
+                        if [[ ${#typed_parts[@]} -gt 2 ]]; then
+                            local typed_flags="${typed_parts[3,-1]}"  # everything after 3rd element
+                        else
+                            local typed_flags=""
+                        fi
+
+                        # Parse alias structure the same way
+                        local -a alias_parts=(${(s/ /)alias_value})
+                        local alias_base="$alias_parts[1]"
+                        local alias_main_cmd="$alias_parts[2]"
+
+                        # Skip if not same base command and subcommand
+                        if [[ "$alias_base" != "$typed_base" || "$alias_main_cmd" != "$typed_main_cmd" ]]; then
+                            continue
+                        fi
+
+                        if [[ ${#alias_parts[@]} -gt 2 ]]; then
+                            local alias_flags="${alias_parts[3,-1]}"
+                        else
+                            local alias_flags=""
+                        fi
+
+                        # Show if:
+                        # 1. Alias has no extra flags (base version) - only if typed also has no flags
+                        # 2. Typed command contains all alias flags (for more specific aliases)
+                        # 3. Alias contains all typed command flags (for less specific aliases)
+
+                        local should_show=false
+
+                        if [[ -z "$typed_flags" && -z "$alias_flags" ]]; then
+                            # Both are base commands
+                            should_show=true
+                        elif [[ -n "$typed_flags" && -n "$alias_flags" ]]; then
+                            # Both have flags - check if they're related
+                            # Check if typed flags contain alias flags OR alias flags contain typed flags
+                            local typed_contains_alias=true
+                            local alias_contains_typed=true
+
+                            # Check if typed contains all alias flags
+                            for flag in ${=alias_flags}; do
+                                if [[ ! " ${=typed_flags} " =~ " $flag " ]]; then
+                                    typed_contains_alias=false
+                                    break
+                                fi
+                            done
+
+                            # Check if alias contains all typed flags
+                            for flag in ${=typed_flags}; do
+                                if [[ ! " ${=alias_flags} " =~ " $flag " ]]; then
+                                    alias_contains_typed=false
+                                    break
+                                fi
+                            done
+
+                            if $typed_contains_alias || $alias_contains_typed; then
+                                should_show=true
+                            fi
+                        else
+                            # One has flags, one doesn't - show the base version for discovery
+                            if [[ -z "$alias_flags" ]]; then
+                                should_show=true
+                            fi
+                        fi
+
+                        if $should_show; then
                             related_aliases+=("$key")
                         fi
                     done
@@ -349,8 +421,81 @@ function _check_aliases() {
                 if [[ "$key" == "$best_match" ]]; then
                     continue
                 fi
-                # Check if this alias starts with the typed command + space
-                if [[ "$alias_value" = "$typed "* ]]; then
+                # Check if this alias starts with the typed command + space OR
+                # if the typed command contains this alias as a prefix with additional flags
+                # OR if this alias starts with the base command of typed
+                # Parse command structure for better matching
+
+                # Parse command structure for better matching
+                local -a typed_parts=(${(s/ /)typed})
+                local typed_base="$typed_parts[1]"           # git
+                local typed_main_cmd="$typed_parts[2]"       # diff (or empty if just 'git')
+
+                if [[ ${#typed_parts[@]} -gt 2 ]]; then
+                    local typed_flags="${typed_parts[3,-1]}"  # everything after 3rd element
+                else
+                    local typed_flags=""
+                fi
+
+                # Parse alias structure the same way
+                local -a alias_parts=(${(s/ /)alias_value})
+                local alias_base="$alias_parts[1]"
+                local alias_main_cmd="$alias_parts[2]"
+
+                # Skip if not same base command and subcommand
+                if [[ "$alias_base" != "$typed_base" || "$alias_main_cmd" != "$typed_main_cmd" ]]; then
+                    continue
+                fi
+
+                if [[ ${#alias_parts[@]} -gt 2 ]]; then
+                    local alias_flags="${alias_parts[3,-1]}"
+                else
+                    local alias_flags=""
+                fi
+
+                # Show if:
+                # 1. Alias has no extra flags (base version) - only if typed also has no flags
+                # 2. Typed command contains all alias flags (for more specific aliases)
+                # 3. Alias contains all typed command flags (for less specific aliases)
+
+                local should_show=false
+
+                if [[ -z "$typed_flags" && -z "$alias_flags" ]]; then
+                    # Both are base commands
+                    should_show=true
+                elif [[ -n "$typed_flags" && -n "$alias_flags" ]]; then
+                    # Both have flags - check if they're related
+                    # Check if typed flags contain alias flags OR alias flags contain typed flags
+                    local typed_contains_alias=true
+                    local alias_contains_typed=true
+
+                    # Check if typed contains all alias flags
+                    for flag in ${=alias_flags}; do
+                        if [[ ! " ${=typed_flags} " =~ " $flag " ]]; then
+                            typed_contains_alias=false
+                            break
+                        fi
+                    done
+
+                    # Check if alias contains all typed flags
+                    for flag in ${=typed_flags}; do
+                        if [[ ! " ${=alias_flags} " =~ " $flag " ]]; then
+                            alias_contains_typed=false
+                            break
+                        fi
+                    done
+
+                    if $typed_contains_alias || $alias_contains_typed; then
+                        should_show=true
+                    fi
+                else
+                    # One has flags, one doesn't - show the base version for discovery
+                    if [[ -z "$alias_flags" ]]; then
+                        should_show=true
+                    fi
+                fi
+
+                if $should_show; then
                     related_aliases+=("$key")
                 fi
             done
