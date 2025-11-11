@@ -16,8 +16,7 @@ source test/test_helper.zsh
         _flush_ysu_buffer
     '
     # assert
-    echo "$output" | grep -q "Found existing alias for.*git status"
-    echo "$output" | grep -q "You should use:.*GwS"
+    echo "$output" | grep -q "Best match for.*git status.*GwS"
 }
 
 @test "git diff command shows related aliases" {
@@ -33,7 +32,7 @@ source test/test_helper.zsh
         _flush_ysu_buffer
     '
     # assert - In ALL mode, should show all git diff related aliases
-    echo "$output" | grep -q "Found existing alias for.*git.*diff"
+    echo "$output" | grep -q "Best match for.*git.*diff"
     echo "$output" | grep -q "Gwd"
     echo "$output" | grep -q "GwD"
     echo "$output" | grep -q "Gid"
@@ -54,8 +53,8 @@ source test/test_helper.zsh
     '
 
     # assert - ALL mode should show best match + additional recommendations
-    echo "$output" | grep -q "Found existing alias for.*git status" || { echo "❌ Missing exact match for git status"; exit 1; }
-    echo "$output" | grep -q "You should use:.*GwS" || { echo "❌ Missing best match GwS"; exit 1; }
+    echo "$output" | grep -q "Best match for.*git status.*GwS" || { echo "❌ Missing best match for git status"; exit 1; }
+    echo "$output" | grep -q "Related aliases for.*git status" || { echo "❌ Missing related aliases section"; exit 1; }
     echo "$output" | grep -q "Gws" || { echo "❌ Missing additional recommendation Gws"; exit 1; }
     echo "$output" | grep -q "Gdi" || { echo "❌ Missing additional recommendation Gdi"; exit 1; }
 }

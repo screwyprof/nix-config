@@ -15,15 +15,54 @@
 export YSU_VERSION='2.0.0'  # Forked from YSU 1.10.1
 export ALIAS_TEACHER_VERSION='2.0.0'
 
+# =============================================================================
+# CONFIGURATION VARIABLES
+# =============================================================================
+# User-configurable settings - modify these in your .zshrc as needed
+
+# YSU_MAX_LINE_LENGTH: Maximum line length before truncation (default: 120)
+# Modern recommendation: 120 chars for good readability on most displays
+# Usage: export YSU_MAX_LINE_LENGTH=100
+export YSU_MAX_LINE_LENGTH="${YSU_MAX_LINE_LENGTH:-120}"
+
+# YSU_MODE: Display mode for alias suggestions
+# Options: "ALL" (show all related), "BESTMATCH" (show best match only)
+# Usage: export YSU_MODE="ALL"
+export YSU_MODE="${YSU_MODE:-BESTMATCH}"
+
+# YSU_HARDCORE: Enable hardcore mode to stop execution when alias found
+# Options: 1 (enabled), 0 (disabled), or set for specific aliases only
+# Usage: export YSU_HARDCORE=1
+# Usage: export YSU_HARDCORE_ALIASES=(G Gs)
+
+# YSU_MESSAGE_POSITION: When to show messages
+# Options: "before" (before command runs), "after" (after command)
+# Usage: export YSU_MESSAGE_POSITION="after"
+export YSU_MESSAGE_POSITION="${YSU_MESSAGE_POSITION:-before}"
+
+# YSU_IGNORED_ALIASES: Array of aliases to ignore
+# Usage: export YSU_IGNORED_ALIASES=(ls ll)
+typeset -ga YSU_IGNORED_ALIASES
+
+# YSU_MESSAGE_FORMAT: Custom message format (advanced)
+# Variables: %alias_type, %command, %alias
+# Usage: export YSU_MESSAGE_FORMAT="Found alias %alias for %command"
+
 if ! type "tput" > /dev/null; then
     printf "WARNING: tput command not found on your PATH.\n"
     printf "zsh-you-should-use will fallback to uncoloured messages\n"
 else
     NONE="$(tput sgr0)"
     BOLD="$(tput bold)"
+
+    # Define consistent color scheme
     RED="$(tput setaf 1)"
+    GREEN="$(tput setaf 2)"
     YELLOW="$(tput setaf 3)"
+    BLUE="$(tput setaf 4)"
     PURPLE="$(tput setaf 5)"
+    CYAN="$(tput setaf 6)"
+    WHITE="$(tput setaf 7)"
 fi
 
 function check_alias_usage() {
@@ -102,9 +141,9 @@ function _flush_ysu_buffer() {
 }
 
 function ysu_message() {
-    local DEFAULT_MESSAGE_FORMAT="${BOLD}${YELLOW}\
-Found existing %alias_type for ${PURPLE}\"%command\"${YELLOW}. \
-You should use: ${PURPLE}\"%alias\"${NONE}"
+    local DEFAULT_MESSAGE_FORMAT="${BOLD}${CYAN}\
+Found existing %alias_type for ${BLUE}\"%command\"${CYAN}. \
+You should use: ${YELLOW}\"%alias\"${NONE}"
 
     local alias_type_arg="${1}"
     local command_arg="${2}"
@@ -136,24 +175,94 @@ function _check_ysu_hardcore() {
     fi
 }
 
-# Display all matching aliases, sorted by quality (longest first)
-# Used in ALL mode to show comprehensive results
-function _display_all_matches() {
-    local -a sorted_aliases=("$@")
-    local key
-    local value
+# Helper function to check if typed command matches alias value
+function _command_matches() {
+    local typed="$1"
+    local value="$2"
 
-    # Show all matches, sorted by quality (longest match first)
-    for key in ${sorted_aliases[@]}; do
-        value="${aliases[$key]}"
-        ysu_message "alias" "$value" "$key"
+    # Exact match
+    [[ "$typed" = "$value" ]] && return 0
+
+    # Typed command is prefix of alias (e.g., "git status" matches "git status --short")
+    [[ "$typed" = "$value "* ]] && return 0
+
+    # Check semantic match - same base command and subcommand
+    local -a typed_words=(${=typed})
+    local -a value_words=(${=value})
+
+    # Need at least base command and subcommand for semantic matching
+    [[ ${#typed_words[@]} -lt 2 || ${#value_words[@]} -lt 2 ]] && return 1
+
+    # Base command and main subcommand must match exactly
+    [[ "${typed_words[1]}" != "${value_words[1]}" ]] && return 1
+    [[ "${typed_words[2]}" != "${value_words[2]}" ]] && return 1
+
+    # Check if all typed words appear in alias value in order
+    local typed_idx=1
+    for ((i=1; i<=${#value_words[@]}; i++)); do
+        if [[ "${value_words[$i]}" = "${typed_words[$typed_idx]}" ]]; then
+            ((typed_idx++))
+            [[ $typed_idx -gt ${#typed_words[@]} ]] && return 0
+        fi
     done
 
-    # Check hardcore after showing all matches
-    if [[ ${#sorted_aliases[@]} -gt 0 ]]; then
-        _check_ysu_hardcore "${sorted_aliases[1]}"
-    fi
+    return 1
 }
+
+# Helper function to format commands for display (copy-paste friendly)
+function _quote_command() {
+    local command="$1"
+
+    # Don't quote at all - display as-is for easy copy-paste
+    # The complex commands will be displayed without extra quoting
+    echo "$command"
+}
+
+# Helper function to smartly truncate long commands at word boundaries
+function _truncate_command() {
+    local command="$1"
+    # Use user-configurable length (set at top of file)
+    local max_length="${2:-$YSU_MAX_LINE_LENGTH}"
+
+    # If command is short enough, return as-is
+    if [[ ${#command} -le $max_length ]]; then
+        echo "$command"
+        return
+    fi
+
+    # Truncate at word boundary, ending with "..."
+    local truncated="${command:0:$((max_length - 3))}"
+
+    # Find the last space to avoid breaking words
+    local last_space="${truncated##* }"
+    if [[ "$last_space" != "$truncated" ]]; then
+        # Remove the partial word after the last space
+        truncated="${truncated% *}"
+    fi
+
+    echo "${truncated}..."
+}
+
+
+# Helper function to check if two commands are semantically related
+function _commands_are_related() {
+    local typed="$1"
+    local alias_value="$2"
+
+    # Parse typed command structure
+    local -a typed_parts=(${(s/ /)typed})
+    local typed_base="$typed_parts[1]"
+    local typed_main_cmd="$typed_parts[2]"
+
+    # Parse alias command structure
+    local -a alias_parts=(${(s/ /)alias_value})
+    local alias_base="$alias_parts[1]"
+    local alias_main_cmd="$alias_parts[2]"
+
+    # Commands are related if base command and main subcommand match exactly
+    [[ "$alias_base" = "$typed_base" && "$alias_main_cmd" = "$typed_main_cmd" ]]
+}
+
 
 function _check_git_aliases() {
     local typed="$1"
@@ -242,74 +351,66 @@ function _check_aliases() {
         return
     fi
 
-    # 2. Get aliases and compare user's typed command
+    # 2. Find matching aliases
     for key value in ${(kv)aliases}; do
         # Skip ignored aliases
-        if [[ ${YSU_IGNORED_ALIASES[(r)$key]} == "$key" ]]; then
-            continue
-        fi
+        [[ ${YSU_IGNORED_ALIASES[(r)$key]} == "$key" ]] && continue
 
-        # 3. Compare what user entered to find matches
-        # Match if typed command equals alias expansion OR words overlap
-        local -a typed_words=(${=typed})
-        local -a value_words=(${=value})
-        local match=false
-
-        # Check for exact match
-        if [[ "$typed" = "$value" ]]; then
-            match=true
-        else
-            # Check if all words in typed command appear in alias in order
-            local typed_idx=1
-            for ((i=1; i<=${#value_words[@]}; i++)); do
-                if [[ "${value_words[$i]}" = "${typed_words[$typed_idx]}" ]]; then
-                    ((typed_idx++))
-                    if [[ $typed_idx -gt ${#typed_words[@]} ]]; then
-                        match=true
-                        break
-                    fi
-                fi
-            done
-        fi
-
-        if $match; then
+        # Check if typed command matches this alias value
+        if _command_matches "$typed" "$value"; then
             found_aliases+=("$key")
 
-            # 4. Set best match (first longest match)
-            if [[ -z "$best_match" ]]; then
-                best_match="$key"
-            fi
+            # Set best match (first longest match)
+            [[ -z "$best_match" ]] && best_match="$key"
         fi
     done
 
-    # 4. Show best match first (always)
+    # 4. Show best match and related aliases with improved formatting
     if [[ -n "$best_match" ]]; then
-        value="${aliases[$best_match]}"
-        ysu_message "alias" "$value" "$best_match"
-    fi
+        local best_match_value="${aliases[$best_match]}"
 
-    # 5. If ALL mode is on, show recommended matches as well
-    if [[ "$YSU_MODE" = "ALL" && ${#found_aliases[@]} -gt 1 ]]; then
-        # Sort found_aliases by value length (longest first), but skip the best_match we already showed
-        local sorted_additional=()
-        local alias_values=()
+        # Show best match with clearer message
+        _write_ysu_buffer "${BOLD}${GREEN}Best match for ${BLUE}\"$typed\"${GREEN}:${NONE} ${YELLOW}${best_match}${NONE} ${BLUE}→${NONE} ${BLUE}"
+        _write_ysu_buffer "$(_truncate_command "$(_quote_command "$best_match_value")")${NONE}\n"
 
-        # Create array of alias:value pairs for sorting, excluding best_match
+        # 5. If ALL mode is on, show related aliases for discovery
+        [[ "$YSU_MODE" != "ALL" || ${#found_aliases[@]} -le 1 ]] && return
+
+        # Collect truly related aliases (same base command and subcommand)
+        local -a related_aliases=()
+
         for key in ${found_aliases[@]}; do
-            if [[ "$key" != "$best_match" ]]; then
-                value="${aliases[$key]}"
-                alias_values+=("${#value}:${key}")
+            # Skip the best match we already showed
+            [[ "$key" == "$best_match" ]] && continue
+
+            # Only include if commands are semantically related
+            local alias_value="${aliases[$key]}"
+            if _commands_are_related "$typed" "$alias_value"; then
+                related_aliases+=("$key")
             fi
         done
 
-        # Sort by length (numeric reverse sort)
-        alias_values=(${(On)alias_values})
+        # Show related aliases if we found any
+        [[ ${#related_aliases[@]} -eq 0 ]] && return
 
-        # Show additional matches
-        for entry in ${alias_values[@]}; do
-            key="${entry#*:}"
-            value="${aliases[$key]}"
-            ysu_message "alias" "$value" "$key"
+        _write_ysu_buffer "${BLUE}Related aliases for ${BLUE}\"$typed\"${BLUE}:${NONE}\n"
+
+        # Sort aliases alphabetically, case-insensitive
+        related_aliases=(${(i)related_aliases})
+
+        # Find maximum alias name length for consistent spacing
+        local max_alias_length=0
+        for key in ${related_aliases[@]}; do
+            [[ ${#key} -gt $max_alias_length ]] && max_alias_length=${#key}
+        done
+
+        for key in ${related_aliases[@]}; do
+            local alias_value="${aliases[$key]}"
+            local quoted_value="$(_quote_command "$alias_value")"
+            local truncated_value="$(_truncate_command "$quoted_value")"
+            # Use printf for consistent spacing: alias (padded to max width) → command
+            printf -v formatted_line "  ${YELLOW}%-${max_alias_length}s${NONE} ${BLUE}→${NONE} %s\n" "$key" "$truncated_value"
+            _write_ysu_buffer "$formatted_line"
         done
     fi
 
