@@ -32,11 +32,12 @@ source test/test_helper.zsh
         _check_aliases "git diff" "git diff"
         _flush_ysu_buffer
     '
-    # assert
-    echo "$output" | grep -q "Found existing alias for.*git"
-    echo "$output" | grep -q "Related aliases for.*git diff"
-    echo "$output" | grep -q "Gwd.*git.*diff" || echo "$output" | grep -q "Gwd:"
-    echo "$output" | grep -q "GiD.*git.*diff" || echo "$output" | grep -q "GiD:"
+    # assert - In ALL mode, should show all git diff related aliases
+    echo "$output" | grep -q "Found existing alias for.*git.*diff"
+    echo "$output" | grep -q "Gwd"
+    echo "$output" | grep -q "GwD"
+    echo "$output" | grep -q "Gid"
+    echo "$output" | grep -q "GiD"
 }
 
 @test "git status in ALL mode shows all git status variants" {
@@ -72,7 +73,7 @@ source test/test_helper.zsh
         _flush_ysu_buffer
     '
 
-    # assert - This test now PASSES - the bug is fixed
+    # assert
     echo "$output" | grep -qv "Gwd" || { echo "❌ Gwd incorrectly included"; exit 1; }
     echo "$output" | grep -qv "GwD" || { echo "❌ GwD incorrectly included"; exit 1; }
     echo "$output" | grep -q "Gid" || { echo "❌ Missing Gid"; exit 1; }
