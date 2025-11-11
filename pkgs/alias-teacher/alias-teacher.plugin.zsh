@@ -290,24 +290,28 @@ function _check_aliases() {
             if [[ -n "$best_match" ]]; then
                 value="${aliases[$best_match]}"
                 ysu_message "alias" "$value" "$best_match"
+
                 
                 # Show related aliases even in hardcore mode for discovery
-                if [[ "$typed" != "$best_match_value" ]]; then
+                # Use the same logic as BESTMATCH mode - show related if typed starts with best_match_value
+                if [[ -n "$best_match" && "$typed" =~ "^$best_match_value " ]]; then
                     local -a related_aliases=()
+                    local -a typed_parts=(${(s/ /)typed})
+                    local typed_base="$typed_parts[1]"
+                    local typed_main_cmd="$typed_parts[2]"
+
+                    if [[ ${#typed_parts[@]} -gt 2 ]]; then
+                        local typed_flags="${typed_parts[3,-1]}"
+                    else
+                        local typed_flags=""
+                    fi
+
                     for key in "${(@k)aliases}"; do
                         local alias_value="${aliases[$key]}"
-                        # Check if this alias starts with the typed command + space OR
-                        # if the typed command contains this alias as a prefix with additional flags
-                        # OR if this alias starts with the base command of typed
-                        # Parse command structure for better matching
-                        local -a typed_parts=(${(s/ /)typed})
-                        local typed_base="$typed_parts[1]"           # git
-                        local typed_main_cmd="$typed_parts[2]"       # diff (or empty if just 'git')
 
-                        if [[ ${#typed_parts[@]} -gt 2 ]]; then
-                            local typed_flags="${typed_parts[3,-1]}"  # everything after 3rd element
-                        else
-                            local typed_flags=""
+                        # Skip the best match we already showed
+                        if [[ "$key" == "$best_match" ]]; then
+                            continue
                         fi
 
                         # Parse alias structure the same way
@@ -320,6 +324,7 @@ function _check_aliases() {
                             continue
                         fi
 
+                        
                         if [[ ${#alias_parts[@]} -gt 2 ]]; then
                             local alias_flags="${alias_parts[3,-1]}"
                         else
@@ -362,17 +367,35 @@ function _check_aliases() {
                                 should_show=true
                             fi
                         else
-                            # One has flags, one doesn't - show the base version for discovery
-                            if [[ -z "$alias_flags" ]]; then
+                            # One has flags, one doesn't - be more selective
+                            # If user typed base command (no flags), show all variations for discovery
+                            # If user typed specific flags, only show closely related aliases
+                            if [[ -z "$typed_flags" ]]; then
+                                # User typed base command, show all flag variations for discovery
                                 should_show=true
+                            else
+                                # User typed specific flags, only show if aliases share common purpose
+                                should_show=false
+
+                                # Check for shared functionality between typed and alias flags
+                                if [[ "$typed_flags" =~ "cached" ]] && [[ "$alias_flags" =~ "cached" ]]; then
+                                    should_show=true
+                                elif [[ "$typed_flags" =~ "cached" ]] && [[ "$alias_flags" =~ "staged" ]]; then
+                                    should_show=true
+                                elif [[ "$typed_flags" =~ "staged" ]] && [[ "$alias_flags" =~ (cached|staged) ]]; then
+                                    should_show=true
+                                elif [[ "$typed_flags" =~ "word-diff" ]] && [[ "$alias_flags" =~ "word-diff" ]]; then
+                                    should_show=true
+                                fi
                             fi
                         fi
 
+                        
                         if $should_show; then
                             related_aliases+=("$key")
                         fi
                     done
-                    
+
                     if [[ ${#related_aliases[@]} -gt 0 ]]; then
                         _write_ysu_buffer "${PURPLE}Related aliases for \"$typed\":${NONE}\n"
                         local -a sorted_related=()
@@ -399,6 +422,11 @@ function _check_aliases() {
                 value="${aliases[$key]}"
                 ysu_message "alias" "$value" "$key"
             done
+
+            # Check hardcore after showing all matches
+            if [[ ${#sorted_aliases[@]} -gt 0 ]]; then
+                _check_ysu_hardcore "${sorted_aliases[1]}"
+            fi
         fi
 
     elif [[ (-z "$YSU_MODE" || "$YSU_MODE" = "BESTMATCH") && -n "$best_match" ]]; then
@@ -412,8 +440,9 @@ function _check_aliases() {
         
         # Check if this is a generic match that could have more specific alternatives
         # For example, if best_match is "G" for "git diff", show related git diff aliases
-        if [[ -n "$best_match" && "$typed" != "$best_match_value" ]]; then
-            # Find related aliases that start with the typed command
+        # Show related aliases if typed command starts with best match value (e.g., "git diff" starts with "git")
+        if [[ -n "$best_match" && "$typed" =~ "^$best_match_value " ]]; then
+              # Find related aliases that start with the typed command
             local -a related_aliases=()
             for key in "${(@k)aliases}"; do
                 local alias_value="${aliases[$key]}"
@@ -489,8 +518,8 @@ function _check_aliases() {
                         should_show=true
                     fi
                 else
-                    # One has flags, one doesn't - show the base version for discovery
-                    if [[ -z "$alias_flags" ]]; then
+                    # One has flags, one doesn't - show for discovery
+                    if [[ -z "$typed_flags" ]] || [[ -z "$alias_flags" ]]; then
                         should_show=true
                     fi
                 fi
