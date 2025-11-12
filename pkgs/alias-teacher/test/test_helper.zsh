@@ -4,15 +4,15 @@
 TEST_SHELL="env -i TERM=xterm zsh -df -c"
 
 # Common setup function for hardcore ALL mode testing
-# Baseline configuration: YSU_VERSION=2.0.0, YSU_MODE=ALL, YSU_HARDCORE=1, YSU_MESSAGE_POSITION=after
+# Baseline configuration: YSU_VERSION=2.0.0, YSU_SHOW_RECOMMENDED=1, YSU_HARDCORE=1, YSU_MESSAGE_POSITION=after
 setup_hardcore_all_mode() {
     source alias-teacher.plugin.zsh
     export YSU_VERSION="2.0.0"
-    export YSU_MODE="ALL"
+    export YSU_SHOW_RECOMMENDED=1
     export YSU_HARDCORE=1
     export YSU_MESSAGE_POSITION="after"
     # Override hardcore kill for testing
-    _check_ysu_hardcore() { _write_ysu_buffer "${BOLD}${RED}You Should Use hardcore mode enabled. Use your aliases!${NONE}\n"; }
+    _enforce_harcore_mode() { _write_ysu_buffer "${BOLD}${RED}You Should Use hardcore mode enabled. Use your aliases!${NONE}\n"; }
 }
 
 # Setup common git aliases used across most tests

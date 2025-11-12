@@ -337,134 +337,189 @@ function _check_global_aliases() {
     fi
 }
 
+# Helper function to check if a boolean variable is true
+_is_true() {
+    local var="$1"
+    [[ -z "$var" ]] && return 1
+    var="${var:l}"
+    case "$var" in
+        1|true|yes|on|enabled) return 0 ;;
+        0|false|no|off|disabled|"") return 1 ;;
+        *) return 1 ;;
+    esac
+}
 
-function _check_aliases() {
-    local typed="$1"
-    local expanded="$2"
+# Handle command execution logic
+function _handle_command_execution() {
+    local cmd="$1"
+    [[ -z "$cmd" ]] && return 0
 
-    local found_aliases=()
-    local best_match=""
-    local key value
+    _find_best_alias "$cmd" "$cmd"
+    local best_match_alias="${_ALIAS_RESULT[best_match]}"
+    [[ -z "$best_match_alias" ]] && return 0
 
-    # 1. Skip sudo commands (use another user's profile)
-    if [[ "$typed" = "sudo "* ]]; then
-        return
+    _check_aliases "$cmd" "$cmd"
+
+    if _is_true "$YSU_HARDCORE" || [[ -n "${YSU_HARDCORE_ALIASES[(r)$best_match_alias]}" ]]; then
+        _write_ysu_buffer "${BOLD}${RED}Hardcore mode: Use your alias instead!${NONE}\n"
+        _flush_ysu_buffer
+        return 1
     fi
 
-    # 2. Find matching aliases and categorize by match type
-    local -a exact_matches=()  # Commands that exactly match the typed command
-    local -a prefix_matches=() # Commands where typed command is a prefix
-    local -a semantic_matches=() # Commands that share base command and subcommand
+    return 0
+}
 
+# Create widget wrapper
+alias_teacher_accept_line_wrapper() {
+    _handle_command_execution "$BUFFER"
+    [[ $? -eq 0 ]] && zle .accept-line || { BUFFER=""; zle redisplay; }
+}
+
+# Find the best alias match for a given command
+function _find_best_alias() {
+    local typed="$1"
+    local expanded="$2"
+    typeset -gA _ALIAS_RESULT=()
+    local -a exact_matches=()
+    local -a prefix_matches=()   # typed is prefix of alias (safer, shorter)
+    local -a other_matches=()    # other semantic matches
+
+    # Check regular aliases
     for key value in ${(kv)aliases}; do
-        # Skip ignored aliases
         [[ ${YSU_IGNORED_ALIASES[(r)$key]} == "$key" ]] && continue
 
-        # Check for exact match first
+        # Exact match
         if [[ "$typed" = "$value" ]]; then
             exact_matches+=("$key")
-            found_aliases+=("$key")
-            continue
-        fi
-
-        # Check for prefix match (typed command is prefix of alias)
-        if [[ "$typed" = "$value "* ]]; then
+        # Prefix match (typed is prefix of alias) - safest fallback
+        elif [[ "$typed" = "$value "* ]]; then
             prefix_matches+=("$key")
-            found_aliases+=("$key")
-            continue
-        fi
-
-        # Check for semantic match (same base command and subcommand)
-        if _command_matches "$typed" "$value"; then
-            semantic_matches+=("$key")
-            found_aliases+=("$key")
+        # Semantic matches
+        elif _command_matches "$typed" "$value"; then
+            other_matches+=("$key")
         fi
     done
 
-    # 3. Select best match with priority: exact > prefix > semantic (shortest first)
-    if [[ ${#exact_matches[@]} -gt 0 ]]; then
-        best_match="${exact_matches[1]}"
-    elif [[ ${#prefix_matches[@]} -gt 0 ]]; then
-        # For prefix matches, prefer the shortest (closest to typed command)
-        best_match="${prefix_matches[1]}"
-    elif [[ ${#semantic_matches[@]} -gt 0 ]]; then
-        # For semantic matches, prefer the shortest (closest to typed command)
-        best_match="${semantic_matches[1]}"
-    fi
+    # Check global aliases
+    local global_aliases_output
+    global_aliases_output=$(alias -g)
+    while IFS="=" read -r key value; do
+        [[ -z "$key" ]] && continue
+        key="${key## *}"; key="${key%% *}"; value="${(Q)value}"
+        [[ ${YSU_IGNORED_ALIASES[(r)$key]} == "$key" ]] && continue
 
-    # 4. Show best match and related aliases with improved formatting
-    if [[ -n "$best_match" ]]; then
-        local best_match_value="${aliases[$best_match]}"
+        # Exact match
+        if [[ "$typed" = "$value" ]]; then
+            exact_matches+=("$key")
+        # Global aliases are always "other" matches (can be risky)
+        elif [[ "$typed" = *"$value"* ]]; then
+            other_matches+=("$key")
+        fi
+    done <<< "$global_aliases_output"
 
-        # Show best match with clearer message
-        _write_ysu_buffer "${BOLD}${GREEN}Best match for ${BLUE}\"$typed\"${GREEN}:${NONE} ${YELLOW}${best_match}${NONE} ${BLUE}→${NONE} ${BLUE}"
-        _write_ysu_buffer "$(_truncate_command "$(_quote_command "$best_match_value")")${NONE}\n"
+    # Check git aliases
+    if [[ "$typed" = "git "* ]]; then
+        local git_aliases_output
+        git_aliases_output=$(git config --get-regexp "^alias\..+$" 2>/dev/null || true)
+        while read key value; do
+            [[ -z "$key" ]] && continue
+            key="${key#alias.}"
+            [[ -z "$value" ]] && { value="${key#* }"; key="${key%% *}"; }
 
-        # 5. If ALL mode is on, show related aliases for discovery
-        [[ "$YSU_MODE" != "ALL" || ${#found_aliases[@]} -le 1 ]] && return
+            # Create git command: "git " + value
+            local git_command="git $value"
 
-        # Collect truly related aliases (same base command and subcommand)
-        local -a related_aliases=()
-
-        for key in ${found_aliases[@]}; do
-            # Skip the best match we already showed
-            [[ "$key" == "$best_match" ]] && continue
-
-            # Only include if commands are semantically related
-            local alias_value="${aliases[$key]}"
-            if _commands_are_related "$typed" "$alias_value"; then
-                related_aliases+=("$key")
+            # Exact match
+            if [[ "$typed" = "$git_command" ]]; then
+                exact_matches+=("$key")
+            # Prefix match (typed is prefix of git alias)
+            elif [[ "$typed" = "$git_command "* ]]; then
+                prefix_matches+=("$key")
+            # Semantic git matches
+            else
+                other_matches+=("$key")
             fi
-        done
-
-        # Show related aliases if we found any
-        [[ ${#related_aliases[@]} -eq 0 ]] && return
-
-        _write_ysu_buffer "${BLUE}Related aliases for ${BLUE}\"$typed\"${BLUE}:${NONE}\n"
-
-        # Sort aliases alphabetically, case-insensitive
-        related_aliases=(${(i)related_aliases})
-
-        # Find maximum alias name length for consistent spacing
-        local max_alias_length=0
-        for key in ${related_aliases[@]}; do
-            [[ ${#key} -gt $max_alias_length ]] && max_alias_length=${#key}
-        done
-
-        for key in ${related_aliases[@]}; do
-            local alias_value="${aliases[$key]}"
-            local quoted_value="$(_quote_command "$alias_value")"
-            local truncated_value="$(_truncate_command "$quoted_value")"
-            # Escape percent signs in command to avoid printf format directive conflicts
-            truncated_value="${truncated_value//\%/%%}"
-            # Use printf for consistent spacing: alias (padded to max width) → command
-            printf -v formatted_line "  ${YELLOW}%-${max_alias_length}s${NONE} ${BLUE}→${NONE} %s\n" "$key" "$truncated_value"
-            _write_ysu_buffer "$formatted_line"
-        done
+        done <<< "$git_aliases_output"
     fi
 
-    # 6. If hardcore mode is on and best match exists, stop execution
-    if [[ -n "$best_match" ]]; then
-        _check_ysu_hardcore "$best_match"
+    # Sort matches by length (shortest first) for safety
+    local -a sorted_prefix_matches=(${(o)prefix_matches})
+    local -a sorted_other_matches=(${(o)other_matches})
+
+    # Combine matches with priority: exact > prefix (shortest) > other (shortest)
+    local -a all_matches=()
+    [[ ${#exact_matches[@]} -gt 0 ]] && all_matches+=($exact_matches)
+    [[ ${#sorted_prefix_matches[@]} -gt 0 ]] && all_matches+=($sorted_prefix_matches)
+    [[ ${#sorted_other_matches[@]} -gt 0 ]] && all_matches+=($sorted_other_matches)
+
+    _ALIAS_RESULT[best_match]="${all_matches[1]}"
+    _ALIAS_RESULT[found_aliases]="${all_matches[@]}"
+}
+
+function _check_aliases() {
+    local typed="$1"
+    expanded="$2"
+
+    [[ "$typed" = "sudo "* ]] && return
+
+    _find_best_alias "$typed" "$expanded"
+    local best_match="${_ALIAS_RESULT[best_match]}"
+    [[ -z "$best_match" ]] && return
+
+    local -a found_aliases=(${(s/ /)_ALIAS_RESULT[found_aliases]})
+
+    # Determine if we have an exact match
+    local best_match_value="${aliases[$best_match]}"
+    local is_exact_match=false
+
+    if [[ "$best_match_value" = "$typed" ]]; then
+        is_exact_match=true
     fi
 
-    # Simple 6-step process complete
+    # Show match section with appropriate header
+    if [[ "$is_exact_match" = true ]]; then
+        _write_ysu_buffer "\n${BOLD}${GREEN}Alias found for ${BLUE}\"$typed\"${GREEN}:${NONE}\n"
+    else
+        _write_ysu_buffer "\n${BOLD}${GREEN}Best match for ${BLUE}\"$typed\"${GREEN}:${NONE}\n"
+    fi
+
+    printf -v formatted_line "  ${YELLOW}%s${NONE} ${BLUE}→${NONE} %s\n" "$best_match" "$(_truncate_command "$(_quote_command "$best_match_value")")"
+    _write_ysu_buffer "$formatted_line"
+
+    # Show related aliases if enabled
+    _is_true "$YSU_SHOW_RECOMMENDED" || return
+    [[ ${#found_aliases[@]} -gt 1 ]] || return
+
+    local -a related_aliases=()
+    for key in ${found_aliases[@]}; do
+        [[ "$key" == "$best_match" ]] && continue
+        local alias_value="${aliases[$key]}"
+        if _commands_are_related "$typed" "$alias_value"; then
+            related_aliases+=("$key")
+        fi
+    done
+
+    [[ ${#related_aliases[@]} -eq 0 ]] && return
+
+    _write_ysu_buffer "${BLUE}Related aliases:${NONE}\n"
+    related_aliases=(${(i)related_aliases})
+
+    local max_alias_length=0
+    for key in ${related_aliases[@]}; do
+        [[ ${#key} -gt $max_alias_length ]] && max_alias_length=${#key}
+    done
+
+    for key in ${related_aliases[@]}; do
+        local alias_value="${aliases[$key]}"
+        local quoted_value="$(_quote_command "$alias_value")"
+        local truncated_value="$(_truncate_command "$quoted_value")"
+        truncated_value="${truncated_value//\%/%%}"
+        printf -v formatted_line "  ${YELLOW}%-${max_alias_length}s${NONE} ${BLUE}→${NONE} %s\n" "$key" "$truncated_value"
+        _write_ysu_buffer "$formatted_line"
+    done
 }
 
-function disable_you_should_use() {
-    add-zsh-hook -D preexec _check_aliases
-    add-zsh-hook -D preexec _check_global_aliases
-    add-zsh-hook -D preexec _check_git_aliases
-    add-zsh-hook -D precmd _flush_ysu_buffer
-}
-
-function enable_you_should_use() {
-    disable_you_should_use   # Delete any possible pre-existing hooks
-    add-zsh-hook preexec _check_aliases
-    add-zsh-hook preexec _check_global_aliases
-    add-zsh-hook preexec _check_git_aliases
-    add-zsh-hook precmd _flush_ysu_buffer
-}
-
+# Initialize widget system
 autoload -Uz add-zsh-hook
-enable_you_should_use
+zle -N alias_teacher_accept_line_wrapper
+bindkey '^M' alias_teacher_accept_line_wrapper
