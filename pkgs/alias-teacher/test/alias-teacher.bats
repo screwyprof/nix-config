@@ -4,9 +4,8 @@
 source test/test_helper.zsh
 
 @test "basic alias suggestion for git status" {
-    # arrange
     run $TEST_SHELL '
-        # arrange: load helper and setup environment
+        # arrange
         source test/test_helper.zsh
         setup_hardcore_all_mode
         setup_common_git_aliases
@@ -20,9 +19,8 @@ source test/test_helper.zsh
 }
 
 @test "git diff command shows related aliases" {
-    # arrange
     run $TEST_SHELL '
-        # arrange: load helper and setup environment
+        # arrange
         source test/test_helper.zsh
         setup_hardcore_all_mode
         setup_common_git_aliases
@@ -40,9 +38,8 @@ source test/test_helper.zsh
 }
 
 @test "git status in ALL mode shows all git status variants" {
-    # arrange
     run $TEST_SHELL '
-        # arrange: load helper and setup environment
+        # arrange
         source test/test_helper.zsh
         setup_hardcore_all_mode
         setup_common_git_aliases
@@ -60,9 +57,8 @@ source test/test_helper.zsh
 }
 
 @test "git diff --cached shows only cached-related aliases" {
-    # arrange
     run $TEST_SHELL '
-        # arrange: load helper and setup environment
+        # arrange
         source test/test_helper.zsh
         setup_hardcore_all_mode
         setup_common_git_aliases
@@ -77,4 +73,24 @@ source test/test_helper.zsh
     echo "$output" | grep -qv "GwD" || { echo "❌ GwD incorrectly included"; exit 1; }
     echo "$output" | grep -q "Gid" || { echo "❌ Missing Gid"; exit 1; }
     echo "$output" | grep -q "GiD" || { echo "❌ Missing GiD"; exit 1; }
+}
+
+@test "best match should prioritize exact matches over longest partial matches" {
+    run $TEST_SHELL '
+        # arrange
+        source test/test_helper.zsh
+        setup_hardcore_all_mode
+        setup_common_git_aliases
+
+        # Set up aliases where there is no exact match for "git log"
+        # but there is a general "G" alias for "git"
+
+        # act
+        _check_aliases "git log" "git log"
+        _flush_ysu_buffer
+    '
+    # assert - The best match should be "G" for "git" since there is no exact "git log" alias
+    echo "$output" | grep -q "Best match for.*git log.*G" || { echo "❌ Should recommend G as best match for git log"; exit 1; }
+    echo "$output" | grep -q "GlO" || { echo "❌ Should show GlO as related alias"; exit 1; }
+    echo "$output" | grep -qv "Best match for.*git log.*GlO" || { echo "❌ GlO should not be best match since it adds flags"; exit 1; }
 }

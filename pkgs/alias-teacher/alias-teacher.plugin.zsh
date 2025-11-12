@@ -351,19 +351,46 @@ function _check_aliases() {
         return
     fi
 
-    # 2. Find matching aliases
+    # 2. Find matching aliases and categorize by match type
+    local -a exact_matches=()  # Commands that exactly match the typed command
+    local -a prefix_matches=() # Commands where typed command is a prefix
+    local -a semantic_matches=() # Commands that share base command and subcommand
+
     for key value in ${(kv)aliases}; do
         # Skip ignored aliases
         [[ ${YSU_IGNORED_ALIASES[(r)$key]} == "$key" ]] && continue
 
-        # Check if typed command matches this alias value
-        if _command_matches "$typed" "$value"; then
+        # Check for exact match first
+        if [[ "$typed" = "$value" ]]; then
+            exact_matches+=("$key")
             found_aliases+=("$key")
+            continue
+        fi
 
-            # Set best match (first longest match)
-            [[ -z "$best_match" ]] && best_match="$key"
+        # Check for prefix match (typed command is prefix of alias)
+        if [[ "$typed" = "$value "* ]]; then
+            prefix_matches+=("$key")
+            found_aliases+=("$key")
+            continue
+        fi
+
+        # Check for semantic match (same base command and subcommand)
+        if _command_matches "$typed" "$value"; then
+            semantic_matches+=("$key")
+            found_aliases+=("$key")
         fi
     done
+
+    # 3. Select best match with priority: exact > prefix > semantic (shortest first)
+    if [[ ${#exact_matches[@]} -gt 0 ]]; then
+        best_match="${exact_matches[1]}"
+    elif [[ ${#prefix_matches[@]} -gt 0 ]]; then
+        # For prefix matches, prefer the shortest (closest to typed command)
+        best_match="${prefix_matches[1]}"
+    elif [[ ${#semantic_matches[@]} -gt 0 ]]; then
+        # For semantic matches, prefer the shortest (closest to typed command)
+        best_match="${semantic_matches[1]}"
+    fi
 
     # 4. Show best match and related aliases with improved formatting
     if [[ -n "$best_match" ]]; then
@@ -408,6 +435,8 @@ function _check_aliases() {
             local alias_value="${aliases[$key]}"
             local quoted_value="$(_quote_command "$alias_value")"
             local truncated_value="$(_truncate_command "$quoted_value")"
+            # Escape percent signs in command to avoid printf format directive conflicts
+            truncated_value="${truncated_value//\%/%%}"
             # Use printf for consistent spacing: alias (padded to max width) → command
             printf -v formatted_line "  ${YELLOW}%-${max_alias_length}s${NONE} ${BLUE}→${NONE} %s\n" "$key" "$truncated_value"
             _write_ysu_buffer "$formatted_line"
