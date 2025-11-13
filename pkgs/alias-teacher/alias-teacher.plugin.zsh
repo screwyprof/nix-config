@@ -30,6 +30,11 @@ export YSU_MAX_LINE_LENGTH="${YSU_MAX_LINE_LENGTH:-120}"
 # Usage: export YSU_MODE="ALL"
 export YSU_MODE="${YSU_MODE:-BESTMATCH}"
 
+# Backward compatibility: YSU_MODE=ALL implies YSU_SHOW_RECOMMENDED=1
+if [[ "$YSU_MODE" == "ALL" ]]; then
+    YSU_SHOW_RECOMMENDED=1
+fi
+
 # YSU_HARDCORE: Enable hardcore mode to stop execution when alias found
 # Options: 1 (enabled), 0 (disabled), or set for specific aliases only
 # Usage: export YSU_HARDCORE=1
