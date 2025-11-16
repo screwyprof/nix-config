@@ -27,6 +27,12 @@
           rust-lang.rust-analyzer
           tamasfe.even-better-toml
 
+          # AI
+          anthropic.claude-code
+
+          # c/c++
+          ms-vscode.cpptools-extension-pack
+
           # Development Tools
           fill-labs.dependi
           eamodio.gitlens
