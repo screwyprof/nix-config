@@ -31,7 +31,9 @@
           anthropic.claude-code
 
           # c/c++
-          ms-vscode.cpptools-extension-pack
+          #ms-vscode.cpptools-extension-pack
+          ms-vscode.cpptools
+          ms-vscode.cmake-tools
 
           # Development Tools
           fill-labs.dependi
