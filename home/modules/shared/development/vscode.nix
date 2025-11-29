@@ -28,7 +28,7 @@
           tamasfe.even-better-toml
 
           # AI
-          anthropic.claude-code
+          #anthropic.claude-code
 
           # c/c++
           #ms-vscode.cpptools-extension-pack
