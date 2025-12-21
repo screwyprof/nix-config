@@ -109,11 +109,13 @@
     casks = [
       "1password"
       "bitwarden"
+      "crossover"
       "cursor"
       "firefox"
       "google-chrome"
       "iterm2"
       "jetbrains-toolbox"
+      "parallels"
       "tableplus"
       "telegram"
       "zoom"
