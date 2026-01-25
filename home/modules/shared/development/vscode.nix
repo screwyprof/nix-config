@@ -1,8 +1,4 @@
 { config, pkgs, ... }: {
-  home.sessionVariables = {
-    VISUAL = "code";
-  };
-
   programs.vscode = {
     enable = true;
     package = pkgs.vscode;
@@ -194,6 +190,9 @@
           "rust-analyzer.lens.references.adt.enable" = true;
           "rust-analyzer.lens.references.method.enable" = true;
           "rust-analyzer.lens.references.trait.enable" = true;
+
+          # Task settings
+          "task.allowAutomaticTasks" = "off";
 
           # Terminal settings
           "terminal.integrated.defaultProfile.osx" = "zsh";

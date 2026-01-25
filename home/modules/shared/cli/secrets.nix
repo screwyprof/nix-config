@@ -22,7 +22,7 @@
       zhipu_api_key = {
         #sopsFile = ../../../../secrets/secrets.yaml;
         key = "zai/zhipu_api_key";
-        #path = "${config.xdg.stateHome}/sops-nix/secrets/zhipu_api_key";
+        path = "${config.xdg.stateHome}/sops-nix/secrets/zhipu_api_key";
         mode = "0400";
       };
     };
