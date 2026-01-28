@@ -17,12 +17,15 @@
     # location of the file(s) containing the encrypted secrets
     defaultSopsFile = ../../../../secrets/secrets.yaml;
 
+    # Otherwise launchd won't find the required getconf
+    environment.PATH = lib.mkForce "/usr/bin:/bin:/usr/sbin:/sbin";
+
     secrets = {
       # Define which secrets to make available to this user
       zhipu_api_key = {
         #sopsFile = ../../../../secrets/secrets.yaml;
         key = "zai/zhipu_api_key";
-        path = "${config.xdg.stateHome}/sops-nix/secrets/zhipu_api_key";
+        #path = "${config.xdg.stateHome}/sops-nix/secrets/zhipu_api_key";
         mode = "0400";
       };
     };
