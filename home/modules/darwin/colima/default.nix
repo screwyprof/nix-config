@@ -44,49 +44,22 @@ in
       # Install all required packages
       packages = requiredPackages;
 
-      # Install configuration files
-      file = {
-        "${paths.colimaConfigDir}/docker/colima.yaml".source = ./configs/docker.yaml;
-        "${paths.colimaConfigDir}/k8s/colima.yaml".source = ./configs/k8s.yaml;
-      };
-
-      # Clean up previous installation
-      activation.cleanupColima = lib.hm.dag.entryBefore [ "checkLaunchAgents" ] ''
-        export PATH="${paths.systemPath}:$PATH"
-        export XDG_CONFIG_HOME="${config.xdg.configHome}"
-        export COLIMA_HOME="${paths.colimaConfigDir}"
-
-        verboseEcho "Cleaning up Colima..."
-        run "${paths.wrapperScript}" ${defaultProfile} clean
-        run rm -f "/tmp/colima-${defaultProfile}.lock" || true
-      '';
-
-      # Manual reload is REQUIRED - home-manager's setupLaunchAgents doesn't auto-load
-      activation.reloadColimaAgent = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        verboseEcho "Reloading Colima launchd agent..."
-        
-        # Unload the old agent if it's running
-        if /bin/launchctl list "${agent.label}" >/dev/null 2>&1; then
-          verboseEcho "Unloading existing Colima agent..."
-          run /bin/launchctl unload "${agent.plist}" 2>/dev/null || true
-          
-          # Wait a moment for the unload to complete
-          run sleep 2
-        fi
-        
-        # Load the new agent
-        verboseEcho "Loading updated Colima agent..."
-        run /bin/launchctl load "${agent.plist}"
-        
-        verboseEcho "Colima agent reloaded successfully"
-      '';
-
-      # Add COLIMA_HOME to the shell environment
+      # Set COLIMA_HOME for interactive shells
       sessionVariables = {
         COLIMA_HOME = paths.colimaConfigDir;
       };
     };
 
+    # Copy config files (activation script)
+    home.activation.copyColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      mkdir -p ${paths.colimaConfigDir}/docker ${paths.colimaConfigDir}/k8s
+      cp -f ${./configs/docker.yaml} ${paths.colimaConfigDir}/docker/colima.yaml
+      cp -f ${./configs/k8s.yaml} ${paths.colimaConfigDir}/k8s/colima.yaml
+      chmod u+w ${paths.colimaConfigDir}/docker/colima.yaml
+      chmod u+w ${paths.colimaConfigDir}/k8s/colima.yaml
+    '';
+
+    # Configure launchd agent
     launchd.agents.colima = {
       enable = true;
       config = {
