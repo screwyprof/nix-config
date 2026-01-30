@@ -48,6 +48,7 @@
 
           # Remote Development
           ms-vscode-remote.remote-ssh
+          ms-vscode-remote.remote-containers
         ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           # Coverage Tools
           {
