@@ -77,12 +77,121 @@
 
         userSettings = {
           # A temp hack to avoid errors for extensions which haven't migrated yet
-          # https://code.visualstudio.com/updates/v1_101#_web-environment-detection
+          # https=//code.visualstudio.com/updates/v1_101#_web-environment-detection
           "extensions.supportNodeGlobalNavigator" = true;
 
+          # Disable telemetry
+          "telemetry.telemetryLevel" = "off";
+
+          # Disable AI slop
+          # https://gist.github.com/rpavlik/95d6c40d8407805e2c20bdf6d9efa44e
+          "accessibility.verboseChatProgressUpdates" = false;
+          "accessibility.verbosity.inlineChat" = false;
+          "accessibility.verbosity.panelChat" = false;
+          "accessibility.verbosity.terminalChatOutput" = false;
+          "chat.agent.codeBlockProgress" = false;
+          "chat.agent.enabled" = false;
+          "chat.agent.maxRequests" = 0;
+          "chat.agent.thinking.generateTitles" = false;
+          "chat.agent.thinking.terminalTools" = false;
+          "chat.agentsControl.enabled" = false;
+          "chat.agentSkillsLocations" = {
+            ".agents/skills" = false;
+            ".claude/skills" = false;
+            ".github/skills" = false;
+            "~/.agents/skills" = false;
+            "~/.claude/skills" = false;
+            "~/.copilot/skills" = false;
+          };
+          "chat.allowAnonymousAccess" = false;
+          "chat.checkpoints.enabled" = false;
+          "chat.commandCenter.enabled" = false;
+          "chat.customAgentInSubagent.enabled" = false;
+          "chat.detectParticipant.enabled" = false;
+          "chat.disableAIFeatures" = true;
+          "chat.editMode.hidden" = true;
+          "chat.editRequests" = "none";
+          "chat.extensionTools.enabled" = false;
+          "chat.extensionUnification.enabled" = false;
+          "chat.focusWindowOnConfirmation" = false;
+          "chat.implicitContext.enabled" = {
+            "panel" = "never";
+          };
+          "chat.implicitContext.suggestedContext" = false;
+          "chat.includeApplyingInstructions" = false;
+          "chat.instructionsFilesLocations" = {
+            ".github/instructions" = false;
+          };
+          "chat.mcp.access" = "none";
+          "chat.mcp.apps.enabled" = false;
+          "chat.mcp.autostart" = "never";
+          "chat.mcp.discovery.enabled" = {
+            "claude-desktop" = false;
+            "cursor-global" = false;
+            "cursor-workspace" = false;
+            "windsurf" = false;
+          };
+          "chat.mcp.gallery.enabled" = false;
+          "chat.promptFiles" = false;
+          "chat.promptFilesLocations" = {
+            ".github/prompts" = false;
+          };
+          "chat.sendElementsToChat.attachCSS" = false;
+          "chat.sendElementsToChat.attachImages" = false;
+          "chat.sendElementsToChat.enabled" = false;
+          "chat.setupFromDialog" = false;
+          "chat.showAgentSessionsViewDescription" = false;
+          "chat.tools.edits.autoApprove" = {
+            "**/*" = false;
+          };
+          "chat.tools.terminal.autoApproveWorkspaceNpmScripts" = false;
+          "chat.tools.terminal.enableAutoApprove" = false;
+          "chat.tools.todos.showWidget" = false;
+          "chat.unifiedAgentsBar.enabled" = false;
+          "chat.useAgentSkills" = false;
+          "chat.useAgentsMdFile" = false;
+          "chat.useFileStorage" = false;
+          "chat.viewSessions.enabled" = false;
+          "dataWrangler.experiments.copilot.enabled" = false;
+          "github.copilot.editor.enableAutoCompletions" = false;
+          "github.copilot.editor.enableCodeActions" = false;
+          "github.copilot.enable" = false;
+          "github.copilot.nextEditSuggestions.enabled" = false;
+          "github.copilot.renameSuggestions.triggerAutomatically" = false;
+          "githubPullRequests.codingAgent.autoCommitAndPush" = false;
+          "githubPullRequests.codingAgent.codeLens" = false;
+          "githubPullRequests.codingAgent.enabled" = false;
+          "githubPullRequests.codingAgent.uiIntegration" = false;
+          "githubPullRequests.experimental.chat" = false;
+          "gitlab.duoChat.enabled" = false;
+          "inlineChat.holdToSpeech" = false;
+          "inlineChat.lineNaturalLanguageHint" = false;
+          "mcp" = {
+            "inputs" = [ ];
+            "servers" = { };
+          };
+          "notebook.experimental.generate" = false;
+          "python.analysis.aiCodeActions" = {
+            "convertFormatString" = false;
+            "convertLambdaToNamedFunction" = false;
+            "generateDocstring" = false;
+            "generateSymbol" = false;
+            "implementAbstractClasses" = false;
+          };
+          "python.experiments.enabled" = false;
+          "redhat.telemetry.enabled" = false;
+          "remote.SSH.experimental.chat" = false;
+          "telemetry.feedback.enabled" = false;
+          "terminal.integrated.initialHint" = false;
+          "terminal.integrated.suggest.enabled" = false;
+          "workbench.commandPalette.showAskInChat" = false;
+          "workbench.editor.empty.hint" = "hidden";
+          "workbench.settings.showAISearchToggle" = false;
+          "workbench.secondarySideBar.defaultVisibility" = "hidden";
+
           # Update settings
-          "extensions.autoCheckUpdates" = false;
-          "update.mode" = "none";
+          #"extensions.autoCheckUpdates" = false;
+          #"update.mode" = "none";
 
           # Disable executing script on project startup
           "task.allowAutomaticTasks" = "off";
@@ -95,7 +204,7 @@
           "window.zoomLevel" = 1;
 
           # Terminal settings
-          "terminal.integrated.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+          "terminal.integrated.fontFamily" = "'MesloLGMDZ Nerd Font'; 'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
           "terminal.integrated.fontSize" = 20;
           "terminal.integrated.defaultProfile.osx" = "zsh";
           "terminal.integrated.profiles.osx" = {
@@ -117,7 +226,7 @@
           # "coverage-gutters.showGutterCoverage" = true;
           # "coverage-gutters.showLineCoverage" = true;
           # "coverage-gutters.showRulerCoverage" = true;
-          # "coverage-gutters.highlightdark" = "rgba(64,128,64,0.4)";
+          # "coverage-gutters.highlightdark" = "rgba(64;128;64;0.4)";
 
           # # Go settings
           # "[go]" = {
@@ -141,10 +250,10 @@
           # };
           # "go.coverageDecorator" = {
           #   "type" = "highlight";
-          #   "coveredHighlightColor" = "rgba(64,128,128,0.2)";
-          #   "uncoveredHighlightColor" = "rgba(128,64,64,0.2)";
-          #   "coveredBorderColor" = "rgba(64,128,128,0.4)";
-          #   "uncoveredBorderColor" = "rgba(128,64,64,0.4)";
+          #   "coveredHighlightColor" = "rgba(64;128;128;0.2)";
+          #   "uncoveredHighlightColor" = "rgba(128;64;64;0.2)";
+          #   "coveredBorderColor" = "rgba(64;128;128;0.4)";
+          #   "uncoveredBorderColor" = "rgba(128;64;64;0.4)";
           # };
 
           # "[python]" = {
@@ -183,14 +292,14 @@
           # "rust-analyzer.lens.references.trait.enable" = true;
 
           # Font settings
-          "editor.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+          "editor.fontFamily" = "'MesloLGMDZ Nerd Font'; 'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
           "editor.fontLigatures" = true;
           "editor.fontSize" = 20;
           "editor.lineHeight" = 30;
           "editor.inlayHints.enabled" = "onUnlessPressed";
           "editor.inlineSuggest.enabled" = true;
-          "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font', 'JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
-          "debug.console.fontFamily" = "'MesloLGMDZ Nerd Font','JetBrainsMono NF', 'FiraCode Nerd Font', monospace";
+          "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font'; 'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
+          "debug.console.fontFamily" = "'MesloLGMDZ Nerd Font';'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
           "debug.console.fontSize" = 20;
 
           # # File settings
