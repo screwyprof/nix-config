@@ -48,16 +48,34 @@ in
       sessionVariables = {
         COLIMA_HOME = paths.colimaConfigDir;
       };
-    };
 
-    # Copy config files (activation script)
-    home.activation.copyColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      mkdir -p ${paths.colimaConfigDir}/docker ${paths.colimaConfigDir}/k8s
-      cp -f ${./configs/docker.yaml} ${paths.colimaConfigDir}/docker/colima.yaml
-      cp -f ${./configs/k8s.yaml} ${paths.colimaConfigDir}/k8s/colima.yaml
-      chmod u+w ${paths.colimaConfigDir}/docker/colima.yaml
-      chmod u+w ${paths.colimaConfigDir}/k8s/colima.yaml
-    '';
+      file = {
+        # This creates a "GC Root" by putting a symlink in the Nix Profile.
+        # Nix GC will now see these files as 'in use' by your current profile.
+        "${config.xdg.cacheHome}/colima/pins/docker.yaml.src".source = ./configs/docker.yaml;
+        "${config.xdg.cacheHome}/colima/pins/k8s.yaml.src".source = ./configs/k8s.yaml;
+      };
+
+      # Copy config files (activation script)
+      # Colima can't work with symlinked configs...
+      activation.copyColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        run mkdir -p ${paths.colimaConfigDir}/docker ${paths.colimaConfigDir}/k8s
+        
+        # Copy function to handle store-to-mutable transitions
+        copy_config() {
+          local src="$1"
+          local dest="$2"
+          # Only copy if different or missing to avoid unnecessary writes
+          if ! cmp -s "$src" "$dest"; then
+            cp -f "$src" "$dest"
+            chmod u+w "$dest"
+          fi
+        }
+
+        run copy_config "${./configs/docker.yaml}" "${paths.colimaConfigDir}/docker/colima.yaml"
+        run copy_config "${./configs/k8s.yaml}" "${paths.colimaConfigDir}/k8s/colima.yaml"
+      '';
+    };
 
     # Configure launchd agent
     launchd.agents.colima = {
