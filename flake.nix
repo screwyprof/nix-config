@@ -75,7 +75,6 @@
           # Platform-agnostic packages
           alias-teacher = final.callPackage ./pkgs/alias-teacher { };
           bmad-method = final.callPackage ./pkgs/bmad-method { };
-          bat = final.callPackage ./pkgs/bat { };
           markdown-tree-parser = final.callPackage ./pkgs/markdown-tree-parser { };
           zim-plugins = final.callPackage ./pkgs/zim-plugins { };
         })
