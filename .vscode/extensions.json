@@ -1,26 +1,8 @@
 {
     "recommendations": [
-        "dracula-theme.theme-dracula",
-        "eamodio.gitlens",
-        "fill-labs.dependi",
-        "formulahendry.auto-close-tag",
-        "golang.go",
-        "hdevalke.rust-test-lens",
         "jnoortheen.nix-ide",
-        "jscearcy.rust-doc-viewer",
-        "ms-azuretools.vscode-docker",
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-vscode-remote.remote-ssh",
-        "ms-vscode.live-server",
-        "ms-vscode.makefile-tools",
+        "dracula-theme.theme-dracula",
         "pkief.material-icon-theme",
         "pkief.material-product-icons",
-        "rust-lang.rust-analyzer",
-        "ryanluker.vscode-coverage-gutters",
-        "tamasfe.even-better-toml",
-        "usernamehw.errorlens",
-        "vadimcn.vscode-lldb",
-        "Anthropic.claude-code"
     ]
 }
