@@ -8,7 +8,7 @@ in
     packages = with pkgs; [
       # Core Python
       python
-      poetry
+      #poetry
       pipx
 
       # Development tools

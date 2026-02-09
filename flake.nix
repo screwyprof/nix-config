@@ -3,8 +3,11 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
-    pre-commit-hooks.url = "github:cachix/git-hooks.nix";
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    pre-commit-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-filter.url = "github:numtide/nix-filter";
     nix-colors.url = "github:misterio77/nix-colors";
     nix-index-database = {
@@ -13,12 +16,12 @@
     };
     darwin = {
       url = "github:lnl7/nix-darwin";
-      #url = "github:nix-darwin/nix-darwin/nix-darwin-25.05";
+      #url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
       url = "github:nix-community/home-manager";
-      #url = "github:nix-community/home-manager/release-25.05";
+      #url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-homebrew = {
@@ -44,6 +47,10 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # nix-auto-follow = {
+    #   url = "github:fzakaria/nix-auto-follow";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
   };
   outputs = inputs@{ self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-filter, sops-nix, ... }:
     let
@@ -63,7 +70,7 @@
       # Common overlays
       overlays = [
         inputs.rust-overlay.overlays.default
-        # Custom packages overlay
+        # Custom package overlays
         (final: _: {
           # Platform-agnostic packages
           alias-teacher = final.callPackage ./pkgs/alias-teacher { };
