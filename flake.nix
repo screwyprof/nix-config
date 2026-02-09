@@ -151,7 +151,7 @@
             {
               nix-homebrew = {
                 enable = true;
-                enableRosetta = true;
+                #enableRosetta = true;
                 mutableTaps = false;
                 user = lib.mkDefault systemAdmin.username; # Admin user for Homebrew installation
                 taps = {
