@@ -107,18 +107,18 @@
     };
 
     casks = [
-      "1password"
+      #1password"
       "bitwarden"
       "crossover"
-      "cursor"
+      #"cursor"
       "firefox"
-      "google-chrome"
+      #"google-chrome"
       "iterm2"
       "jetbrains-toolbox"
       "parallels"
       "tableplus"
-      "telegram"
-      "zoom"
+      #"telegram"
+      #"zoom"
     ];
 
     brews = [
