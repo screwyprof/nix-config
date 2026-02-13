@@ -87,6 +87,9 @@
           "extensions.autoCheckUpdates" = false;
           "update.mode" = "none";
 
+          # Don't recomend to install extensions.
+          "extensions.ignoreRecommendations" = true;
+
           # Disable AI slop
           # https://gist.github.com/rpavlik/95d6c40d8407805e2c20bdf6d9efa44e
           "accessibility.verboseChatProgressUpdates" = false;
