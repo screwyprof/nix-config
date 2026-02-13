@@ -30,14 +30,7 @@ Personal Nix configuration for macOS and Linux systems.
    sh <(curl -L https://nixos.org/nix/install)
    ```
 
-5. Enable flakes and configure Nix:
-   ```bash
-   mkdir -p ~/.config/nix
-   echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
-   echo "download-buffer-size = 100000000" >> ~/.config/nix/nix.conf
-   ```
-
-6. Clone this repository:
+5. Clone this repository:
    ```bash
    git clone https://github.com/your-username/nix-config.git ~/.config/nix-config
    cd ~/.config/nix-config
@@ -47,7 +40,10 @@ Personal Nix configuration for macOS and Linux systems.
 
 ```bash
 # For first-time build:
-nix run nix-darwin -- switch --flake '.#macbook'
+sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
+sudo mv /etc/zshrc /etc/zshrc.before-nix-darwin
+
+sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake '.#macbook'
 
 # For subsequent builds:
 nix-rebuild-host    # For local MacBook
