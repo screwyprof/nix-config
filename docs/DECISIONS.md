@@ -59,3 +59,36 @@ A chronological record of decisions made in `nix-config`, capturing what sparked
 **Future Me Notes:** This makes `BMad` more self-contained in our Nix environment. The `md-tree` command is now available system-wide.
 
 ---
+
+## 004: Remove BMad Integration
+
+**Context:** After integrating BMad as a Nix package and using it for several months, realized it was overkill for personal workflow. The structured agent approach (Analyst, PM, Architect, Dev, etc.) and extensive workflows were designed for team environments, not solo development.
+
+**The journey:** Initially adopted BMad to bring structure to complex development tasks. Created Nix packages for both BMad (v4.34.0, updated to v4.35.3) and its dependency markdown-tree-parser. However, in practice:
+
+1. **Too much overhead** - Simple tasks didn't need full agent orchestration
+2. **Solo workflow mismatch** - Roles like PM, QA, SM designed for teams
+3. **Complexity vs benefit** - Setup and maintenance outweighed advantages
+4. **Better alternatives** - Direct Claude Code interaction more efficient for solo work
+
+**What we tried:**
+1. Full BMad integration with all agents → Too heavyweight for this project
+2. Selective agent usage → Still required maintaining entire framework
+3. Direct Claude Code usage → Simpler, more effective
+
+**What got removed:**
+- `.bmad-core/` directory (96 files): agents, workflows, checklists, templates
+- `.claude/commands/BMad/`: BMad slash commands
+- BMad-related documentation: `docs/bmad-method.md`
+
+**Outcome:** Streamlined configuration by removing BMad framework entirely.
+
+**Lessons learned:**
+- Team-oriented frameworks don't always translate well to solo workflows
+- More structure ≠ more productivity for individual developers
+- YAGNI principle applies to development tools too
+- Better to start simple and add complexity when actually needed
+
+**Future Me Notes:** Don't reinstitute heavy frameworks unless there's a clear, demonstrated need. For personal projects, direct AI interaction with proper planning (when needed) works better than rigid agent systems. If document sharding becomes important, markdown-tree-parser is still available.
+
+---
