@@ -211,13 +211,19 @@
           "window.zoomLevel" = 1;
 
           # Terminal settings
-          "terminal.integrated.fontFamily" = "'MesloLGMDZ Nerd Font'; 'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
+          "terminal.integrated.shellIntegration.enabled" = false;
+          "terminal.integrated.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
           "terminal.integrated.fontSize" = 20;
+          "terminal.integrated.fontLigatures.enabled" = true;
           "terminal.integrated.defaultProfile.osx" = "zsh";
           "terminal.integrated.profiles.osx" = {
             "zsh" = {
               "path" = "${config.home.homeDirectory}/.nix-profile/bin/zsh";
             };
+          };
+          # auto-close terminal window when devcontainer opens
+          "terminal.integrated.autoReplies" = {
+            "Done. Press any key to close the terminal." = "\r";
           };
 
           # # LLDB settings
@@ -299,14 +305,14 @@
           # "rust-analyzer.lens.references.trait.enable" = true;
 
           # Font settings
-          "editor.fontFamily" = "'MesloLGMDZ Nerd Font'; 'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
+          "editor.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
           "editor.fontLigatures" = true;
           "editor.fontSize" = 20;
           "editor.lineHeight" = 30;
           "editor.inlayHints.enabled" = "onUnlessPressed";
           "editor.inlineSuggest.enabled" = true;
-          "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font'; 'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
-          "debug.console.fontFamily" = "'MesloLGMDZ Nerd Font';'JetBrainsMono NF'; 'FiraCode Nerd Font'; monospace";
+          "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
+          "debug.console.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
           "debug.console.fontSize" = 20;
 
           # # File settings
