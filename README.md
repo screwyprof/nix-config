@@ -1,195 +1,202 @@
-# Nix Configuration
+# nix-config
 
-Personal Nix configuration for macOS and Linux systems.
+Personal Nix configuration for macOS and Linux systems using Nix Flakes, nix-darwin, home-manager, and nix-homebrew.
 
-## Setup
+**Quick Links:**
+- 📖 [Architecture Documentation](docs/architecture.md) - Technical patterns and system organization
+- 📝 [Decision Journal](docs/DECISIONS.md) - Chronological record of significant changes
+- 📋 [Claude Maintenance Guide](CLAUDE.md) - Instructions for AI-assisted maintenance
 
-### Prerequisites
+---
 
-1. Sign in to your iCloud account and enable iCloud Drive:
-   - Open System Settings > Apple ID
-   - Sign in if needed
-   - Enable iCloud Drive
-   - Turn on Desktop & Documents Folders
+*Living document - last updated while actively editing it with Claude!*
 
-   Note: After first build, `~/Projects` symlink will be created and will start working once `iCloud` sync completes.
+## What & Why
 
-2. Make sure Git is available:
-   ```bash
-   # For MacOS, install Xcode Command Line Tools:
-   xcode-select --install
-   ```
+**Problem**: Setting up new dev machines is tedious and error-prone. Installing 50+ tools, recreating years of customizations, dealing with version conflicts between projects. Every setup takes 4-8 hours and something is always forgotten.
 
-3. *Optionally* Install Rosetta 2:
-   ```bash
-   softwareupdate --install-rosetta --agree-to-license
-   ```
+**Solution**: This nix-config uses Nix flakes to make my entire system reproducible. One command sets up everything exactly how I like it. Projects get isolated environments via `direnv + nix`, so no more "works on my machine" issues.
 
-4. Install Nix package manager:
-   ```bash
-   sh <(curl -L https://nixos.org/nix/install)
-   ```
+**Reality Check**: I only set up 2-3 new machines per year, but I switch between projects daily. The real win is seamless project environment switching and fearless experimentation.
 
-5. Clone this repository:
-   ```bash
-   git clone https://github.com/your-username/nix-config.git ~/.config/nix-config
-   cd ~/.config/nix-config
-   ```
+## Architecture
 
-### Initial Build
+This project uses a modular Nix flakes configuration with three-tier module system.
 
-```bash
-# For first-time build:
-sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
-sudo mv /etc/zshrc /etc/zshrc.before-nix-darwin
+**Core Stack**:
+- `nix-darwin`: System-level macOS configuration
+- `home-manager`: User environment management
+- `nix-homebrew`: GUI apps via Homebrew
+- `flakes`: Reproducible, modern Nix
 
-sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake '.#macbook'
+**Design**: Target: 80% shared modules, 20% host-specific. XDG-compliant paths. Immutable Homebrew taps via flake inputs. No secrets in configs.
 
-# For subsequent builds:
-nix-rebuild-host    # For local MacBook
-nix-rebuild-mac     # For Parallels VM
-```
+📖 **See [`docs/architecture.md`](docs/architecture.md)** for detailed technical documentation, module organization, and configuration patterns.
 
-### Post-Installation Setup
+## What's Included
 
-#### Safari Extensions
+**CLI Tools** (50+):
+- Modern replacements: `eza` (ls), `bat` (cat), `fd` (find), `ripgrep` (grep)
+- Shell: ZSH with ZIM framework, Powerlevel10k prompt
+- Dev tools: Git with delta, fzf everywhere, direnv
+- Custom packages: `alias-teacher` (helps learn my own aliases), `mysides` (Finder sidebar management)
 
-1. Enable Noir:
-   - Open Safari > Settings > Extensions
-   - Enable Noir
-   - Configure preferences
+**Development Environments**:
+- Go/Rust dev shells in `dev/` (unused - I create per-project flakes)
+- Claude shell (experimental MCP integration via .envrc)
+- Project isolation via `direnv + flake.nix` (this is the real magic)
+- Pre-commit hooks, formatters, linters
 
-2. Configure AdGuard:
-   - Open Safari > Settings > Extensions
-   - Enable AdGuard
-   - Configure filters and rules
+**System Features**:
+- TouchID for sudo
+- Weekly garbage collection
+- Unified theming (base24/base16)
+- Automated updates via `nix-update` alias
 
-## System Management
+**Via Homebrew** (nix-homebrew manages these):
+- GUI apps: browsers, Slack, Discord, etc.
+- macOS-specific: Rectangle, Bartender, etc.
+- Anything that works better with Homebrew
 
-### Common Commands
+## Honest Trade-offs
 
-```bash
-# System rebuilds
-nix-rebuild-host           # Rebuild macbook configuration
-nix-rebuild-mac            # Rebuild parallels configuration
+**Accepted**:
+- 🗄️ 50GB Nix store → Complete reproducibility
+- 🧩 High complexity → But AI makes it manageable now
+- 🍎 macOS-only → Optimized for what I actually use
+- ⏰ Some maintenance time → Worth it for daily productivity
+- 🚀 ~10min rebuilds → Acceptable for full system updates
 
-# Updates (daily use)
-nix-update                 # Update all flake inputs
-nix-update-nixpkgs         # Update only packages
+**Rejected**:
+- Cross-platform purity (Linux support is scaffolded but unused)
+- Team-friendly (this is MY config, use at your own risk)
+- Minimal/simple (I want all my tools configured perfectly)
 
-# Emergency maintenance (rarely needed)
-nix-cleanup                # Manual cleanup + optimization (auto-GC handles this)
-nix-store-size             # Check store disk usage
-```
-
-## Development
-
-This configuration uses [direnv](https://direnv.net/) to automatically:
-- Load development environment
-- Install pre-commit hooks
-- Set up language-specific tools
-
-Just run:
-```bash
-direnv allow
-```
-
-### Nix Development Tools
-
-All Nix development tools are managed through home-manager (`home/modules/shared/development/nix.nix`):
-- Formatting and linting (nixpkgs-fmt, statix, deadnix, nil)
-- Development utilities (nix-prefetch-github, nix-prefetch-git)
-- Flake checking and hammering
-
-Essential commands:
-```bash
-nix-fmt            # Format Nix files
-nix-check          # Check flake (includes linting via pre-commit hooks)
-nix-update         # Update all flake inputs
-nix-update-nixpkgs # Update only packages
-```
-
-### Pre-commit Hooks
-
-The repository uses pre-commit hooks for Nix files:
-- Format checking (nixpkgs-fmt)
-- Static analysis (statix)
-- Dead code detection (deadnix)
-- Language server checks (nil)
-- Flake checking
-
-The hooks are automatically installed by direnv. To enable them manually:
-```bash
-nix develop
-```
-
-### Language-Specific Development Shells
-
-Quick access to development environments:
-```bash
-dev go               # Enter Go development shell
-dev rust             # Enter Rust development shell
-
-# Or run commands directly
-dev go make build    # Run make build in Go environment
-dev rust cargo test  # Run cargo test in Rust environment
-```
-
-#### Go Development Shell
-Provides: golang, gopls, delve, golangci-lint
-```bash
-dev go              # Enter shell
-dev go make build   # Run command
-```
-
-#### Rust Development Shell
-Provides: Rust toolchain, cargo extensions, coverage tools
-```bash
-dev rust            # Enter shell
-dev rust cargo test # Run command
-```
-
-### Stacking Development Environments
-
-You can combine multiple development environments using direnv. Create a `.envrc` file in your project:
+## Commands I Actually Use
 
 ```bash
-# Example .envrc for a Go + Claude project
-use flake "/Users/happygopher/nix-config/dev/go"
-use flake "/Users/happygopher/nix-config/dev/claude"
+# System management
+nix-rebuild-host      # Rebuild current machine (macbook)
+nix-rebuild-mac       # Rebuild parallels VM
+nix-check            # Run flake checks + pre-commit hooks
+nix-update           # Update all flake inputs
+nix-fmt              # Format Nix files
+nix-cleanup          # Garbage collect + optimize
+
+# Development
+dev go               # Go dev shell (never used)
+dev rust             # Rust dev shell (never used) 
+dev claude           # Claude + MCP servers (testing)
+
+# Reality: I just create flake.nix per project
+# Just cd into any project with flake.nix and direnv does the rest
 ```
 
-Or for a Rust + Claude project:
-```bash
-# Example .envrc for a Rust + Claude project
-use flake "/Users/happygopher/nix-config/dev/rust"
-use flake "/Users/happygopher/nix-config/dev/claude"
-```
+## Current Pain Points
 
-Or combine all three:
-```bash
-# Example .envrc for Go + Rust + Claude project
-use flake "/Users/happygopher/nix-config/dev/go"
-use flake "/Users/happygopher/nix-config/dev/rust"
-use flake "/Users/happygopher/nix-config/dev/claude"
-```
+1. **Project initialization**: Still manually creating `flake.nix` for each project despite having examples
+2. **Nix store size**: 50GB is hefty, haven't investigated optimization
+3. **Documentation**: Future me will forget why I added things
 
-Then activate the environment:
-```bash
-direnv allow
-```
+## Future Explorations
 
-**What happens when stacking:**
-- Each environment's tools are added to PATH
-- Environment variables are properly isolated using project-specific hashes
-- Same project hash is used across all environments for consistency
-- All tools from all environments become available in your shell
+**Near-term Experiments**:
+- **Dev shells usage**: Actually try using `dev go/rust` for 3rd party projects without Nix
+- **Better templates**: Since I create flake.nix for every project anyway:
+  - Extract common patterns
+  - Build real `nix flake init` templates
+  - Stop reinventing the wheel each time
+- **Simplify configs**: Test dotfiles for simple configs (.gitconfig etc)
+- **Documentation**: Add decision comments inline when adding tools
 
-**Note:** Shell aliases from development environments are not available when using direnv (only when using `dev shell` directly). Use full commands like `cargo build`, `go test`, etc.
+**Configuration Chronicle** (The interesting part):
+- **Config DNA Analysis**: 
+  ```bash
+  # Parse shell history for actual usage
+  history | awk '{print $1}' | sort | uniq -c | sort -rn
+  # Track which aliases get used vs ignored
+  # Monthly report: "You haven't used X in 6 months"
+  ```
+- **Decision Journal** (`docs/DECISIONS.md`):
+  ```markdown
+  ## 2024-01-15: Added lazygit
+  Trigger: Complex rebase took 30min
+  Why: Interactive UI beats CLI for conflicts
+  Impact: Rebases now ~5min
+  ```
+- **Usage Patterns**: Which tool combinations always appear together?
 
-## Resources
-- [Official Nix Website](https://nixos.org)
-- [Nix Manual](https://nixos.org/manual/nix/stable/)
-- [Nix Darwin](https://github.com/LnL7/nix-darwin)
-- [Home Manager](https://github.com/nix-community/home-manager)
-- [Nix-Homebrew](https://github.com/zhaofengli/nix-homebrew)
+**Architecture Questions**:
+- Is three-tier module system overkill? Try flatter structure
+- Can we reduce Nix evaluation time?
+- Bridge system config ↔ project configs better
+
+**Maybe Someday**:
+- Shared Nix store between host/VMs (save space)
+- Linux support (keep architecture ready, just in case)
+- Extract alias-teacher as standalone project
+
+## Lessons Learned
+
+1. **Complexity creeps**: Each tool integration led to another
+2. **Documentation matters**: Git commits aren't enough context
+3. **Perfection trap**: Some things are good enough
+4. **AI changes everything**: Nix complexity less scary with Claude/GPT - this is THE game changer that makes Nix viable for personal use
+
+## Technical Choices Worth Remembering
+
+- **ZIM over Oh-My-Zsh**: Performance matters when you live in the terminal
+- **nix-darwin + home-manager**: System + user separation is worth the complexity
+- **direnv**: The magic that makes project switching seamless
+- **Weekly GC**: Automated via launchd, keeps store from growing infinitely
+
+## Risks & Mitigations
+
+**What could break**:
+- macOS updates changing security → Nix community will adapt
+- Nix ecosystem churn → Pin known-good versions
+- Tool abandonment → Find alternatives or remove
+
+**When returning after time away**:
+1. Read this doc first
+2. Check `docs/DECISIONS.md` for context
+3. `git log --oneline` for recent changes
+4. Ask AI to explain confusing Nix expressions
+
+## Key Decisions & Why
+
+**Why Nix over dotfiles/scripts**: 
+- "In the past I had rust, golang, haskell globally installed, now I can pick the right tools for the right project" - Project isolation is THE killer feature
+- Daily value: "I just cd to the project and direnv + nix will do the rest"
+
+**Why accept the complexity**:
+- "It made my life easier... too time consuming to set up the environment and make it eye-pleasing and functionally rich"
+- The 100+ hours are already spent and paid back
+- AI tools now make debugging Nix approachable
+
+**Why this architecture**:
+- Modular approach allows future Linux support "without drastic changes"
+- Three tiers emerged naturally from refactoring, not over-engineering
+- "I patched a lot of tools to my taste" - customization matters
+
+**Why document decisions**:
+- "Maybe a good idea... to capture thought process"
+- Git commits aren't enough - need the "why"
+- Future me needs context, not just code
+
+## Real Talk
+
+This project is **constantly evolving**. It works brilliantly for my needs. Yes, it's complex. Yes, it took 100+ hours to build. But it makes daily development a joy and lets me experiment fearlessly.
+
+Future work should focus on:
+- Simplifying what's already there
+- Documenting the "why" not just the "what"  
+- Measuring actual tool usage (Config DNA)
+- Better project initialization (stop recreating flakes)
+- Resisting feature creep (but embracing useful evolution)
+
+Remember: This serves daily productivity, not architectural purity.
+
+---
+
+*This README is for future me who's forgotten how everything works. Hi future me! The answers you seek are in the git history, AI assistants, and that `docs/DECISIONS.md` file you hopefully created. Don't overthink it.*
