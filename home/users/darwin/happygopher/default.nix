@@ -1,4 +1,5 @@
-{ config, pkgs, ... }: {
+{ config, pkgs, ... }:
+{
   imports = [
     ./preferences
     ./terminal
@@ -10,7 +11,8 @@
     stateVersion = "24.11";
 
     file = {
-      "Projects".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Documents/Projects";
+      "Projects".source =
+        config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Documents/Projects";
     };
 
     # Darwin-specific packages

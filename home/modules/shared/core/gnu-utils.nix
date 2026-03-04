@@ -1,4 +1,5 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+{
   home.sessionPath = [
     "${pkgs.coreutils}/bin"
     "${pkgs.findutils}/bin"

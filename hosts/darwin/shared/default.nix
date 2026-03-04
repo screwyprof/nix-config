@@ -1,4 +1,11 @@
-{ self, lib, pkgs, systemAdmin, config, ... }:
+{
+  self,
+  lib,
+  pkgs,
+  systemAdmin,
+  config,
+  ...
+}:
 {
   imports = [
     ./spotlight.nix
@@ -37,9 +44,15 @@
   nix = {
     package = pkgs.nix;
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       build-users-group = "nixbld";
-      trusted-users = [ "root" systemAdmin.username ];
+      trusted-users = [
+        "root"
+        systemAdmin.username
+      ];
       download-buffer-size = 100000000;
       warn-dirty = false;
 
@@ -77,7 +90,11 @@
     # Enhanced garbage collection strategy
     gc = {
       automatic = true;
-      interval = { Weekday = 0; Hour = 0; Minute = 0; };
+      interval = {
+        Weekday = 0;
+        Hour = 0;
+        Minute = 0;
+      };
       options = "--delete-older-than 30d --max-freed 8G";
     };
 

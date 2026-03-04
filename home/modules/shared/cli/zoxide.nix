@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   home = {
     sessionVariables = {
@@ -19,7 +24,7 @@
               function z() {
                 __zoxide_z "$@"
               }
-        
+
               function zi() {
                 __zoxide_zi "$@"
               }

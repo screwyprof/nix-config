@@ -99,7 +99,7 @@ in
             echo "# Host $word found: line $line"
             grep "$word" /etc/hosts
           fi'
-        
+
         ## export|unset<space><tab>
         zstyle ':fzf-tab:complete:(export|unset):*' fzf-preview '
           echo "=== $word ==="

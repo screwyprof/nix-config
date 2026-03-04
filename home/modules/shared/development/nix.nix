@@ -56,9 +56,15 @@
 
       # System monitoring
       nix-store-size = "du -sh /nix/store";
-    } // (if pkgs.stdenv.isDarwin then {
-      nix-rebuild-host = "nix-rebuild macbook";
-      nix-rebuild-mac = "nix-rebuild parallels";
-    } else { });
+    }
+    // (
+      if pkgs.stdenv.isDarwin then
+        {
+          nix-rebuild-host = "nix-rebuild macbook";
+          nix-rebuild-mac = "nix-rebuild parallels";
+        }
+      else
+        { }
+    );
   };
 }

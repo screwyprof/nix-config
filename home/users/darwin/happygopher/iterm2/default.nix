@@ -1,12 +1,13 @@
-{ lib, ... }: {
+{ lib, ... }:
+{
 
   home.activation = {
     iterm2Settings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       echo "Setting up iTerm2 color scheme..."
-      
+
       # Create necessary directories
       run mkdir -p $HOME/Library/Application\ Support/iTerm2/DynamicProfiles
-      
+
       # Import the profile
       run cp -f "${./profiles.json}" \
         "$HOME/Library/Application Support/iTerm2/DynamicProfiles/happy-gopher.json"

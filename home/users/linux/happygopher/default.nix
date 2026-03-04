@@ -1,4 +1,5 @@
-{ config, ... }: {
+{ config, ... }:
+{
   imports = [
     ../../../home/modules/linux/colima.nix
   ];

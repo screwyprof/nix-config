@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   # Basic configuration
@@ -6,7 +11,9 @@ let
   homeDir = config.home.homeDirectory;
 
   # Create the wrapper script
-  wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (builtins.readFile ./scripts/colima-wrapper.sh);
+  wrapperScript = pkgs.writeScriptBin "colima-wrapper.sh" (
+    builtins.readFile ./scripts/colima-wrapper.sh
+  );
 
   # Required packages
   requiredPackages = with pkgs; [
@@ -60,7 +67,7 @@ in
       # Colima can't work with symlinked configs...
       activation.copyColimaConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         run mkdir -p ${paths.colimaConfigDir}/docker ${paths.colimaConfigDir}/k8s
-        
+
         # Copy function to handle store-to-mutable transitions
         copy_config() {
           local src="$1"

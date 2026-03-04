@@ -8,6 +8,10 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-filter.url = "github:numtide/nix-filter";
     nix-colors.url = "github:misterio77/nix-colors";
     nix-index-database = {
@@ -52,7 +56,18 @@
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
   };
-  outputs = inputs@{ self, nixpkgs, darwin, home-manager, pre-commit-hooks, nix-filter, sops-nix, ... }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      darwin,
+      home-manager,
+      pre-commit-hooks,
+      treefmt-nix,
+      nix-filter,
+      sops-nix,
+      ...
+    }:
     let
       inherit (nixpkgs) lib;
 
@@ -64,7 +79,11 @@
       };
 
       # Systems supported
-      supportedSystems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ];
+      supportedSystems = [
+        "aarch64-darwin"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
       forAllSystems = lib.genAttrs supportedSystems;
 
       # Common overlays
@@ -78,36 +97,54 @@
           markdown-tree-parser = final.callPackage ./pkgs/markdown-tree-parser { };
           zim-plugins = final.callPackage ./pkgs/zim-plugins { };
         })
-        (final: prev: lib.optionalAttrs prev.stdenv.isDarwin {
-          # macOS-specific packages
-          mysides = final.callPackage ./pkgs/mysides { };
-        })
+        (
+          final: prev:
+          lib.optionalAttrs prev.stdenv.isDarwin {
+            # macOS-specific packages
+            mysides = final.callPackage ./pkgs/mysides { };
+          }
+        )
       ];
 
       # Generate nixpkgs for each system
-      nixpkgsFor = forAllSystems (system:
+      nixpkgsFor = forAllSystems (
+        system:
         import nixpkgs {
           inherit system overlays;
           config.allowUnfree = true;
-        });
+        }
+      );
 
       # Common home-manager configuration
-      mkHomeManagerConfig = { username, ... }: {
-        imports = [
-          inputs.sops-nix.homeManagerModules.sops
-          inputs.nix-index-database.homeModules.nix-index
-          ./home/modules/shared # system independent modules
-          ./home/modules/darwin # system specific modules
-          (./home/users/darwin + "/${username}") # user specific modules 
-        ];
-      };
+      mkHomeManagerConfig =
+        { username, ... }:
+        {
+          imports = [
+            inputs.sops-nix.homeManagerModules.sops
+            inputs.nix-index-database.homeModules.nix-index
+            ./home/modules/shared # system independent modules
+            ./home/modules/darwin # system specific modules
+            (./home/users/darwin + "/${username}") # user specific modules
+          ];
+        };
 
       # Darwin system configuration builder
-      mkDarwinSystem = { hostname, system, users ? [ systemAdmin.username ], ... }@args:
+      mkDarwinSystem =
+        {
+          hostname,
+          system,
+          users ? [ systemAdmin.username ],
+          ...
+        }@args:
         darwin.lib.darwinSystem {
           inherit system;
           specialArgs = {
-            inherit inputs hostname systemAdmin self;
+            inherit
+              inputs
+              hostname
+              systemAdmin
+              self
+              ;
           };
           modules = [
             # Host configuration
@@ -161,11 +198,13 @@
                 };
               };
             }
-          ] ++ (args.modules or [ ]);
+          ]
+          ++ (args.modules or [ ]);
         };
 
       # Development shells
-      devShells = forAllSystems (system:
+      devShells = forAllSystems (
+        system:
         let
           pkgs = nixpkgsFor.${system};
         in
@@ -176,13 +215,35 @@
             ];
             inherit (self.checks.${system}.pre-commit-check) shellHook;
           };
-        });
+        }
+      );
+
+      # Treefmt evaluation for formatting
+      treefmtEval = forAllSystems (
+        system:
+        treefmt-nix.lib.evalModule nixpkgsFor.${system} {
+          # Used to find the project root
+          projectRootFile = "flake.nix";
+
+          # Enable the Nix formatter
+          #programs.nixpkgs-fmt.enable = true;
+          programs.nixfmt.enable = true;
+
+          # Global settings
+          settings.global.excludes = [
+            ".direnv/*"
+            ".git/*"
+            "result*"
+          ];
+        }
+      );
 
       # formatter
-      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixpkgs-fmt);
+      formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
 
       # Checks
       checks = forAllSystems (system: {
+        formatting = treefmtEval.${system}.config.build.check self;
         pre-commit-check = pre-commit-hooks.lib.${system}.run {
           src = nix-filter.lib.filter {
             root = self;
@@ -197,7 +258,7 @@
             ];
           };
           hooks = {
-            nixpkgs-fmt.enable = true;
+            #nixpkgs-fmt.enable = true;
             statix.enable = true;
             deadnix = {
               enable = true;
@@ -216,7 +277,10 @@
         parallels = mkDarwinSystem {
           hostname = "parallels-vm";
           system = "aarch64-darwin";
-          users = [ "parallels" "happygopher" ];
+          users = [
+            "parallels"
+            "happygopher"
+          ];
         };
 
         macbook = mkDarwinSystem {
@@ -227,17 +291,26 @@
       };
 
       # Packages
-      packages = forAllSystems (system:
+      packages = forAllSystems (
+        system:
         let
           pkgs = nixpkgsFor.${system};
         in
         {
           inherit (pkgs) alias-teacher bmad-method markdown-tree-parser;
-        } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+        }
+        // lib.optionalAttrs pkgs.stdenv.isDarwin {
           inherit (pkgs) mysides;
-        });
+        }
+      );
     in
     {
-      inherit darwinConfigurations devShells packages checks formatter;
+      inherit
+        darwinConfigurations
+        devShells
+        packages
+        checks
+        formatter
+        ;
     };
 }

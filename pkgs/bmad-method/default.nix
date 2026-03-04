@@ -1,8 +1,9 @@
-{ lib
-, buildNpmPackage
-, fetchFromGitHub
-, nodejs_20
-, makeWrapper
+{
+  lib,
+  buildNpmPackage,
+  fetchFromGitHub,
+  nodejs_20,
+  makeWrapper,
 }:
 
 buildNpmPackage rec {
@@ -28,26 +29,26 @@ buildNpmPackage rec {
   postInstall = ''
     # The installed package structure needs adjustment for Nix
     # The wrapper expects to find the installer in tools/installer relative to itself
-    
+
     # Create a proper wrapper that ensures the package can find its resources
     wrapProgram $out/bin/bmad-method \
       --set BMAD_SOURCE_ROOT "$out/lib/node_modules/bmad-method" \
       --prefix PATH : ${lib.makeBinPath [ nodejs_20 ]}
-    
+
     # Also wrap the alternate name
     if [ -f "$out/bin/bmad" ]; then
       wrapProgram $out/bin/bmad \
         --set BMAD_SOURCE_ROOT "$out/lib/node_modules/bmad-method" \
         --prefix PATH : ${lib.makeBinPath [ nodejs_20 ]}
     fi
-    
+
     # Create convenience wrappers
     makeWrapper $out/bin/bmad-method $out/bin/bmad-install \
       --add-flags "install"
-    
+
     makeWrapper $out/bin/bmad-method $out/bin/bmad-flatten \
       --add-flags "flatten"
-    
+
     makeWrapper $out/bin/bmad-method $out/bin/bmad-build \
       --add-flags "build"
   '';
@@ -60,14 +61,14 @@ buildNpmPackage rec {
       software development, entertainment, creative writing, business strategy,
       and personal wellness. It provides AI agents that collaborate through
       detailed planning and context-engineered development workflows.
-      
+
       Key features:
       - AI agents for different roles (PM, Architect, Dev, QA, etc.)
       - Support for multiple AI-powered IDEs (Cursor, Claude Code, etc.)
       - Document sharding for better context management
       - Codebase flattener for AI analysis
       - Web bundles for use with ChatGPT, Claude, and Gemini
-      
+
       This package provides the complete BMad Method toolkit:
       - bmad-method / bmad: Main CLI tool
       - bmad-install: Quick installer for new projects

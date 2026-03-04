@@ -1,7 +1,8 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, darwin
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  darwin,
 }:
 
 stdenv.mkDerivation {
@@ -23,7 +24,7 @@ stdenv.mkDerivation {
 
   buildPhase = ''
     echo "Building mysides..."
-    
+
     # Compile directly
     clang -arch arm64 \
           -framework CoreServices \
@@ -31,7 +32,7 @@ stdenv.mkDerivation {
           -fobjc-arc \
           src/main.m \
           -o mysides
-    
+
     echo "Build complete. Checking binary:"
     file mysides
   '';
@@ -40,7 +41,7 @@ stdenv.mkDerivation {
     mkdir -p $out/bin
     cp mysides $out/bin/
     chmod +x $out/bin/mysides
-    
+
     echo "Installed binary information:"
     file $out/bin/mysides
     otool -L $out/bin/mysides || true

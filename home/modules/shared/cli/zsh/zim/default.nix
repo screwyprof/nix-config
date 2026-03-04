@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 
@@ -10,10 +15,7 @@ let
   # Only two valid formats:
   # 1. "$HOME/path/to/something"
   # 2. "path/to/something"
-  cleanPath = path:
-    if hasPrefix "$HOME/" path
-    then removePrefix "$HOME/" path
-    else path;
+  cleanPath = path: if hasPrefix "$HOME/" path then removePrefix "$HOME/" path else path;
 
   zimHome = cleanPath cfg.zimDir;
   zimConfigFile = cleanPath cfg.zimConfig;
@@ -41,14 +43,20 @@ let
       searchUpKey = mkOption {
         type = types.listOf types.str;
         default = [ ];
-        example = [ "^[[A" "^P" ];
+        example = [
+          "^[[A"
+          "^P"
+        ];
         description = "Keys to bind to history-substring-search-up";
       };
 
       searchDownKey = mkOption {
         type = types.listOf types.str;
         default = [ ];
-        example = [ "^[[B" "^N" ];
+        example = [
+          "^[[B"
+          "^N"
+        ];
         description = "Keys to bind to history-substring-search-down";
       };
     };
@@ -133,8 +141,8 @@ in
     home = {
       packages = [ pkgs.zimfw ];
 
-      file.${zimConfigFile}.text =
-        builtins.concatStringsSep "\n" (lib.remove "" [
+      file.${zimConfigFile}.text = builtins.concatStringsSep "\n" (
+        lib.remove "" [
           (optionalString cfg.degit "zstyle ':zim:zmodule' use 'degit'")
           (optionalString cfg.disableVersionCheck "zstyle ':zim' disable-version-check yes")
           (optionalString cfg.caseSensitive "zstyle ':zim:completion' case-sensitive yes")
@@ -149,7 +157,9 @@ in
           "zstyle ':completion::complete:*' cache-path '${completionsCacheDir}'"
           "zstyle ':zim:completion' dumpfile '${completionDumpFile}'"
 
-        ] ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules));
+        ]
+        ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules)
+      );
     };
 
     programs.zsh = {
@@ -199,20 +209,12 @@ in
         ${cfg.initAfterZim}
 
         ${lib.optionalString cfg.historySearch.enable ''
-          ${lib.concatMapStringsSep "\n"
-            (upKey: ''
-              bindkey -r '${upKey}'
-              bindkey '${upKey}' history-substring-search-up''
-            )
-            cfg.historySearch.searchUpKey
-          }
-          ${lib.concatMapStringsSep "\n"
-            (downKey: ''
-              bindkey -r '${downKey}'
-              bindkey '${downKey}' history-substring-search-down''
-            )
-            cfg.historySearch.searchDownKey
-          }
+          ${lib.concatMapStringsSep "\n" (upKey: ''
+            bindkey -r '${upKey}'
+            bindkey '${upKey}' history-substring-search-up'') cfg.historySearch.searchUpKey}
+          ${lib.concatMapStringsSep "\n" (downKey: ''
+            bindkey -r '${downKey}'
+            bindkey '${downKey}' history-substring-search-down'') cfg.historySearch.searchDownKey}
         ''}
       '';
     };

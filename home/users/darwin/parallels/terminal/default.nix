@@ -1,8 +1,9 @@
-{ lib, ... }: {
+{ lib, ... }:
+{
   home.activation = {
     terminalSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       echo "Setting up Terminal.app profile..."
-      
+
       # Import the profile
       $DRY_RUN_CMD /usr/bin/plutil -replace "Window Settings.Happy Gopher" \
         -xml "$(cat ${./HappyGopher.plist.xml})" \

@@ -12,17 +12,21 @@ let
   };
 
   # Format RGB values for ANSI sequences
-  formatRGB = hex:
-    let rgb = hexToRGB hex;
-    in "${toString rgb.r}//${toString rgb.g}//${toString rgb.b}";
+  formatRGB =
+    hex:
+    let
+      rgb = hexToRGB hex;
+    in
+    "${toString rgb.r}//${toString rgb.g}//${toString rgb.b}";
 in
 {
   inherit hexToRGB formatRGB;
 
   # Import a module at path, requiring it to exist or throwing helpful error
-  requireModuleAtPath = path:
-    if builtins.pathExists path
-    then [ (import path) ]
+  requireModuleAtPath =
+    path:
+    if builtins.pathExists path then
+      [ (import path) ]
     else
       throw "Theme path not found: ${toString path}
 Please check if this theme exists for the specified program";

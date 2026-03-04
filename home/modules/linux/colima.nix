@@ -1,4 +1,10 @@
-{ config, lib, pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
   home = {
     packages = with pkgs; [
       colima
@@ -9,20 +15,20 @@
       cpu: 4
       memory: 16
       disk: 100
-      
+
       # VM configuration
       vmType: qemu         # Different for Linux
       arch: x86_64         # Assuming x86_64 for Linux
       mountType: 9p        # Different for Linux
       mountInotify: true
-      
+
       # Kubernetes configuration
       kubernetes:
         enabled: true
         version: v1.31.2+k3s1
         k3sArgs:
           - --disable=traefik
-      
+
       # Docker configuration
       runtime: docker
       autoActivate: false

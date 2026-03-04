@@ -1,4 +1,5 @@
-{ systemAdmin, ... }: {
+{ systemAdmin, ... }:
+{
   programs = {
     git = {
       enable = true;

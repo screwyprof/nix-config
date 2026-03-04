@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   # Modern CLI replacements
@@ -182,4 +187,4 @@ in
       disable log
     '';
   };
-}   
+}

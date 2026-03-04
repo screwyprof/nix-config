@@ -1,4 +1,5 @@
-{ pkgs, lib, ... }: {
+{ pkgs, lib, ... }:
+{
   programs.vim = {
     enable = true;
     defaultEditor = true;
@@ -40,9 +41,9 @@
       set t_Co=256
       set noshowmode
       set backspace=indent,eol,start
-      
+
       colorscheme dracula
-      
+
       " Airline configuration
       let g:airline_theme='deus'
       let g:airline_powerline_fonts = 1

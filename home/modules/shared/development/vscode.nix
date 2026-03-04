@@ -1,4 +1,5 @@
-{ config, pkgs, ... }: {
+{ config, pkgs, ... }:
+{
   programs.vscode = {
     enable = true;
     package = pkgs.vscode;
@@ -10,70 +11,73 @@
         enableUpdateCheck = false;
 
         # Nix vscode extensions
-        extensions = with pkgs.vscode-extensions; [
-          # Theme and UI
-          dracula-theme.theme-dracula
-          pkief.material-icon-theme
-          pkief.material-product-icons
+        extensions =
+          with pkgs.vscode-extensions;
+          [
+            # Theme and UI
+            dracula-theme.theme-dracula
+            pkief.material-icon-theme
+            pkief.material-product-icons
 
-          # Language Support
-          jnoortheen.nix-ide
-          #golang.go
-          #rust-lang.rust-analyzer
-          # AI
-          #anthropic.claude-code
+            # Language Support
+            jnoortheen.nix-ide
+            #golang.go
+            #rust-lang.rust-analyzer
+            # AI
+            #anthropic.claude-code
 
-          # c/c++
-          #ms-vscode.cpptools-extension-pack
-          #ms-vscode.cpptools
-          #ms-vscode.cmake-tools
+            # c/c++
+            #ms-vscode.cpptools-extension-pack
+            #ms-vscode.cpptools
+            #ms-vscode.cmake-tools
 
-          # Development Tools
-          #usernamehw.errorlens
-          #fill-labs.dependi
-          #eamodio.gitlens
-          #ms-azuretools.vscode-docker
-          tamasfe.even-better-toml
-          formulahendry.auto-close-tag
-          #ms-vscode.makefile-tools
-          #ms-vscode.live-server
-          #ryanluker.vscode-coverage-gutters
+            # Development Tools
+            #usernamehw.errorlens
+            #fill-labs.dependi
+            #eamodio.gitlens
+            #ms-azuretools.vscode-docker
+            tamasfe.even-better-toml
+            formulahendry.auto-close-tag
+            #ms-vscode.makefile-tools
+            #ms-vscode.live-server
+            #ryanluker.vscode-coverage-gutters
 
-          # Testing and Debugging
-          #vadimcn.vscode-lldb
+            # Testing and Debugging
+            #vadimcn.vscode-lldb
 
-          # Python Support
-          #ms-python.python
-          #ms-python.vscode-pylance
+            # Python Support
+            #ms-python.python
+            #ms-python.vscode-pylance
 
-          # Remote Development
-          #ms-vscode-remote.remote-ssh
+            # Remote Development
+            #ms-vscode-remote.remote-ssh
 
-          # Dev containers
-          ms-vscode-remote.remote-containers
-        ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-          # Coverage Tools
-          # {
-          #   name = "vscode-coverage-gutters";
-          #   publisher = "ryanluker";
-          #   version = "2.12.0";
-          #   sha256 = "sha256-Dkc/Wqc122fV1r6IUyHOtuRdpbWHL3elAhfxHcY6xtM";
-          # }
+            # Dev containers
+            ms-vscode-remote.remote-containers
+          ]
+          ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+            # Coverage Tools
+            # {
+            #   name = "vscode-coverage-gutters";
+            #   publisher = "ryanluker";
+            #   version = "2.12.0";
+            #   sha256 = "sha256-Dkc/Wqc122fV1r6IUyHOtuRdpbWHL3elAhfxHcY6xtM";
+            # }
 
-          # Rust Tools
-          # {
-          #   name = "rust-test-lens";
-          #   publisher = "hdevalke";
-          #   version = "1.0.0";
-          #   sha256 = "faSBpgFIyqA9F03ghizTyFaB+XOwA1pNrStQlLTV9Pk=";
-          # }
-          # {
-          #   name = "rust-doc-viewer";
-          #   publisher = "jscearcy";
-          #   version = "4.2.0";
-          #   sha256 = "x1pmrw8wYHWyNIJqVdoh+vasbHDG/A4m8vDZU0DnPzo=";
-          # }
-        ];
+            # Rust Tools
+            # {
+            #   name = "rust-test-lens";
+            #   publisher = "hdevalke";
+            #   version = "1.0.0";
+            #   sha256 = "faSBpgFIyqA9F03ghizTyFaB+XOwA1pNrStQlLTV9Pk=";
+            # }
+            # {
+            #   name = "rust-doc-viewer";
+            #   publisher = "jscearcy";
+            #   version = "4.2.0";
+            #   sha256 = "x1pmrw8wYHWyNIJqVdoh+vasbHDG/A4m8vDZU0DnPzo=";
+            # }
+          ];
 
         userSettings = {
           # A temp hack to avoid errors for extensions which haven't migrated yet
@@ -212,7 +216,8 @@
 
           # Terminal settings
           "terminal.integrated.shellIntegration.enabled" = false;
-          "terminal.integrated.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
+          "terminal.integrated.fontFamily" =
+            "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
           "terminal.integrated.fontSize" = 20;
           "terminal.integrated.fontLigatures.enabled" = true;
           "terminal.integrated.defaultProfile.osx" = "zsh";
@@ -305,14 +310,17 @@
           # "rust-analyzer.lens.references.trait.enable" = true;
 
           # Font settings
-          "editor.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
+          "editor.fontFamily" =
+            "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
           "editor.fontLigatures" = true;
           "editor.fontSize" = 20;
           "editor.lineHeight" = 30;
           "editor.inlayHints.enabled" = "onUnlessPressed";
           "editor.inlineSuggest.enabled" = true;
-          "chat.editor.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
-          "debug.console.fontFamily" = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
+          "chat.editor.fontFamily" =
+            "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
+          "debug.console.fontFamily" =
+            "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
           "debug.console.fontSize" = 20;
 
           # # File settings

@@ -7,7 +7,7 @@ pkgs.stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out/share/zsh/plugins/zim-plugins
-    
+
     # Install each plugin file
     for plugin in *.zsh; do
       if [[ -f "$src/$plugin" ]]; then

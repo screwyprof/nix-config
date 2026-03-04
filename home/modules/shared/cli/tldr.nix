@@ -10,11 +10,21 @@
         compact = false;
       };
       style = {
-        description = { foreground = "yellow"; };
-        command_name = { foreground = "cyan"; };
-        example_text = { foreground = "green"; };
-        example_code = { foreground = "blue"; };
-        example_variable = { foreground = "red"; };
+        description = {
+          foreground = "yellow";
+        };
+        command_name = {
+          foreground = "cyan";
+        };
+        example_text = {
+          foreground = "green";
+        };
+        example_code = {
+          foreground = "blue";
+        };
+        example_variable = {
+          foreground = "red";
+        };
       };
     };
   };
