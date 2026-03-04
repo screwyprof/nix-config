@@ -178,6 +178,9 @@
           };
         });
 
+      # formatter
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixpkgs-fmt);
+
       # Checks
       checks = forAllSystems (system: {
         pre-commit-check = pre-commit-hooks.lib.${system}.run {
@@ -235,6 +238,6 @@
         });
     in
     {
-      inherit darwinConfigurations devShells packages checks;
+      inherit darwinConfigurations devShells packages checks formatter;
     };
 }
