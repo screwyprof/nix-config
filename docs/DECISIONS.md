@@ -92,3 +92,29 @@ A chronological record of decisions made in `nix-config`, capturing what sparked
 **Future Me Notes:** Don't reinstitute heavy frameworks unless there's a clear, demonstrated need. For personal projects, direct AI interaction with proper planning (when needed) works better than rigid agent systems. If document sharding becomes important, markdown-tree-parser is still available.
 
 ---
+
+## 005: Refactor flake.nix to use flake-parts
+
+**Context:** The flake used a manual `forAllSystems`/`genAttrs` pattern with hand-rolled `nixpkgsFor`, `treefmtEval`, and per-system output assembly. This boilerplate is error-prone and obscures the actual configuration.
+
+**The journey:** `flake-parts` provides a module system with `perSystem` that eliminates the `forAllSystems` pattern. It also ships flakeModules for `treefmt-nix` and `git-hooks.nix` that auto-generate `formatter`, `checks`, and hook integration — things we were wiring up manually.
+
+**What changed:**
+
+1. Added `flake-parts` input
+2. Replaced `outputs = ... let ... in { inherit ... }` with `flake-parts.lib.mkFlake`
+3. Moved `darwinConfigurations` into `flake` block (non-per-system outputs)
+4. Moved `devShells`, `packages`, `treefmt`, and `pre-commit` config into `perSystem` block
+5. Removed `supportedSystems`, `forAllSystems`, `nixpkgsFor`, `treefmtEval` boilerplate
+6. Replaced `nixpkgsFor.${system}` with `mkPkgs system` helper
+
+**What stayed the same:**
+- `systemAdmin`, `overlays`, `mkHomeManagerConfig`, `mkDarwinSystem` — all shared helpers remain in the outer `let` block
+- All flake outputs are structurally identical (same `darwinConfigurations`, `devShells`, `packages`, `checks`, `formatter`)
+- No behavioral changes — purely structural refactor
+
+**Outcome:** Cleaner flake with less boilerplate. The `perSystem` module system handles system iteration, and flakeModules for treefmt and git-hooks auto-wire `formatter`, `checks.formatting`, and `checks.pre-commit-check`.
+
+**Future Me Notes:** When adding new per-system outputs, add them in the `perSystem` block — no need to touch `forAllSystems` anymore. The treefmt and pre-commit flakeModules auto-generate their check outputs, so don't manually create them.
+
+---

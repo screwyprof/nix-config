@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
     pre-commit-hooks = {
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -56,16 +60,16 @@
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
   };
+
   outputs =
     inputs@{
       self,
       nixpkgs,
       darwin,
       home-manager,
-      pre-commit-hooks,
-      treefmt-nix,
       nix-filter,
       sops-nix,
+      flake-parts,
       ...
     }:
     let
@@ -77,15 +81,6 @@
         name = "Happy Gopher";
         email = "max@happygopher.nl";
       };
-
-      # Systems supported
-      supportedSystems = [
-        "aarch64-darwin"
-        "aarch64-linux"
-        #"x86_64-darwin"
-        #"x86_64-linux"
-      ];
-      forAllSystems = lib.genAttrs supportedSystems;
 
       # Common overlays
       overlays = [
@@ -107,14 +102,13 @@
         )
       ];
 
-      # Generate nixpkgs for each system
-      nixpkgsFor = forAllSystems (
+      # Generate nixpkgs for a given system
+      mkPkgs =
         system:
         import nixpkgs {
           inherit system overlays;
           config.allowUnfree = true;
-        }
-      );
+        };
 
       # Common home-manager configuration
       mkHomeManagerConfig =
@@ -175,7 +169,7 @@
                 extraSpecialArgs = {
                   inherit inputs systemAdmin;
                   inherit (inputs) nix-colors;
-                  pkgs = nixpkgsFor.${system};
+                  pkgs = mkPkgs system;
                 };
                 users = lib.genAttrs users (username: mkHomeManagerConfig { inherit username; });
               };
@@ -202,116 +196,94 @@
           ]
           ++ (args.modules or [ ]);
         };
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "aarch64-darwin"
+        "aarch64-linux"
+      ];
 
-      # Development shells
-      devShells = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgsFor.${system};
-        in
-        {
-          default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              pre-commit # Make pre-commit available in dev shell
-            ];
-            inherit (self.checks.${system}.pre-commit-check) shellHook;
-          };
-        }
-      );
+      imports = [
+        inputs.treefmt-nix.flakeModule
+        inputs.pre-commit-hooks.flakeModule
+      ];
 
-      # Treefmt evaluation for formatting
-      treefmtEval = forAllSystems (
-        system:
-        treefmt-nix.lib.evalModule nixpkgsFor.${system} {
-          # Used to find the project root
-          projectRootFile = "flake.nix";
-
-          # Enable the Nix formatter
-          #programs.nixpkgs-fmt.enable = true;
-          programs.nixfmt.enable = true;
-
-          # Global settings
-          settings.global.excludes = [
-            ".direnv/*"
-            ".git/*"
-            "result*"
-          ];
-        }
-      );
-
-      # formatter
-      formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
-
-      # Checks
-      checks = forAllSystems (system: {
-        formatting = treefmtEval.${system}.config.build.check self;
-        pre-commit-check = pre-commit-hooks.lib.${system}.run {
-          src = nix-filter.lib.filter {
-            root = self;
-            include = [
-              (nix-filter.lib.matchExt "nix")
-              "flake.lock"
-            ];
-            exclude = [
-              ".direnv"
-              ".git"
-              "result"
+      flake = {
+        darwinConfigurations = {
+          parallels = mkDarwinSystem {
+            hostname = "parallels-vm";
+            system = "aarch64-darwin";
+            users = [
+              "parallels"
+              "happygopher"
             ];
           };
-          hooks = {
-            #nixpkgs-fmt.enable = true;
-            statix.enable = true;
-            deadnix = {
-              enable = true;
-              settings = {
-                noLambdaPatternNames = true;
-              };
-            };
-            nil.enable = true;
-            flake-checker.enable = true;
+
+          macbook = mkDarwinSystem {
+            hostname = "macbook";
+            system = "aarch64-darwin";
+            users = [ "happygopher" ];
           };
-        };
-      });
-
-      # System configurations
-      darwinConfigurations = {
-        parallels = mkDarwinSystem {
-          hostname = "parallels-vm";
-          system = "aarch64-darwin";
-          users = [
-            "parallels"
-            "happygopher"
-          ];
-        };
-
-        macbook = mkDarwinSystem {
-          hostname = "macbook";
-          system = "aarch64-darwin";
-          users = [ "happygopher" ];
         };
       };
 
-      # Packages
-      packages = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgsFor.${system};
-        in
+      perSystem =
         {
-          inherit (pkgs) alias-teacher bmad-method markdown-tree-parser;
-        }
-        // lib.optionalAttrs pkgs.stdenv.isDarwin {
-          inherit (pkgs) mysides;
-        }
-      );
-    in
-    {
-      inherit
-        darwinConfigurations
-        devShells
-        packages
-        checks
-        formatter
-        ;
+          config,
+          system,
+          pkgs,
+          ...
+        }:
+        {
+          _module.args.pkgs = mkPkgs system;
+
+          treefmt = {
+            projectRootFile = "flake.nix";
+            programs.nixfmt.enable = true;
+            settings.global.excludes = [
+              ".direnv/*"
+              ".git/*"
+              "result*"
+            ];
+          };
+
+          pre-commit.settings = {
+            src = nix-filter.lib.filter {
+              root = self;
+              include = [
+                (nix-filter.lib.matchExt "nix")
+                "flake.lock"
+              ];
+              exclude = [
+                ".direnv"
+                ".git"
+                "result"
+              ];
+            };
+            hooks = {
+              statix.enable = true;
+              deadnix = {
+                enable = true;
+                settings = {
+                  noLambdaPatternNames = true;
+                };
+              };
+              nil.enable = true;
+              flake-checker.enable = true;
+            };
+          };
+
+          devShells.default = pkgs.mkShell {
+            buildInputs = [ pkgs.pre-commit ] ++ config.pre-commit.settings.enabledPackages;
+            shellHook = config.pre-commit.installationScript;
+          };
+
+          packages = {
+            inherit (pkgs) alias-teacher bmad-method markdown-tree-parser;
+          }
+          // lib.optionalAttrs pkgs.stdenv.isDarwin {
+            inherit (pkgs) mysides;
+          };
+        };
     };
 }
