@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
@@ -24,12 +23,10 @@
     };
     darwin = {
       url = "github:lnl7/nix-darwin";
-      #url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
       url = "github:nix-community/home-manager";
-      #url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-homebrew = {
@@ -55,25 +52,12 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # nix-auto-follow = {
-    #   url = "github:fzakaria/nix-auto-follow";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
   };
 
   outputs =
-    inputs@{
-      self,
-      nixpkgs,
-      darwin,
-      home-manager,
-      nix-filter,
-      sops-nix,
-      flake-parts,
-      ...
-    }:
+    { self, ... }@inputs:
     let
-      inherit (nixpkgs) lib;
+      inherit (inputs.nixpkgs) lib;
 
       # System administrator (for nix, homebrew, etc.)
       systemAdmin = {
@@ -105,7 +89,7 @@
       # Generate nixpkgs for a given system
       mkPkgs =
         system:
-        import nixpkgs {
+        import inputs.nixpkgs {
           inherit system overlays;
           config.allowUnfree = true;
         };
@@ -131,7 +115,7 @@
           users ? [ systemAdmin.username ],
           ...
         }@args:
-        darwin.lib.darwinSystem {
+        inputs.darwin.lib.darwinSystem {
           inherit system;
           specialArgs = {
             inherit
@@ -160,7 +144,7 @@
             }
 
             # Home manager configuration
-            home-manager.darwinModules.home-manager
+            inputs.home-manager.darwinModules.home-manager
             {
               home-manager = {
                 useGlobalPkgs = true;
@@ -183,7 +167,6 @@
             {
               nix-homebrew = {
                 enable = true;
-                #enableRosetta = true;
                 mutableTaps = false;
                 user = lib.mkDefault systemAdmin.username; # Admin user for Homebrew installation
                 taps = {
@@ -197,7 +180,7 @@
           ++ (args.modules or [ ]);
         };
     in
-    flake-parts.lib.mkFlake { inherit inputs; } {
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "aarch64-darwin"
         "aarch64-linux"
@@ -248,10 +231,10 @@
           };
 
           pre-commit.settings = {
-            src = nix-filter.lib.filter {
+            src = inputs.nix-filter.lib.filter {
               root = self;
               include = [
-                (nix-filter.lib.matchExt "nix")
+                (inputs.nix-filter.lib.matchExt "nix")
                 "flake.lock"
               ];
               exclude = [
