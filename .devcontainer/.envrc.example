@@ -1,0 +1,2 @@
+use flake .
+use flake github:screwyprof/nix-devx#claude-unrestricted

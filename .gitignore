@@ -3,6 +3,7 @@
 .DS_Store
 .pre-commit-config.yaml
 /.direnv
+.envrc
 
 # Claude local settings
 .claude/settings.local.json

@@ -1,8 +1,6 @@
 {
     "recommendations": [
         "jnoortheen.nix-ide",
-        "dracula-theme.theme-dracula",
-        "pkief.material-icon-theme",
-        "pkief.material-product-icons",
+        "mkhl.direnv"
     ]
 }
