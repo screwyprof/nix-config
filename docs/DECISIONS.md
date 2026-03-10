@@ -93,28 +93,43 @@ A chronological record of decisions made in `nix-config`, capturing what sparked
 
 ---
 
-## 005: Refactor flake.nix to use flake-parts
+## 005: From monolithic flake to dendritic flake-parts + import-tree
 
-**Context:** The flake used a manual `forAllSystems`/`genAttrs` pattern with hand-rolled `nixpkgsFor`, `treefmtEval`, and per-system output assembly. This boilerplate is error-prone and obscures the actual configuration.
+**What sparked this:** The monolithic `flake.nix` had grown to ~300 lines with hand-rolled `forAllSystems`/`genAttrs`, `nixpkgsFor`, `mkDarwinSystem`, `mkHomeManagerConfig`, overlays, and perSystem assembly all in one file. Adding anything meant scrolling through unrelated code. Wanted a modular structure where each concern lives in its own file.
 
-**The journey:** `flake-parts` provides a module system with `perSystem` that eliminates the `forAllSystems` pattern. It also ships flakeModules for `treefmt-nix` and `git-hooks.nix` that auto-generate `formatter`, `checks`, and hook integration — things we were wiring up manually.
+**The journey:** This was a multi-step evolution, not a single refactor. Each step revealed problems with the previous approach.
 
-**What changed:**
+**Step 1 — Adopt flake-parts:** Replaced the manual `forAllSystems` boilerplate with `flake-parts.lib.mkFlake` and `perSystem`. This alone eliminated ~50 lines of plumbing. The `treefmt-nix` and `git-hooks.nix` flakeModules auto-wire `formatter` and `checks` — things we were doing by hand.
 
-1. Added `flake-parts` input
-2. Replaced `outputs = ... let ... in { inherit ... }` with `flake-parts.lib.mkFlake`
-3. Moved `darwinConfigurations` into `flake` block (non-per-system outputs)
-4. Moved `devShells`, `packages`, `treefmt`, and `pre-commit` config into `perSystem` block
-5. Removed `supportedSystems`, `forAllSystems`, `nixpkgsFor`, `treefmtEval` boilerplate
-6. Replaced `nixpkgsFor.${system}` with `mkPkgs system` helper
+**Step 2 — Add import-tree (dendritic pattern):** Studied three reference implementations (Doc-Steve, drupol, GaetanLepage). Split the monolith into ~8 files under `modules/`. Added `import-tree` so every `.nix` file is auto-discovered. `flake.nix` became one line: `inputs.import-tree ./modules`.
 
-**What stayed the same:**
-- `systemAdmin`, `overlays`, `mkHomeManagerConfig`, `mkDarwinSystem` — all shared helpers remain in the outer `let` block
-- All flake outputs are structurally identical (same `darwinConfigurations`, `devShells`, `packages`, `checks`, `formatter`)
-- No behavioral changes — purely structural refactor
+Initially cargo-culted the Gaetan-style "wrapper pattern" — standard NixOS/HM modules in `_`-prefixed directories (hidden from import-tree), with thin flake-parts wrappers exposing them as `flake.modules.*`. This meant every module was two files: a wrapper and the real implementation.
 
-**Outcome:** Cleaner flake with less boilerplate. The `perSystem` module system handles system iteration, and flakeModules for treefmt and git-hooks auto-wire `formatter`, `checks.formatting`, and `checks.pre-commit-check`.
+**Step 3 — Realize wrappers were wrong:** Every edit required touching two files. Questioned: do we need the `_`-prefix convention at all? Turns out `flake.modules.homeManager.foo = { ... }` works inline in a flake-parts module — no need for a separate "standard" module. The whole two-layer pattern was cargo-culted from reference repos that had NixOS configs with different constraints.
 
-**Future Me Notes:** When adding new per-system outputs, add them in the `perSystem` block — no need to touch `forAllSystems` anymore. The treefmt and pre-commit flakeModules auto-generate their check outputs, so don't manually create them.
+**The hard parts:**
+
+1. **specialArgs rabbit hole** — The builder passed `inputs`, `self`, `hostname` via `specialArgs` and `extraSpecialArgs` so darwin/HM modules could access them. Traced every usage and discovered they were ALL already available through flake-parts closures. The darwin module file captures `inputs` in its outer scope (the flake-parts module args), so the inner darwin module never needed specialArgs. Removing this was the biggest "aha" — zero specialArgs remain.
+
+2. **Where do overlays belong?** — Had overlays in a custom `_module.args.nixpkgsOverlays` passed through the builder. Realized `flake.overlays.default` is a standard flake output consumed by `nixpkgs.overlays` in the darwin system config AND `perSystem`. No custom plumbing needed.
+
+3. **User module confusion** — Had three separate options: `users` (list of usernames), `homeManagerModules` (shared HM modules), `userHomeManagerModules` (per-user HM modules). Nobody could tell them apart. Collapsed into one: `users = attrsOf (listOf deferredModule)` where keys are usernames and values are per-user modules. Default modules baked into the builder.
+
+4. **Tried to co-locate users with hosts** — Wanted user config files inside host directories. Hit import-tree constraint: it discovers ALL `.nix` files recursively. Tried `_` prefix (hidden but ugly), tried data-only folders (import-tree ignores non-`.nix` files, but then config must be inline). Accepted that `modules/users/` as a separate directory is the right trade-off.
+
+5. **Dev tooling partition** — Cloned the flake-parts repo itself to study how they isolate dev dependencies. Their `dev/` has its own `flake.nix` + `flake.lock`, and `partitions.nix` routes `devShells`/`checks`/`formatter` to that scope. Copied the pattern directly. System evaluation (`darwinConfigurations`) no longer fetches pre-commit-hooks, treefmt-nix, or nix-filter. One gotcha: statix complained about repeated attribute keys — `partitionedAttrs` needed to be a single attrset, not separate assignments.
+
+6. **`mkPkgs` and meta indirection** — Had a `mkPkgs` helper function and `meta.nix` with a loose `attrsOf unspecified` type just for `systemAdmin.username`. Replaced `mkPkgs` with native `nixpkgs.overlays` + `nixpkgs.config.allowUnfree` in the darwin system config. Inlined `systemAdmin` as a let binding. Deleted both files.
+
+7. **spotlight coupling** — `spotlight.nix` reached into `config.home-manager.users` to discover usernames. Decoupled it by adding an explicit `spotlight.users` option set by the builder.
+
+**What we learned:**
+
+- **specialArgs is a code smell in flake-parts.** If you're passing inputs/self via specialArgs, you probably already have them in the module closure. Check before adding plumbing.
+- **Question every indirection.** `mkPkgs` helper, `meta.nix` module, `_module.args.nixpkgsOverlays` — all replaced by standard Nix patterns (`nixpkgs.overlays`, `flake.overlays.default`, let bindings). If a helper only exists to pass data between two places, there's probably a direct way.
+- **YAGNI for infra too.** Removed parallels host/user, Linux modules. The config pretended to support multi-user/multi-platform when it didn't. Kept `aarch64-linux` in systems only because the devcontainer needs it.
+- **Evolve incrementally, don't design upfront.** Each step (flake-parts → import-tree → flatten) was informed by pain from the previous step. If we'd tried to design the final structure upfront, we'd have gotten it wrong.
+
+**Future Me Notes:** Every `.nix` file in `modules/` is auto-discovered. Non-`.nix` files (configs, plists, yaml) are ignored by import-tree. Adding a module = create one file. If you need multi-user back, it's ~20 minutes of work on the builder. Don't pre-build infrastructure for hypotheticals.
 
 ---

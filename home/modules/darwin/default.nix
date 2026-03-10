@@ -1,7 +1,0 @@
-{
-  imports = [
-    ./brew
-    ./colima
-    ./coredumps
-  ];
-}

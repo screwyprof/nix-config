@@ -1,0 +1,28 @@
+{ inputs, ... }:
+let
+  masCompletion = builtins.path {
+    name = "mas-completion";
+    path = ./mas-completion;
+  };
+in
+{
+  flake.modules.homeManager.darwin-brew =
+    { lib, ... }:
+    {
+      programs.zsh = {
+        initContent = lib.mkAfter ''
+          if (( ! ''${fpath[(Ie)''${HOMEBREW_PREFIX}/share/zsh/site-functions]} )); then
+            fpath=(''${HOMEBREW_PREFIX}/share/zsh/site-functions ''${fpath})
+          fi
+        '';
+        zimfw = {
+          zmodules = lib.mkMerge [
+            (lib.mkOrder 400 [
+              "${inputs.nix-homebrew.inputs.brew-src}/completions --fpath zsh"
+              "${masCompletion} --fpath ."
+            ])
+          ];
+        };
+      };
+    };
+}

@@ -4,155 +4,192 @@ This document describes the architectural patterns and organization used in this
 
 ## High-Level Structure
 
-This repository uses **Nix Flakes** for reproducible system configuration with:
+This repository uses **Nix Flakes** for reproducible macOS system configuration with:
 
 - **nix-darwin** - System-level macOS configuration
 - **home-manager** - User environment management
 - **nix-homebrew** - Declarative Homebrew integration for GUI apps
-- **nix-colors** - Consistent theming across programs
+- **flake-parts + import-tree** - Dendritic module system for composable configuration
+- **flake-parts partitions** - Dev tooling isolated from system evaluation
 
-## System Organization
+## Dendritic Pattern
 
-### Host Configurations
+The configuration uses the **dendritic pattern** with `import-tree`. Every `.nix` file under `modules/` is automatically discovered as a flake-parts module — no manual imports needed.
 
-Each machine has its own configuration in `hosts/darwin/`:
-- **macbook** - Primary M2 MacBook
-- **parallels-vm** - Testing VM
+```
+flake.nix                      # Inputs + one-liner: inputs.import-tree ./modules
+modules/
+├── flake/                     # Flake-parts infrastructure
+│   ├── systems.nix            # Supported systems + flake-parts modules import
+│   ├── nixpkgs.nix            # Overlays (flake output) + perSystem pkgs/packages
+│   └── partitions.nix         # Routes devShells/checks/formatter to dev partition
+├── hosts/
+│   └── darwin/
+│       ├── shared/
+│       │   ├── builder.nix    # darwinHosts option + host factory
+│       │   ├── system.nix     # All darwin system config (nix, homebrew, sops, etc.)
+│       │   └── spotlight.nix  # Spotlight-compatible app launchers
+│       └── macbook.nix        # Host declaration
+├── home/                      # Home-manager feature modules
+│   ├── core.nix               # Aggregator: fonts, gnu-utils, vim, fastfetch, safe-rm
+│   ├── cli.nix                # Aggregator: zsh, bat, fzf, cheat, tldr, zoxide, etc.
+│   ├── development.nix        # Aggregator: git, nix, direnv, node, python, vscode, etc.
+│   ├── core/                  # Core feature modules
+│   ├── cli/                   # CLI tool modules
+│   ├── dev/                   # Development tool modules
+│   └── darwin/                # macOS-specific: brew, colima, coredumps
+├── users/
+│   └── happygopher/
+│       └── darwin.nix         # Per-user config: macOS prefs, git identity, iTerm2, Terminal
+dev/                           # Dev partition (separate flake.lock)
+├── flake.nix                  # Dev-only inputs: pre-commit-hooks, treefmt-nix, nix-filter
+└── flake-module.nix           # Devshell + treefmt + pre-commit config
+pkgs/                          # Custom packages + local flakes
+├── alias-teacher/             # ZSH alias teaching plugin
+├── bmad-method/               # AI agent framework
+├── markdown-tree-parser/      # Markdown document parser
+├── mysides/                   # macOS Finder sidebar management
+├── zim-plugins/               # Custom ZIM plugins
+├── zimfw-nix/                 # Local flake: ZIM framework HM module
+└── nix-themes/                # Local flake: Terminal theming (Dracula/Gruvbox)
+```
 
-### Three-Tier Module System
+### How Modules Work
 
-The configuration uses a hierarchical module system to avoid duplication:
+Every `.nix` file under `modules/` is a flake-parts module. They expose darwin or home-manager modules via `flake.modules.*`:
 
-1. **Shared Modules** (`home/modules/shared/`) - Cross-platform configurations
-   - CLI tools, shell environment, themes
-   - Core utilities and fonts
-   - Development tools (Git, direnv)
+```nix
+# modules/home/dev/git.nix — directly a flake-parts module
+{
+  flake.modules.homeManager.dev-git = _: {
+    programs.git = { ... };
+  };
+}
+```
 
-2. **Platform Modules** (`home/modules/darwin/`, `home/modules/linux/`) - OS-specific configurations
-   - macOS: Homebrew integration, Colima, macOS-specific tools
-   - Linux: Platform-specific alternatives
+Aggregator modules compose feature modules:
 
-3. **User Modules** (`home/users/`) - Per-user configurations
-   - User-specific preferences and settings
-   - Terminal profiles and application settings
+```nix
+# modules/home/development.nix
+{ config, ... }: {
+  flake.modules.homeManager.development = {
+    imports = with config.flake.modules.homeManager; [
+      dev-git dev-nix dev-direnv dev-node dev-python dev-vscode dev-claude dev-containers
+    ];
+  };
+}
+```
 
-This approach keeps configurations **DRY** - approximately 80% shared, 20% host-specific.
+## Host Configuration
 
-## Configuration Patterns
+Hosts are declared using the `darwinHosts` option defined in `builder.nix`:
 
-### Builder Pattern
+```nix
+# modules/hosts/darwin/macbook.nix
+{ config, ... }: {
+  darwinHosts.macbook = {
+    users.happygopher = [ config.flake.modules.homeManager.happygopher-darwin ];
+  };
+}
+```
 
-The flake uses builder functions to generate system configurations:
-- `mkDarwinSystem` - Generates Darwin configurations
-- `mkHomeManagerConfig` - Generates home-manager configurations with proper module ordering
+The builder automatically wires up:
+- nix-darwin system configuration (system.nix + spotlight.nix)
+- home-manager with default modules (core, cli, development, darwin-brew, darwin-colima, darwin-coredumps)
+- Per-user home-manager modules merged on top of defaults
+- sops-nix, nix-index-database, zimfw-nix, nix-themes integrations
 
-### Overlay System
+### Users
 
-Custom packages are provided through flake overlays:
-- Custom packages in `pkgs/`
-- Platform-specific packages (Darwin-only tools)
-- Automatic integration into user environments
+Users are `attrsOf (listOf deferredModule)` — keys are usernames, values are lists of per-user home-manager modules. The builder creates `users.users`, `home-manager.users`, and `spotlight.users` entries for each.
 
-### Theming Architecture
+## Dev Partition
 
-Centralized theme management in `home/modules/shared/cli/themes/`:
+Dev tooling (devshell, treefmt, pre-commit) lives in a separate **flake-parts partition** with its own `flake.lock`. This means `nix eval .#darwinConfigurations.macbook` never fetches dev-only inputs.
 
-- **Schemes** - Color definitions (e.g., base24-dracula)
-- **Presets** - Theme configurations that map schemes to programs
-- **Program Integration** - Per-program theme implementations
+- `dev/flake.nix` — declares dev-only inputs (pre-commit-hooks, treefmt-nix, nix-filter)
+- `dev/flake-module.nix` — configures treefmt (nixfmt), pre-commit hooks (statix, deadnix, nil, flake-checker), and devShell
+- `modules/flake/partitions.nix` — routes `devShells`, `checks`, `formatter` to the dev partition
 
-This allows changing color schemes in one place and having it propagate across ZSH, bat, iTerm2, etc.
+## Overlay System
 
-### Development Environments
+Custom packages are exposed as `flake.overlays.default` (defined in `modules/flake/nixpkgs.nix`):
 
-Isolated development shells in `dev/`:
-- Each environment is a separate flake
-- Follows consistent pattern for devShells
-- Includes language-specific toolchains
+- Composes rust-overlay + custom packages via `lib.composeManyExtensions`
+- Platform-conditional packages (e.g., `mysides` is Darwin-only)
+- Consumed by both `perSystem` (for `nix build .#package`) and darwin system config (via `nixpkgs.overlays`)
 
-## Key Architectural Decisions
+## Theming
 
-### XDG Compliance
+Centralized theme management via the `nix-themes` local flake (`pkgs/nix-themes/`):
 
-All configurations use XDG base directories for consistent file organization.
+- **Schemes** — Color definitions (base24-dracula, base16 via nix-colors)
+- **Presets** — Map schemes to per-program theme configs
+- **Programs** — ZSH (Powerlevel10k + ANSI), bat, iTerm2
 
-### Immutable Homebrew Taps
-
-Homebrew taps are managed as flake inputs, making them immutable and reproducible.
-
-### State Management
-
-Clear separation between:
-- **Immutable state** - Managed by Nix (configurations, packages)
-- **Mutable state** - User data, application state
-
-### Security
-
-- TouchID for sudo authentication (Darwin)
-- Trusted users configuration for Nix operations
-- SSH configuration management
-- No secrets in configuration files
+Changing the active preset propagates colors across all integrated programs.
 
 ## CLI Tools Philosophy
 
 Modern replacements for traditional Unix tools:
-- **eza** instead of `ls` - Icons, git integration, tree view
-- **bat** instead of `cat` - Syntax highlighting, git integration
-- **fd** instead of `find` - Faster, more intuitive
-- **ripgrep** instead of `grep` - Faster, better defaults
-- **fzf** - Fuzzy finder integrated everywhere
-- **zoxide** instead of `cd` - Smart directory navigation
+- **eza** instead of `ls` — Icons, git integration, tree view
+- **bat** instead of `cat` — Syntax highlighting, git integration
+- **fd** instead of `find` — Faster, more intuitive
+- **ripgrep** instead of `grep` — Faster, better defaults
+- **fzf** — Fuzzy finder integrated everywhere (completions, file search, directory nav)
+- **zoxide** instead of `cd` — Smart directory navigation
+- **moor** instead of `less` — Modern pager with Dracula styling
 
 These are integrated with:
-- **ZIM Framework** - Fast ZSH plugin management
-- **Powerlevel10k** - Instant prompt, customizable theme
-- **alias-teacher** - Helps discover and learn aliases
+- **ZIM Framework** — Fast ZSH plugin management with priority-ordered module loading
+- **Powerlevel10k** — Instant prompt, customizable theme
+- **alias-teacher** — Custom ZSH plugin that helps discover and learn aliases
+- **fzf-tab** — FZF-powered tab completion with previews (SSH hosts, env vars, directories)
 
-## Automation
+## Development Environments
 
-### Pre-commit Hooks
+Isolated development shells in `dev/`:
+- **go**, **rust**, **claude**, **bmad-method** — Each is a separate flake with its own dependencies
+- Entered via `dev <name>` shell function (wraps `nix develop`)
+- In practice, per-project `flake.nix` + `direnv` is used more often
 
-Automatically enforced via direnv:
-- **nixpkgs-fmt** - Code formatting
-- **statix** - Linting and static analysis
-- **deadnix** - Find dead code
-- **nil** - Language server checks
-- **flake-checker** - Validate flake structure
+Development tools installed system-wide:
+- Git with delta diff viewer, GitHub CLI
+- direnv with nix-direnv for automatic environment activation
+- Docker via colima (managed by launchd agent)
+- Claude Code, VSCode with Nix IDE
 
-### Garbage Collection
+## Homebrew Integration
 
-Weekly automatic garbage collection configured via launchd with size limits to prevent unbounded disk usage.
-
-### Development Workflow
-
-- **direnv** - Automatic environment activation per directory
-- **Project isolation** - Each project can have its own `flake.nix`
-- **Reproducible builds** - Flake.lock pins all dependencies
+GUI apps managed declaratively via `nix-homebrew` with immutable taps (pinned as flake inputs):
+- **Casks**: Bitwarden, Firefox, iTerm2, JetBrains Toolbox, Parallels, TablePlus, etc.
+- **Mac App Store** (via `mas`): Bear, Noir, AdGuard for Safari
+- `onActivation.cleanup = "zap"` — removes anything not declared
 
 ## Custom Packages
 
-### alias-teacher
+- **alias-teacher** — Enhanced ZSH plugin that finds most specific alias matches and shows related aliases for discovery
+- **bmad-method** — AI agent framework (BMad-METHOD) packaged as Nix derivation
+- **markdown-tree-parser** — NPM package for parsing markdown documents
+- **mysides** — macOS Finder sidebar management tool (Objective-C, arm64)
+- **zim-plugins** — Custom ZIM framework plugins (enhanced-paste, p10k config)
+- **zimfw-nix** — Local flake providing ZIM framework as a home-manager module
+- **nix-themes** — Local flake for centralized terminal theming (Dracula/Gruvbox)
 
-Enhanced ZSH plugin that helps discover aliases:
-- Finds most specific alias matches
-- Shows related aliases for discovery
-- Fork of zsh-you-should-use with improvements
+## Key Design Decisions
 
-## Performance Optimizations
+- **No specialArgs/extraSpecialArgs** — All inputs resolve through flake-parts closures
+- **GNU utils prepended to PATH** — Explicit PATH ordering in zsh.nix guarantees GNU tools shadow macOS BSD equivalents
+- **fzf integration disabled in HM** — Keybindings sourced manually after zim init for correct fzf-tab ordering
+- **Immutable Homebrew taps** — Managed as flake inputs for reproducibility
+- **XDG compliance** — All configurations use XDG base directories
+- **TouchID for sudo** — Configured via nix-darwin PAM
 
-- Build parallelization enabled
-- Binary cache configured
-- Automatic store optimization
-- Minimal rebuilds through proper dependency management
+## Pre-commit Hooks
 
-## Maintenance Approach
-
-- **Shared first** - Common configurations in shared modules
-- **Platform overrides** - Platform-specific modules extend shared base
-- **User customization** - User modules for personal preferences
-- **Host specificity** - Minimal host-specific configurations
-
-This design allows the configuration to be:
-- **Portable** - Easy to add new hosts or platforms
-- **Maintainable** - Changes in shared modules benefit all hosts
-- **Flexible** - Easy to override at any level
+Enforced via the dev partition:
+- **nixfmt** — Code formatting
+- **statix** — Anti-pattern detection
+- **deadnix** — Unused binding detection
+- **nil** — Language server diagnostics
+- **flake-checker** — Flake health validation
