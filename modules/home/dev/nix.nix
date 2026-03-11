@@ -32,13 +32,17 @@
 
           function dev() {
             local shell="$1"
-            shift  # Remove first argument
-            if [ $# -eq 0 ]; then
-              # No additional arguments, just enter the shell
-              nix develop "$HOME/nix-config/dev/$shell" --impure
+            shift
+            local flake_ref
+            if [[ -n "''${NIX_DEVX:-}" ]]; then
+              flake_ref="path:$NIX_DEVX?dir=shells/$shell"
             else
-              # Execute command in the shell
-              nix develop "$HOME/nix-config/dev/$shell" --impure --command "$@"
+              flake_ref="github:screwyprof/nix-devx?dir=shells/$shell"
+            fi
+            if [ $# -eq 0 ]; then
+              nix develop "$flake_ref" --no-write-lock-file
+            else
+              nix develop "$flake_ref" --no-write-lock-file --command "$@"
             fi
           }
         '';

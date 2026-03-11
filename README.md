@@ -29,8 +29,7 @@ See [`docs/architecture.md`](docs/architecture.md) for technical details.
 - Custom packages: `alias-teacher` (helps learn my own aliases), `mysides` (Finder sidebar management)
 
 **Development Environments**:
-- Go/Rust dev shells in `dev/` (unused — I create per-project flakes)
-- Claude shell (experimental MCP integration via .envrc)
+- Go/Rust/Claude dev shells via [nix-devx](https://github.com/screwyprof/nix-devx) (`dev <name>` wrapper)
 - Project isolation via `direnv + flake.nix` (this is the real magic)
 - Pre-commit hooks, formatters, linters
 
@@ -54,11 +53,13 @@ nix-update            # Update all flake inputs
 nix-fmt               # Format Nix files
 nix-cleanup           # Garbage collect + optimize
 
-# Development
+# Development (via nix-devx)
 dev go                # Go dev shell
 dev rust              # Rust dev shell
-dev claude            # Claude + MCP servers
+dev claude            # Claude + MCP servers (restricted)
+dev claude-unrestricted  # Claude + MCP (skip permissions)
 
+# Set NIX_DEVX=/path/to/nix-devx for local clone, otherwise fetches from GitHub
 # Reality: I just create flake.nix per project
 # Just cd into any project with flake.nix and direnv does the rest
 ```

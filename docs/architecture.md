@@ -148,9 +148,10 @@ These are integrated with:
 
 ## Development Environments
 
-Isolated development shells in `dev/`:
-- **go**, **rust**, **claude**, **bmad-method** — Each is a separate flake with its own dependencies
-- Entered via `dev <name>` shell function (wraps `nix develop`)
+Isolated development shells via [nix-devx](https://github.com/screwyprof/nix-devx):
+- **go**, **rust**, **nix**, **claude**, **claude-unrestricted**, **bmad-method** — Ad-hoc shells from nix-devx
+- Entered via `dev <name>` shell function (wraps `nix develop` with nix-devx)
+- Set `NIX_DEVX` env var for local clone path, otherwise fetches from GitHub
 - In practice, per-project `flake.nix` + `direnv` is used more often
 
 Development tools installed system-wide:

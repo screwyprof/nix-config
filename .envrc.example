@@ -10,4 +10,4 @@
 
 export CLAUDE_PROJECT_ISOLATION=1
 use flake .
-use flake github:screwyprof/nix-devx#claude
+use flake "github:screwyprof/nix-devx?dir=shells/claude"

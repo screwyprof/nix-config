@@ -13,7 +13,7 @@
       # Set core dump location on activation (requires sudo)
       home.activation.setCoredumpPath = lib.hm.dag.entryAfter [ "createDumpsDir" ] ''
         verboseEcho "Setting core dump path to ${dumpsDir}"
-        run sudo sysctl -w kern.corefile=${dumpsDir}/%N.%P.core
+        run /usr/bin/sudo /usr/sbin/sysctl -w kern.corefile=${dumpsDir}/%N.%P.core
       '';
 
       # Cleanup old core dumps weekly

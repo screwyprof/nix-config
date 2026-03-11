@@ -1,2 +1,2 @@
 use flake .
-use flake github:screwyprof/nix-devx#claude-unrestricted
+use flake "github:screwyprof/nix-devx?dir=shells/claude-unrestricted"
