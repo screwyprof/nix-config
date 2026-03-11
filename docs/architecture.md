@@ -37,7 +37,7 @@ modules/
 │   ├── core/                  # Core feature modules
 │   ├── cli/                   # CLI tool modules
 │   ├── dev/                   # Development tool modules
-│   └── darwin/                # macOS-specific: brew, colima, coredumps
+│   └── darwin/                # macOS-specific: brew, colima
 ├── users/
 │   └── happygopher/
 │       └── darwin.nix         # Per-user config: macOS prefs, git identity, iTerm2, Terminal
@@ -95,7 +95,7 @@ Hosts are declared using the `darwinHosts` option defined in `builder.nix`:
 
 The builder automatically wires up:
 - nix-darwin system configuration (system.nix + spotlight.nix)
-- home-manager with default modules (core, cli, development, darwin-brew, darwin-colima, darwin-coredumps)
+- home-manager with default modules (core, cli, development, darwin-brew, darwin-colima)
 - Per-user home-manager modules merged on top of defaults
 - sops-nix, nix-index-database, zimfw-nix, nix-themes integrations
 

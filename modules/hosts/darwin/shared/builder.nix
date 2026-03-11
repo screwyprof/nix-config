@@ -35,7 +35,6 @@ let
     development
     darwin-brew
     darwin-colima
-    darwin-coredumps
   ];
 in
 {
