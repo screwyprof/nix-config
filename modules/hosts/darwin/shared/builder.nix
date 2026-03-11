@@ -81,7 +81,7 @@ in
                       inputs.nix-themes.homeManagerModules.default
                     ]
                     ++ defaultHomeManagerModules
-                    ++ (hostOpts.users.${username} or [ ]);
+                    ++ hostOpts.users.${username};
                   });
                 };
               }

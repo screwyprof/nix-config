@@ -49,7 +49,7 @@
 
         history = {
           size = 20000;
-          save = 10000;
+          save = 20000;
           path = "${config.xdg.stateHome}/zsh/.zsh_history";
           ignoreDups = true;
           ignoreAllDups = true;

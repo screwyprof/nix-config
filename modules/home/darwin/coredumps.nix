@@ -10,37 +10,28 @@
         run mkdir -p ${dumpsDir}
       '';
 
-      # Configure core dump location and cleanup via launchd agents (user-specific)
-      launchd.agents = {
-        coredump = {
-          enable = true;
-          config = {
-            Label = "com.user.coredump";
-            ProgramArguments = [
-              "/bin/sh"
-              "-c"
-              "sysctl -w kern.corefile=${dumpsDir}/%N.%P.core"
-            ];
-            RunAtLoad = true;
-          };
-        };
+      # Set core dump location on activation (requires sudo)
+      home.activation.setCoredumpPath = lib.hm.dag.entryAfter [ "createDumpsDir" ] ''
+        verboseEcho "Setting core dump path to ${dumpsDir}"
+        run sudo sysctl -w kern.corefile=${dumpsDir}/%N.%P.core
+      '';
 
-        cleandumps = {
-          enable = true;
-          config = {
-            Label = "com.user.cleandumps";
-            ProgramArguments = [
-              "/bin/sh"
-              "-c"
-              "find ${dumpsDir} -name '*.core' -mtime +7 -delete"
-            ];
-            StartCalendarInterval = [
-              {
-                Hour = 21;
-                Minute = 0;
-              }
-            ];
-          };
+      # Cleanup old core dumps weekly
+      launchd.agents.cleandumps = {
+        enable = true;
+        config = {
+          Label = "com.user.cleandumps";
+          ProgramArguments = [
+            "/bin/sh"
+            "-c"
+            "find ${dumpsDir} -name '*.core' -mtime +7 -delete"
+          ];
+          StartCalendarInterval = [
+            {
+              Hour = 21;
+              Minute = 0;
+            }
+          ];
         };
       };
     };

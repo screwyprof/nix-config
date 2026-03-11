@@ -118,17 +118,12 @@ in
           {
             cstart = mkColimaAlias "start --save-config=false";
             cstop = mkColimaAlias "stop";
+            crestart = "cstop && sleep 2 && cstart";
             cstatus = mkColimaAlias "status";
             cdelete = mkColimaAlias "delete";
             clist = "colima list";
             clog = "tail -f ${paths.currentProfileDir}/colima.log";
             clogerr = "tail -f ${paths.currentProfileDir}/colima.error.log";
-
-            # Convenience aliases that work without profile names
-            colima-status = mkColimaAlias "status";
-            colima-start = mkColimaAlias "start --save-config=false";
-            colima-stop = mkColimaAlias "stop";
-            colima-restart = "cstop && sleep 2 && cstart";
           };
       };
     };

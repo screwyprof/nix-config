@@ -78,7 +78,7 @@
         description = "Usernames to create Spotlight-compatible app launchers for.";
       };
 
-      config.system.activationScripts.applications.text = pkgs.lib.mkForce ''
+      config.system.activationScripts.applications.text = lib.mkForce ''
         ${builtins.concatStringsSep "\n" userScripts}
       '';
     };

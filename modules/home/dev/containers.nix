@@ -26,16 +26,19 @@
         initContent = lib.mkAfter ''
           # Docker helper functions
           docker-rm-containers() {
-            docker stop $(docker ps -aq)
-            docker rm $(docker ps -aq)
+            local ids=$(docker ps -aq)
+            [[ -n "$ids" ]] && docker stop $ids && docker rm $ids
           }
 
           docker-rm-all() {
             docker-rm-containers
             docker network prune -f
-            docker rmi -f $(docker images --filter dangling=true -qa)
-            docker volume rm $(docker volume ls --filter dangling=true -q)
-            docker rmi -f $(docker images -qa)
+            local dangling=$(docker images --filter dangling=true -qa)
+            [[ -n "$dangling" ]] && docker rmi -f $dangling
+            local volumes=$(docker volume ls --filter dangling=true -q)
+            [[ -n "$volumes" ]] && docker volume rm $volumes
+            local all_images=$(docker images -qa)
+            [[ -n "$all_images" ]] && docker rmi -f $all_images
           }
         '';
       };
