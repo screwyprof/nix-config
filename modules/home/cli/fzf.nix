@@ -8,8 +8,7 @@
       programs = {
         fzf = {
           enable = true;
-          # Disabled: fzf keybindings are sourced manually in initContent (mkAfter)
-          # to ensure they load after zim initializes fzf-tab and completions
+          # Disabled: fzf keybindings are sourced via zimfw zmodule
           enableZshIntegration = false;
 
           defaultOptions = [
@@ -41,10 +40,6 @@
 
         zsh = {
           initContent = lib.mkAfter ''
-            # fzf-tab
-            # Source fzf keybindings directly
-            source <(${pkgs.fzf}/bin/fzf --zsh)
-
             ## Use fzf default options
             zstyle ':fzf-tab:*' use-fzf-default-opts yes
             zstyle ':fzf-tab:*' fzf-min-height 8
@@ -58,19 +53,6 @@
             zstyle ':fzf-tab:complete:*:commands' fzf-preview 'which {}'
 
             ## ssh<space><tab>
-            ### First, set up SSH completion to only use our specified hosts
-            zstyle ':completion:*:*:ssh:*' tag-order 'hosts:-host:host'
-            zstyle ':completion:*:*:ssh:*' group-order hosts-host
-            zstyle ':completion:*:ssh:*' completer _ssh _complete _hosts
-
-            ### Then add hosts from various sources
-            zstyle ':completion:*:hosts' hosts $(
-              (
-                cat ~/.ssh/config 2>/dev/null | sed -n 's/^Host \([^ *]*\)/\1/p';
-                cat ~/.ssh/known_hosts 2>/dev/null | cut -d ' ' -f1 | tr ',' '\n' | sed 's/\[//g;s/\]//g';
-                cat /etc/hosts 2>/dev/null | grep -v '^#' | awk '{print $2}'
-              ) | sort -u
-            )
             zstyle ':fzf-tab:complete:ssh:*' fzf-preview '
               echo "=== Host: $word ==="
               if [ -f ~/.ssh/config ] && grep -q "^Host $word" ~/.ssh/config; then
@@ -121,25 +103,22 @@
             zstyle ':fzf-tab:complete:*:(files|directories):*' fzf-preview '([[ -d $word ]] && eza --tree --all --icons --git-ignore --level=3 --color=always $word || bat --style=header,numbers,changes --color=always $word)'
           '';
 
-          zimfw = {
-            zmodules = lib.mkOrder 300 [
-              "${pkgs.zsh-fzf-tab}/share/fzf-tab --source fzf-tab.plugin.zsh"
-              "${pkgs.zsh-forgit}/share/zsh/zsh-forgit --source forgit.plugin.zsh"
-            ];
-
-            initAfterZim = ''
-              ## Fix fzf completion styles
-              zstyle ':completion:*:options' description no
-              zstyle -d ':completion:*:options' auto-description
-
-              zstyle ':completion:*:corrections' format '-- %d (errors: %e) --'
-              zstyle -d ':completion:*:descriptions'
-
-              zstyle ':completion:*:messages' format '-- %d --'
-              zstyle ':completion:*:warnings' format '-- no matches found --'
-              zstyle -d ':completion:*' format
-            '';
-          };
+          zimfw.zmodules = lib.mkOrder 300 [
+            {
+              cachedInit = [
+                "${pkgs.fzf}/bin/fzf"
+                "--zsh"
+              ];
+            }
+            {
+              path = "${pkgs.zsh-fzf-tab}/share/fzf-tab";
+              source = "fzf-tab.plugin.zsh";
+            }
+            {
+              path = "${pkgs.zsh-forgit}/share/zsh/zsh-forgit";
+              source = "forgit.plugin.zsh";
+            }
+          ];
         };
       };
 

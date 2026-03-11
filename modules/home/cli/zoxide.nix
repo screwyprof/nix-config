@@ -35,7 +35,15 @@
         '';
 
         zimfw.zmodules = lib.mkOrder 300 [
-          "${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source zoxide.zsh"
+          {
+            cachedInit = [
+              "${pkgs.zoxide}/bin/zoxide"
+              "init"
+              "zsh"
+              "--cmd"
+              "cd"
+            ];
+          }
         ];
       };
     };

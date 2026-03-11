@@ -133,3 +133,31 @@ Initially cargo-culted the Gaetan-style "wrapper pattern" — standard NixOS/HM 
 **Future Me Notes:** Every `.nix` file in `modules/` is auto-discovered. Non-`.nix` files (configs, plists, yaml) are ignored by import-tree. Adding a module = create one file. If you need multi-user back, it's ~20 minutes of work on the builder. Don't pre-build infrastructure for hypotheticals.
 
 ---
+
+## 006: Zimfw cleanup and structured zmodules with cached init
+
+**What sparked this:** `zoxide init zsh` and `fzf --zsh` both generate shell init dynamically and benefit from caching. The zoxide caching was hand-written in `zim-plugins/plugins/zoxide.zsh`; adding fzf would mean duplicating the same store-path sidecar pattern. Also noticed accumulated cruft in the zsh config.
+
+**What changed:**
+
+1. **Completions refactored** — Replaced `zimfw/completion` (built-in zim module) with custom `zim-plugins/completion.zsh` that consolidates all completion zstyles in one place. Removed scattered completion zstyles from `fzf.nix` (`initAfterZim` block with `zstyle -d` fixups) and `zimfw.nix` (`rehash true`, `accept-exact`). Removed SSH host completion zstyles from `fzf.nix` (redundant with fzf-tab preview which already queries the same sources).
+
+2. **Removed duplicated keybindings** — `historySearch` config and `initAfterZim` keybindings (`^A`, `^E`, `^[f`, `^[b`) were all already provided by `zimfw/input` + emacs keymap (`bindkey -e`).
+
+3. **Removed `enhanced-paste.zsh`** — Was a custom zim plugin for bracketed paste handling, but `zle_highlight+=(paste:none)` in `initContent` handles the paste highlight issue directly.
+
+4. **`zmodules` type extended** — From `types.listOf types.str` to `types.listOf (types.either types.str zmoduleType)`. Strings still work. Structured attrsets support `path`/`source`/`fpath` and a `cachedInit` field that auto-generates a caching wrapper script via `pkgs.writeTextDir`. The wrapper caches command output in `$ZIM_HOME/modules/<name>/cached.zsh` and invalidates when the binary's store path changes.
+
+5. **Shell config cleanup** — Removed redundant GNU utils aliases (`grep`, `sed`, `awk`, `tar`, `make`) since PATH already prepends GNU bin dirs. Unified the package list and PATH into a single `gnuUtils` variable in `gnu-utils.nix` (was duplicated across two files). Removed `gnutls` (C library, not a CLI tool). Extracted eza config from `zsh.nix` into `eza.nix`. Removed hardcoded `TERM=xterm-256color` and redundant `K9S_EDITOR`.
+
+**Key files:**
+- `pkgs/zimfw-nix/modules/zimfw.nix` — `zmoduleType`, `renderZmodule`, `cachedInitScript`
+- `pkgs/zim-plugins/plugins/completion.zsh` — consolidated completion zstyles
+- `modules/home/cli/eza.nix` — new, extracted from `zsh.nix`
+- `modules/home/core/gnu-utils.nix` — packages + PATH in one place
+
+**Gotcha:** zsh's `commands` hash maps bare names (`fzf`) not full paths (`/nix/store/.../bin/fzf`). The `cachedInitScript` uses `builtins.baseNameOf` for the lookup but full Nix store paths for execution.
+
+**Usage:** `{ cachedInit = ["${pkgs.fzf}/bin/fzf" "--zsh"]; }` as a zmodule entry. The wrapper, caching, invalidation, and zmodule wiring are all automatic.
+
+---

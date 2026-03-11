@@ -12,6 +12,72 @@ let
   completionsCacheDir = "${config.xdg.cacheHome}/zsh";
   completionDumpFile = "${completionsCacheDir}/zcompdump";
 
+  cachedInitScript =
+    name: command:
+    let
+      bin = builtins.baseNameOf (builtins.head command);
+    in
+    pkgs.writeTextDir "share/zsh/cached-init/${name}/init.zsh" ''
+      () {
+        (( ''${+commands[${bin}]} )) || return 1
+        local -r target=''${ZIM_HOME}/modules/${name}/cached.zsh
+        local -r bin_path=''${commands[${bin}]:A}
+        local -r path_file=''${target}.path
+        if [[ ! -s ''${target} || ! -f ''${path_file} || "$(< ''${path_file})" != ''${bin_path} ]]; then
+          mkdir -p ''${target:h}
+          ${lib.escapeShellArgs command} >! ''${target} || return 1
+          print -r -- ''${bin_path} >! ''${path_file}
+          zcompile -UR ''${target}
+        fi
+        source ''${target}
+      }
+    '';
+
+  zmoduleType = types.submodule {
+    options = {
+      path = mkOption {
+        type = types.str;
+        default = "";
+        description = "Module path (Nix store path or zimfw built-in name)";
+      };
+      source = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "File to source (--source argument)";
+      };
+      fpath = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "fpath directory (--fpath argument)";
+      };
+      cachedInit = mkOption {
+        type = types.nullOr (types.listOf types.str);
+        default = null;
+        description = "Command to generate init script. When set, path/source are auto-generated.";
+      };
+      name = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Module name for cachedInit cache directory. Defaults to basename of first command element.";
+      };
+    };
+  };
+
+  renderZmodule =
+    mod:
+    if builtins.isString mod then
+      mod
+    else if mod.cachedInit != null then
+      let
+        modName = if mod.name != null then mod.name else builtins.baseNameOf (builtins.head mod.cachedInit);
+        script = cachedInitScript modName mod.cachedInit;
+      in
+      "${script}/share/zsh/cached-init/${modName} --source init.zsh"
+    else
+      "${mod.path}"
+      + optionalString (mod.source != null) " --source ${mod.source}"
+      + optionalString (mod.fpath != null) " --fpath ${mod.fpath}";
+
   # Only two valid formats:
   # 1. "$HOME/path/to/something"
   # 2. "path/to/something"
@@ -112,8 +178,11 @@ in
 
     zmodules = mkOption {
       default = [ ];
-      type = types.listOf types.str;
-      description = "List of zimfw modules. These are added to .zimrc verbatim.";
+      type = types.listOf (types.either types.str zmoduleType);
+      description = ''
+        List of zimfw modules. Accepts strings (added to .zimrc verbatim) or
+        structured attrsets with path/source/fpath/cachedInit fields.
+      '';
     };
 
     initBeforeZim = mkOption {
@@ -133,6 +202,7 @@ in
       default = { };
       description = "Zim's history substring search configuration";
     };
+
   };
 
   config = mkIf cfg.enable {
@@ -152,13 +222,11 @@ in
           "zstyle ':zim:input' double-dot-expand yes"
 
           # Caching
-          "zstyle ':completion:*' rehash true"
-          "zstyle ':completion:*' accept-exact '*(N)'"
           "zstyle ':completion::complete:*' cache-path '${completionsCacheDir}'"
           "zstyle ':zim:completion' dumpfile '${completionDumpFile}'"
 
         ]
-        ++ (map (zmodule: "zmodule ${zmodule}") cfg.zmodules)
+        ++ (map (mod: "zmodule ${renderZmodule mod}") cfg.zmodules)
       );
     };
 
@@ -190,15 +258,15 @@ in
           cp ${pkgs.zimfw}/zimfw.zsh ''${ZIM_HOME}/zimfw.zsh
         fi
 
-        # Create a hash of current .zimrc content
-        _zimrc_hash=$(sha256sum ''${ZIM_CONFIG_FILE} 2>/dev/null || echo "none")
-        _saved_hash_file="''${ZIM_HOME}/.zimrc_hash"
-
-        # Check if .zimrc content has changed
-        if [[ ! -e ''${ZIM_HOME}/init.zsh || ! -e $_saved_hash_file || "$_zimrc_hash" != "$(cat $_saved_hash_file 2>/dev/null)" ]]; then
-          source ''${ZIM_HOME}/zimfw.zsh init -q
-          echo "$_zimrc_hash" > $_saved_hash_file
-        fi
+        # Rebuild zim init if .zimrc content has changed
+        () {
+          local -r hash=$(sha256sum ''${ZIM_CONFIG_FILE} 2>/dev/null || echo "none")
+          local -r hash_file="''${ZIM_HOME}/.zimrc_hash"
+          if [[ ! -e ''${ZIM_HOME}/init.zsh || ! -e $hash_file || "$hash" != "$(< $hash_file)" ]]; then
+            source ''${ZIM_HOME}/zimfw.zsh init -q
+            echo "$hash" > $hash_file
+          fi
+        }
 
         mkdir -p "${completionsCacheDir}"
 

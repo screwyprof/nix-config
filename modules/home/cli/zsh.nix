@@ -6,52 +6,19 @@
       pkgs,
       ...
     }:
-    let
-      # Modern CLI replacements
-      modernCLI = with pkgs; {
-        tree = "${eza}/bin/eza --tree --all --icons --git-ignore --color=always";
-        #du = "${dust}/bin/dust";
-        #df = "${duf}/bin/duf";
-        #top = "${htop}/bin/htop";
-      };
-
-      # GNU utils aliases
-      gnuUtils = with pkgs; {
-        grep = "${gnugrep}/bin/grep --color=auto";
-        sed = "${gnused}/bin/sed";
-        awk = "${gawk}/bin/awk";
-        tar = "${gnutar}/bin/tar";
-        make = "${gnumake}/bin/make";
-      };
-    in
     {
       home = {
         sessionVariables = {
           NOSYSZSHRC = "1";
 
-          TERM = "xterm-256color";
-          K9S_EDITOR = "vim";
           YSU_MODE = "ALL"; # or "BESTMATCH"
           YSU_HARDCORE = "1";
           YSU_MESSAGE_POSITION = "after";
 
-          EZA_ICONS_AUTO = "1";
-
-          PATH = lib.concatStringsSep ":" [
-            "$HOME/.local/bin"
-            "${pkgs.coreutils}/bin"
-            "${pkgs.findutils}/bin"
-            "${pkgs.gnugrep}/bin"
-            "${pkgs.gnused}/bin"
-            "${pkgs.gnutar}/bin"
-            "${pkgs.gawk}/bin"
-            "$PATH"
-          ];
         };
 
         packages = with pkgs; [
           procs
-          eza
           duf
           dust
           htop
@@ -92,8 +59,6 @@
           share = true;
         };
 
-        shellAliases = modernCLI // gnuUtils;
-
         sessionVariables = {
           ZSH_CACHE_DIR = "$XDG_CACHE_HOME/zsh";
           ZSH_STATE_DIR = "$XDG_STATE_HOME/zsh";
@@ -116,7 +81,6 @@
 
             # # Core functionality modules
             (lib.mkOrder 200 [
-              "zimfw/exa"
               "zimfw/direnv"
               #"zimfw/fzf"
               "zimfw/git"
@@ -125,7 +89,6 @@
 
             # Plugin modules
             (lib.mkOrder 300 [
-              "${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source enhanced-paste.zsh"
               "${pkgs.alias-teacher}/share/zsh/plugins/alias-teacher --source alias-teacher.plugin.zsh"
             ])
 
@@ -138,8 +101,7 @@
             # Completion modules
             (lib.mkOrder 500 [
               "${pkgs.zsh-completions}/share/zsh/site-functions --fpath src"
-              "zimfw/completion"
-              #"${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source completion.zsh"
+              "${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source completion.zsh"
             ])
 
             # Syntax highlighting (must be last)
@@ -152,29 +114,12 @@
             ])
           ];
 
-          historySearch = {
-            enable = true;
-            searchUpKey = [
-              "^[OA" # Up arrow (application mode)
-              "^[[A" # Up arrow (normal mode)
-              "^P" # Ctrl+P (emacs mode)
-            ];
-            searchDownKey = [
-              "^[OB" # Down arrow (application mode)
-              "^[[B" # Down arrow (normal mode)
-              "^N" # Ctrl+N (emacs mode)
-            ];
-          };
-
-          initAfterZim = ''
-            # Ctrl+A and Ctrl+E for beginning and end of line
-            bindkey '^A' beginning-of-line  # Ctrl+A
-            bindkey '^E' end-of-line        # Ctrl+E
-
-            # Word movement with Option+Left/Right (Emacs-style)
-            bindkey '^[f' forward-word      # Option+Right
-            bindkey '^[b' backward-word     # Option+Left
-          '';
+          # Keybindings provided by zimfw/input + emacs keymap (bindkey -e):
+          #   History:    Up/Down/^P/^N  → history-substring-search (zimfw/input deferred precmd)
+          #   Navigation: Home/End       → beginning/end-of-line    (zimfw/input via terminfo)
+          #               ^A/^E          → beginning/end-of-line    (emacs keymap)
+          #   Words:      Ctrl+Left/Right → backward/forward-word   (zimfw/input, 5 escape seqs)
+          #               ^[b/^[f (Alt+b/f) → backward/forward-word (emacs keymap)
         };
 
         initContent = lib.mkBefore ''
@@ -184,6 +129,9 @@
 
           # Disable zsh built-in log command to allow macOS log tool
           disable log
+
+          # Disable paste highlight flash (breaks syntax highlighting)
+          zle_highlight+=(paste:none)
         '';
       };
     };

@@ -3,6 +3,7 @@
   flake.modules.homeManager.cli = {
     imports = with config.flake.modules.homeManager; [
       cli-zsh
+      cli-eza
       cli-moor
       cli-bat
       cli-fzf
