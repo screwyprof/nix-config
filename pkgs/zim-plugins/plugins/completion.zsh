@@ -74,7 +74,7 @@ zstyle ':completion:*' accept-exact '*(N)'
 
 # Group matches and describe.
 # NOTE: 'menu select' deliberately omitted — fzf-tab replaces the menu.
-# NOTE: format strings deliberately omitted — fzf-tab renders its own.
+# NOTE: format strings deliberately omitted — conflicts with fzf-tab's display.
 # NOTE: 'options description/auto-description' deliberately omitted — conflicts with fzf-tab.
 zstyle ':completion:*:matches' group yes
 zstyle ':completion:*' group-name ''

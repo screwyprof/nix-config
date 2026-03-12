@@ -1,8 +1,8 @@
 { inputs, ... }:
 let
-  masCompletion = builtins.path {
-    name = "mas-completion";
-    path = ./mas-completion;
+  masCompletions = builtins.path {
+    name = "mas-completions";
+    path = ./mas-completions;
   };
 in
 {
@@ -10,7 +10,8 @@ in
     { lib, ... }:
     {
       programs.zsh = {
-        initContent = lib.mkAfter ''
+        initContent = lib.mkOrder 100 ''
+          eval "$(/opt/homebrew/bin/brew shellenv)"
           if (( ! ''${fpath[(Ie)''${HOMEBREW_PREFIX}/share/zsh/site-functions]} )); then
             fpath=(''${HOMEBREW_PREFIX}/share/zsh/site-functions ''${fpath})
           fi
@@ -19,7 +20,7 @@ in
           zmodules = lib.mkMerge [
             (lib.mkOrder 400 [
               "${inputs.nix-homebrew.inputs.brew-src}/completions --fpath zsh"
-              "${masCompletion} --fpath ."
+              "${masCompletions} --fpath ."
             ])
           ];
         };

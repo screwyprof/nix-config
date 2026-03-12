@@ -1,0 +1,81 @@
+#compdef mas
+#autoload
+
+# Modeled after _git_commands in zsh's _git completion (compadd -ld pattern)
+# which is compatible with fzf-tab's description rendering.
+
+_mas() {
+  local curcontext="$curcontext" state state_descr line
+  typeset -A opt_args
+
+  _arguments -C \
+    '(--version)--version[Show the version]' \
+    '(-h --help)'{-h,--help}'[Show help information]' \
+    '1: :->command' \
+    '*:: :->args' && return 0
+
+  case "$state" in
+    command)
+      local -a commands
+      commands=(
+        config:'output mas config & related system info'
+        get:'get & install free apps from the App Store'
+        purchase:'get & install free apps from the App Store'
+        help:'output general or command-specific help'
+        home:'open App Store app pages in the default web browser'
+        install:'install previously gotten apps from the App Store'
+        list:'list all apps installed from the App Store'
+        lookup:'output app information from the App Store'
+        info:'output app information from the App Store'
+        lucky:'install the first app returned from searching the App Store'
+        open:'open app page in App Store.app'
+        outdated:'list pending app updates from the App Store'
+        reset:'reset App Store processes & clear cached App Store downloads'
+        search:'search for apps in the App Store'
+        seller:'open apps seller pages in the default web browser'
+        vendor:'open apps seller pages in the default web browser'
+        signout:'sign out of the App Store'
+        uninstall:'uninstall apps installed from the App Store'
+        update:'update outdated apps installed from the App Store'
+        upgrade:'update outdated apps installed from the App Store'
+        version:'output version number')
+
+      local sep len
+      local -a matches display disp expl
+
+      zstyle -s ":completion:${curcontext}:" list-separator sep || sep=--
+      matches=(${commands%%:*})
+      zstyle -T ":completion:${curcontext}:" verbose && disp=(-ld display)
+      _description '' expl ''
+      compadd "$expl[@]" -O matches -a matches
+      len=${#${(O)matches//?/.}[1]}
+      (( $#disp )) && display=(${${(r.COLUMNS-4.)commands/(#s)(#m)[^:]##:/${(r.len.)MATCH[1,-2]} $sep }%% #})
+
+      compadd ${(e)disp} -a matches
+      ;;
+    args)
+      case "${words[1]}" in
+        install|lucky)
+          _arguments '--force[Force reinstall]'
+          ;;
+        outdated)
+          _arguments '--verbose[Output warnings about app IDs unknown to the App Store]'
+          ;;
+        reset)
+          _arguments '--debug[Output debug information]'
+          ;;
+        search)
+          _arguments '--price[Output the price of each app]'
+          ;;
+        uninstall)
+          _arguments '--dry-run[Perform dry run]'
+          ;;
+        config)
+          _arguments '--markdown[Output as Markdown]'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_mas "$@"
