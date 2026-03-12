@@ -186,6 +186,85 @@ GUI apps managed declaratively via `nix-homebrew` with immutable taps (pinned as
 - **XDG compliance** — All configurations use XDG base directories
 - **TouchID for sudo** — Configured via nix-darwin PAM
 
+## Nix Profiles and Generations
+
+Understanding how profiles and generations work in this setup is important because it differs from a vanilla NixOS + home-manager configuration.
+
+### How It Works on NixOS (for comparison)
+
+On NixOS with home-manager as a **standalone tool**, there are two independent profile chains:
+
+| Profile | Path | Managed by |
+|---|---|---|
+| System | `/nix/var/nix/profiles/system` | `nixos-rebuild switch` |
+| Home Manager | `~/.local/state/nix/profiles/home-manager` | `home-manager switch` |
+
+Each has its own numbered generations and independent rollback. You can rebuild user config without touching the system and vice versa.
+
+### How It Works Here (nix-darwin + integrated home-manager)
+
+In this setup, home-manager runs as a **nix-darwin module** (via `home-manager.darwinModules.home-manager` in `builder.nix`). This means there is only one build entry point: `darwin-rebuild switch`.
+
+**Key settings in `builder.nix`:**
+- `useGlobalPkgs = true` — HM uses the system's nixpkgs instance instead of its own, avoiding duplicate evaluations
+- `useUserPackages = true` — HM packages install to `/etc/profiles/per-user/$USER` (system-managed) instead of `~/.nix-profile`
+
+**Profile paths:**
+
+| Profile | Path | Contents |
+|---|---|---|
+| System | `/nix/var/nix/profiles/system` | Full system + HM activation, numbered generations (`system-1-link`, `system-2-link`, ...) |
+| System (current) | `/run/current-system` | Symlink to the active system generation |
+| User packages | `/etc/profiles/per-user/<username>` | HM-managed packages (due to `useUserPackages = true`) |
+| HM gcroot | `~/.local/state/home-manager/gcroots/current-home` | Symlink to the current HM generation in `/nix/store`, prevents GC collection |
+
+**What does NOT exist in this setup:**
+- `~/.local/state/nix/profiles/home-manager` — no standalone HM profile with numbered generations
+- `/nix/var/nix/profiles/per-user/<username>` — no per-user profile directory (only `root` has one)
+- `~/.nix-profile` — not used because `useUserPackages = true`
+
+### Generations and Rollback
+
+Every `darwin-rebuild switch` creates a new **system generation** that includes both system config and the home-manager activation. There are no separate HM generations.
+
+```bash
+# List system generations (includes HM changes)
+nix profile history --profile /nix/var/nix/profiles/system
+
+# Rollback system + HM together
+darwin-rebuild switch --rollback
+```
+
+The HM gcroot (`~/.local/state/home-manager/gcroots/current-home`) points to the current HM generation store path but only tracks the latest — no history. This gcroot exists solely to prevent garbage collection of the active HM closure.
+
+### Why Not Build Home-Manager Separately?
+
+Since HM is integrated as a darwin module, adding a standalone `homeConfigurations` output would create **two profiles managing the same dotfiles** — the integrated one (via `darwin-rebuild`) and the standalone one (via `home-manager switch`). Their activation scripts would conflict.
+
+In practice, `darwin-rebuild switch` is fast enough (~1 min) that maintaining a separate HM build path isn't worth the complexity and risk.
+
+### Summary
+
+```
+darwin-rebuild switch
+        │
+        ├── System activation
+        │   ├── Nix daemon config
+        │   ├── Homebrew (casks, brews, MAS apps)
+        │   ├── PAM (TouchID for sudo)
+        │   ├── environment.profiles (PATH)
+        │   └── Spotlight app launchers
+        │
+        └── Home-Manager activation (per user)
+            ├── Dotfiles (~/.zshrc, ~/.config/*, ...)
+            ├── Packages → /etc/profiles/per-user/<username>
+            ├── Shell config (zsh, fzf, bat, eza, ...)
+            ├── Dev tools (git, direnv, node, python, ...)
+            ├── macOS user defaults (keyboard, dock, finder)
+            ├── App profiles (iTerm2, Terminal.app)
+            └── gcroot → ~/.local/state/home-manager/gcroots/current-home
+```
+
 ## Pre-commit Hooks
 
 Enforced via the dev partition:
