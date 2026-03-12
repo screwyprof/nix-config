@@ -95,6 +95,21 @@ in
         };
       };
 
+      # Prune old system profile generations (nix.gc only handles user profiles)
+      launchd.daemons.nix-gc-system-profiles = {
+        command = "/bin/sh -c '/nix/var/nix/profiles/system/sw/bin/nix-env --delete-generations +3 --profile /nix/var/nix/profiles/system'";
+        serviceConfig = {
+          RunAtLoad = false;
+          StartCalendarInterval = [
+            {
+              Weekday = 0;
+              Hour = 23;
+              Minute = 55;
+            }
+          ];
+        };
+      };
+
       # Nix-homebrew integration
       nix-homebrew = {
         enable = true;
