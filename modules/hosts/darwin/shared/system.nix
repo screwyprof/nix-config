@@ -23,11 +23,11 @@ in
       nixpkgs.overlays = [ self.overlays.default ];
       nixpkgs.config.allowUnfree = true;
 
-      # Remove old default Nix profile but keep nix-darwin defaults
+      # Exclude /nix/var/nix/profiles/default from PATH — it contains a stale
+      # bootstrap Nix that conflicts with the declaratively managed nix from pkgs.nix
       environment.profiles = lib.mkForce [
         "/run/current-system/sw"
-        "/etc/profiles/per-user/$USER" # Home-manager user packages (dynamically resolved)
-        "$HOME/.nix-profile"
+        "/etc/profiles/per-user/$USER" # Home-manager user packages
       ];
 
       # System configuration
