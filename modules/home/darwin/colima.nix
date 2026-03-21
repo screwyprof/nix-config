@@ -26,6 +26,7 @@ in
         flock
         bash
         colima
+        docker
         wrapperScript
       ];
 
