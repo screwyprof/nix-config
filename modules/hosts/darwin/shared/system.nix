@@ -141,6 +141,7 @@ in
         };
 
         casks = [
+          "anydesk"
           "bitwarden"
           "crossover"
           "firefox"
