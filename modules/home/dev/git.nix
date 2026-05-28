@@ -11,12 +11,6 @@
           core = {
             editor = "vim";
             autocrlf = "input";
-            hooksPath = "/dev/null";
-          };
-          alias = {
-            trust = "config --local core.hooksPath .git/hooks";
-            untrust = "config --local --unset core.hooksPath";
-            safe-clone = "!f() { git clone --config core.hooksPath=/dev/null \"$@\"; }; f";
           };
           merge.conflictstyle = "diff3";
           diff.colorMoved = "default";
