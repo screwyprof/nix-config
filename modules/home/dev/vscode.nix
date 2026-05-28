@@ -186,6 +186,85 @@
               "debug.console.fontFamily" = fontFamily;
               "debug.console.fontSize" = 20;
 
+              # Go
+              "[go]" = {
+                "editor.codeActionsOnSave" = {
+                  "source.organizeImports" = "explicit";
+                };
+                "editor.formatOnSave" = true;
+                "editor.snippetSuggestions" = "none";
+              };
+              "go.diagnostic.vulncheck" = "Off";
+              "go.coverOnSave" = true;
+              "go.coverOnSingleTest" = true;
+              "go.coverOnSingleTestFile" = true;
+              "go.coverageDecorator" = {
+                "coveredBorderColor" = "rgba(64,128,128,0.4)";
+                "coveredHighlightColor" = "rgba(64,128,128,0.2)";
+                "type" = "highlight";
+                "uncoveredBorderColor" = "rgba(128,64,64,0.4)";
+                "uncoveredHighlightColor" = "rgba(128,64,64,0.2)";
+              };
+              "go.delveConfig" = {
+                "debugAdapter" = "dlv-dap";
+                "showGlobalVariables" = true;
+              };
+              "go.lintTool" = "golangci-lint";
+              "go.testFlags" = [ "-v" ];
+              "go.testOnSave" = false;
+              "go.toolsManagement.autoUpdate" = false;
+              "go.useLanguageServer" = true;
+
+              # Rust
+              "[rust]" = {
+                "editor.defaultFormatter" = "rust-lang.rust-analyzer";
+                "editor.formatOnSave" = true;
+                "editor.inlayHints.enabled" = "onUnlessPressed";
+              };
+              "rust-analyzer.cargo.features" = "all";
+              "rust-analyzer.check.command" = "clippy";
+              "rust-analyzer.check.extraArgs" = [ ];
+              "rust-analyzer.completion.autoself.enable" = true;
+              "rust-analyzer.hover.actions.enable" = true;
+              "rust-analyzer.hover.documentation.enable" = true;
+              "rust-analyzer.hover.documentation.keywords.enable" = true;
+              "rust-analyzer.hover.actions.implementations.enable" = true;
+              "rust-analyzer.hover.actions.references.enable" = true;
+              "rust-analyzer.hover.actions.run.enable" = true;
+              "rust-analyzer.hover.actions.debug.enable" = true;
+              "rust-analyzer.inlayHints.parameterHints.enable" = true;
+              "rust-analyzer.inlayHints.renderColons" = true;
+              "rust-analyzer.inlayHints.typeHints.enable" = true;
+              "rust-analyzer.lens.enable" = true;
+              "rust-analyzer.lens.run.enable" = true;
+              "rust-analyzer.lens.implementations.enable" = true;
+              "rust-analyzer.lens.references.adt.enable" = true;
+              "rust-analyzer.lens.references.method.enable" = true;
+              "rust-analyzer.lens.references.trait.enable" = true;
+
+              # LLDB
+              "lldb.commandCompletions" = true;
+              "lldb.evaluateForHovers" = true;
+              "lldb.launch.terminal" = "integrated";
+              "lldb.suppressMissingSourceFiles" = true;
+
+              # Testing
+              "testing.coverageToolbarEnabled" = true;
+              "testing.showCoverageInExplorer" = true;
+              "coverage-gutters.coverageFileNames" = [ "coverage.out" "coverage.html" "lcov.info" ];
+              "coverage-gutters.showGutterCoverage" = true;
+              "coverage-gutters.showLineCoverage" = true;
+              "coverage-gutters.showRulerCoverage" = true;
+              "coverage-gutters.highlightdark" = "rgba(64,128,64,0.4)";
+
+              # File associations
+              "files.associations" = {
+                "*.go" = "go";
+                "*.rs" = "rust";
+                "*.toml" = "toml";
+              };
+              "makefile.configureOnOpen" = false;
+
               # Theme and icon settings
               "material-icon-theme.activeIconPack" = "nest";
               "material-icon-theme.files.color" = "#42a5f5";
