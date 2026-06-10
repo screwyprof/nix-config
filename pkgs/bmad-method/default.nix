@@ -2,7 +2,7 @@
   lib,
   buildNpmPackage,
   fetchFromGitHub,
-  nodejs_20,
+  nodejs_22,
   makeWrapper,
 }:
 
@@ -20,7 +20,7 @@ buildNpmPackage rec {
   npmDepsHash = "sha256-fuP7yiafVdj/Zj5RMD7pw+t5XXUE3v9R0AAL2iYNN5E=";
 
   # The package requires Node.js v20+
-  nodejs = nodejs_20;
+  nodejs = nodejs_22;
 
   nativeBuildInputs = [ makeWrapper ];
 
@@ -33,13 +33,13 @@ buildNpmPackage rec {
     # Create a proper wrapper that ensures the package can find its resources
     wrapProgram $out/bin/bmad-method \
       --set BMAD_SOURCE_ROOT "$out/lib/node_modules/bmad-method" \
-      --prefix PATH : ${lib.makeBinPath [ nodejs_20 ]}
+      --prefix PATH : ${lib.makeBinPath [ nodejs_22 ]}
 
     # Also wrap the alternate name
     if [ -f "$out/bin/bmad" ]; then
       wrapProgram $out/bin/bmad \
         --set BMAD_SOURCE_ROOT "$out/lib/node_modules/bmad-method" \
-        --prefix PATH : ${lib.makeBinPath [ nodejs_20 ]}
+        --prefix PATH : ${lib.makeBinPath [ nodejs_22 ]}
     fi
 
     # Create convenience wrappers

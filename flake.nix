@@ -32,10 +32,6 @@
       url = "github:Homebrew/homebrew-cask";
       flake = false;
     };
-    homebrew-bundle = {
-      url = "github:Homebrew/homebrew-bundle";
-      flake = false;
-    };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";

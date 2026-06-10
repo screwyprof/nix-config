@@ -2,6 +2,7 @@ services:
   nix-config:
     image: ghcr.io/cachix/devenv/devcontainer
     environment:
+      - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}
       - CLAUDE_CONFIG_DIR=/home/vscode/.claude
     volumes:
       - ..:/workspaces:cached
