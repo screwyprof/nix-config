@@ -7,8 +7,6 @@ in
     inputs.rust-overlay.overlays.default
     (final: _: {
       alias-teacher = final.callPackage ../../pkgs/alias-teacher { };
-      bmad-method = final.callPackage ../../pkgs/bmad-method { };
-      markdown-tree-parser = final.callPackage ../../pkgs/markdown-tree-parser { };
       zim-plugins = final.callPackage ../../pkgs/zim-plugins { };
     })
     (
@@ -29,7 +27,7 @@ in
       };
 
       packages = {
-        inherit (pkgs) alias-teacher bmad-method markdown-tree-parser;
+        inherit (pkgs) alias-teacher;
       }
       // lib.optionalAttrs pkgs.stdenv.isDarwin {
         inherit (pkgs) mysides;

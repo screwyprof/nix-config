@@ -161,3 +161,15 @@ Initially cargo-culted the Gaetan-style "wrapper pattern" — standard NixOS/HM 
 **Usage:** `{ cachedInit = ["${pkgs.fzf}/bin/fzf" "--zsh"]; }` as a zmodule entry. The wrapper, caching, invalidation, and zmodule wiring are all automatic.
 
 ---
+
+## 007: Move bmad-method (and markdown-tree-parser) to nix-devx
+
+**What sparked this:** A nixpkgs update marked `nodejs-20.20.2` as insecure (Node 20 reached EOL April 2026), and `nix flake check` started refusing to evaluate. The only consumers of Node 20 were `pkgs/bmad-method` and `pkgs/markdown-tree-parser`.
+
+**The journey:** First bumped both packages to `nodejs_22` to fix the eval error. Then asked the better question: who actually uses these? Grep showed both were orphans — exposed via the overlay and the flake `packages` output, but never installed in any system or home profile. They only existed for ad-hoc `nix run`. The decision journal already documented (entry 004) that the BMad framework integration was removed from this repo; the Nix packages were leftovers.
+
+**Outcome:** Deleted `pkgs/bmad-method/` and `pkgs/markdown-tree-parser/` and their overlay/packages entries in `modules/flake/nixpkgs.nix`. Dev tooling like this is now managed per-project: `bmad-method` is packaged in the `nix-devx` project (dev shells and dev tools), not in the system flake.
+
+**Future Me Notes:** The system flake is for system configuration; project/dev tools belong in `nix-devx`. If a package in this repo isn't referenced by any system or home profile, it probably shouldn't be here — orphaned flake `packages` outputs still cost maintenance (version bumps, EOL runtimes, eval failures in `nix flake check`).
+
+---
