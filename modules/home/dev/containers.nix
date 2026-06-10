@@ -3,6 +3,7 @@
     { pkgs, lib, ... }:
     {
       home.packages = with pkgs; [
+        lima
         docker
         docker-credential-helpers
       ];
