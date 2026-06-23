@@ -11,6 +11,8 @@
         "accessibility.verbosity.terminalChatOutput" = false;
         "chat.agent.codeBlockProgress" = false;
         "chat.agent.enabled" = false;
+        "chat.agentHost.enabled" = false;
+        "chat.remoteAgentHosts.enabled" = false;
         "chat.agent.maxRequests" = 0;
         "chat.agent.thinking.generateTitles" = false;
         "chat.agent.thinking.terminalTools" = false;
@@ -136,6 +138,12 @@
 
               # Dev containers
               ms-vscode-remote.remote-containers
+
+              # Remote-SSH (devbox VM)
+              ms-vscode-remote.remote-ssh
+
+              # direnv bridge: extensions see the project devshell PATH (local opens)
+              mkhl.direnv
             ];
 
             userSettings = disableAI // {
@@ -147,11 +155,25 @@
               "telemetry.telemetryLevel" = "off";
 
               # Update settings
+              "extensions.autoUpdate" = false;
               "extensions.autoCheckUpdates" = false;
               "update.mode" = "none";
 
               # Don't recomend to install extensions.
               "extensions.ignoreRecommendations" = true;
+
+              # Remote substrate only (peer of direnv-in-VM): everything else is
+              # declared per-project in .vscode/extensions.json
+              #"remote.SSH.defaultExtensions" = [ "mkhl.direnv" ];
+
+              # Install remote extensions directly from marketplace instead of copying from localhost
+              "remote.SSH.localServerDownload" = "off";
+
+              # vscode tries to shove up copilot up your throat by defaul to remote causing cryptic EntryWriteLocked.
+              "remote.defaultExtensionsIfInstalledLocally" = [];
+
+              # Let Ctrl+B reach the terminal (tmux prefix) instead of toggling the sidebar
+              "terminal.integrated.commandsToSkipShell" = [ "-workbench.action.toggleSidebarVisibility" ];
 
               # Disable executing script on project startup
               "task.allowAutomaticTasks" = "off";
