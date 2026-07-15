@@ -143,6 +143,7 @@ in
           "anydesk"
           "bitwarden"
           "crossover"
+          "google-chrome"
           "firefox"
           "iterm2"
           "jetbrains-toolbox"
