@@ -1,6 +1,6 @@
 {
   flake.modules.homeManager.dev-vscode =
-    { config, pkgs, ... }:
+    { pkgs, ... }:
     let
       fontFamily = "'MesloLGMDZ Nerd Font Mono', 'JetBrainsMono NF', 'FiraCode Nerd Font Mono', monospace";
 
@@ -16,7 +16,7 @@
         "chat.agent.maxRequests" = 0;
         "chat.agent.thinking.generateTitles" = false;
         "chat.agent.thinking.terminalTools" = false;
-        "chat.agentsControl.enabled" = false;
+        "chat.agentsControl.enabled" = "hidden";
         "chat.agentSkillsLocations" = {
           ".agents/skills" = false;
           ".claude/skills" = false;
@@ -88,10 +88,6 @@
         "gitlab.duoChat.enabled" = false;
         "inlineChat.holdToSpeech" = false;
         "inlineChat.lineNaturalLanguageHint" = false;
-        "mcp" = {
-          "inputs" = [ ];
-          "servers" = { };
-        };
         "notebook.experimental.generate" = false;
         "python.analysis.aiCodeActions" = {
           "convertFormatString" = false;
@@ -155,7 +151,7 @@
               "telemetry.telemetryLevel" = "off";
 
               # Update settings
-              "extensions.autoUpdate" = false;
+              "extensions.autoUpdate" = "off";
               "extensions.autoCheckUpdates" = false;
               "update.mode" = "none";
 
@@ -170,7 +166,7 @@
               "remote.SSH.localServerDownload" = "off";
 
               # vscode tries to shove up copilot up your throat by defaul to remote causing cryptic EntryWriteLocked.
-              "remote.defaultExtensionsIfInstalledLocally" = [];
+              "remote.defaultExtensionsIfInstalledLocally" = [ ];
 
               # Let Ctrl+B reach the terminal (tmux prefix) instead of toggling the sidebar
               "terminal.integrated.commandsToSkipShell" = [ "-workbench.action.toggleSidebarVisibility" ];
@@ -187,12 +183,6 @@
               "terminal.integrated.fontFamily" = fontFamily;
               "terminal.integrated.fontSize" = 20;
               "terminal.integrated.fontLigatures.enabled" = true;
-              "terminal.integrated.defaultProfile.osx" = "zsh";
-              "terminal.integrated.profiles.osx" = {
-                "zsh" = {
-                  "path" = "${config.home.homeDirectory}/.nix-profile/bin/zsh";
-                };
-              };
               "terminal.integrated.autoReplies" = {
                 "Done. Press any key to close the terminal." = "\r";
               };
@@ -273,7 +263,11 @@
               # Testing
               "testing.coverageToolbarEnabled" = true;
               "testing.showCoverageInExplorer" = true;
-              "coverage-gutters.coverageFileNames" = [ "coverage.out" "coverage.html" "lcov.info" ];
+              "coverage-gutters.coverageFileNames" = [
+                "coverage.out"
+                "coverage.html"
+                "lcov.info"
+              ];
               "coverage-gutters.showGutterCoverage" = true;
               "coverage-gutters.showLineCoverage" = true;
               "coverage-gutters.showRulerCoverage" = true;
