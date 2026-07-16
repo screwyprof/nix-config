@@ -7,6 +7,7 @@
       core-vim
       core-fastfetch
       core-safe-rm
+      core-rsync
     ];
   };
 }
