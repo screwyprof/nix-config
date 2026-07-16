@@ -26,16 +26,20 @@
 
           defaultCommand = "${fdCmd}";
 
-          fileWidgetCommand = "${fdCmd} --type f";
-          fileWidgetOptions = [
-            "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {} || ${pkgs.bat}/bin/bat --style=header,numbers,changes --color=always {})'"
-          ];
+          fileWidget = {
+            command = "${fdCmd} --type f";
+            options = [
+              "--preview '([[ -d {} ]] && ${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {} || ${pkgs.bat}/bin/bat --style=header,numbers,changes --color=always {})'"
+            ];
+          };
 
-          changeDirWidgetCommand = "${fdCmd} --type d";
-          changeDirWidgetOptions = [
-            "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}'"
-            "--bind 'change:reload:${fdCmd} --type d'"
-          ];
+          changeDirWidget = {
+            command = "${fdCmd} --type d";
+            options = [
+              "--preview '${pkgs.eza}/bin/eza --tree --all --icons --git-ignore --level=3 --color=always {}'"
+              "--bind 'change:reload:${fdCmd} --type d'"
+            ];
+          };
         };
 
         zsh = {
