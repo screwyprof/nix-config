@@ -90,7 +90,7 @@ in
 
         # Configure launchd agent
         launchd.agents.colima = {
-          enable = true;
+          enable = false;
           config = {
             Label = agent.label;
             ProgramArguments = [
