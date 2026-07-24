@@ -43,6 +43,56 @@ See [`docs/architecture.md`](docs/architecture.md) for technical details.
 - GUI apps: Bitwarden, Firefox, iTerm2, JetBrains Toolbox, etc.
 - Mac App Store: Bear, Noir, AdGuard for Safari
 
+## Setup
+
+First-time setup on a fresh Mac. I only do this 2-3 times a year, so it's written down.
+
+### Prerequisites
+
+1. **Xcode Command Line Tools** (for git):
+   ```bash
+   xcode-select --install
+   ```
+
+2. **Rosetta 2** — optional, for x86 apps on Apple Silicon:
+   ```bash
+   softwareupdate --install-rosetta --agree-to-license
+   ```
+
+3. **Nix** package manager:
+   ```bash
+   sh <(curl -L https://nixos.org/nix/install)
+   ```
+
+4. **Clone this repo**:
+   ```bash
+   git clone https://github.com/screwyprof/nix-config.git ~/nix-config
+   cd ~/nix-config
+   ```
+
+### First Build
+
+nix-darwin needs to take over the shell rc files, so move the defaults aside first:
+
+```bash
+sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
+sudo mv /etc/zshrc  /etc/zshrc.before-nix-darwin
+
+# Bootstrap nix-darwin with this flake (the host is "macbook"):
+sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake '.#macbook'
+```
+
+Every rebuild after that just uses the alias:
+
+```bash
+nix-rebuild-host      # darwin-rebuild switch --flake .#macbook
+```
+
+### Post-Install
+
+- **Projects symlink**: the build creates `~/Projects → ~/Documents/Projects`. It starts working once that folder exists (and iCloud finishes syncing, if you sync Documents).
+- **Safari extensions**: enable **Noir** and **AdGuard for Safari** in Safari → Settings → Extensions. The build installs them from the App Store, but macOS requires toggling them on by hand.
+
 ## Commands I Actually Use
 
 ```bash
