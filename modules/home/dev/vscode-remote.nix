@@ -12,6 +12,12 @@
   # keyed by rev — so a bump that outruns them WARNS and degrades to letting VS Code download, rather than
   # silently pinning the wrong bytes.
   #
+  # This holds only while the MAC and the NODE resolve the same nixpkgs. The effective commit is the
+  # client's; this pin follows the node's. `programs.vscode` on the Mac disables both update checks and
+  # `update.mode`, so the client cannot drift on its own — but rebuilding one machine and not the other
+  # can skew them, and nothing here detects that: `staleWarning` fires on "no pin for the NODE's rev",
+  # never on "node rev ≠ client rev". The symptom is a silent return to downloading.
+  #
   # Refresh a hash WITHOUT downloading — the update service returns the digest in a HEAD header:
   #   curl -fsSI https://update.code.visualstudio.com/commit:<rev>/<platform>/stable | grep -i x-sha256
   #   nix hash convert --hash-algo sha256 --to sri <hex>
@@ -120,7 +126,7 @@
         lib.optionalAttrs (!havePins) (lib.warn staleWarning { })
         // lib.optionalAttrs havePins {
           ".vscode-server/code-${rev}" = {
-            source = cli;
+            source = cliWrapper;
             force = true;
           };
           ".vscode-server/cli/servers/Stable-${rev}/server" = {
@@ -128,6 +134,32 @@
             force = true;
           };
         };
+
+      # `$CLI_PATH` is a WRAPPER, not the binary, purely to close a startup race.
+      #
+      # The decoy unit is `WantedBy=default.target`, and the operator has no lingering user manager (the
+      # node's operator account is lima-provisioned, so it is not in `users.users` and NixOS cannot declare
+      # `linger` for it). Without lingering the manager stops with the last session, so on the first
+      # connect of a session `default.target` is still coming up asynchronously — and the CLI's
+      # supervisor check can win that race, spawn a real supervisor, and fetch the 635MB server before the
+      # lockfile exists.
+      #
+      # Starting the unit here puts the guarantee on the CONNECT path, where it is ordered rather than
+      # raced: `systemctl --user start` blocks until the job completes, so the lockfile is on disk before
+      # the CLI runs. Already-running is a no-op. `--user` needs only `XDG_RUNTIME_DIR` (it talks to the
+      # manager's private socket, not the session bus).
+      #
+      # Failure degrades rather than breaks: if the unit cannot start, the CLI spawns its own supervisor
+      # and downloads, which is the status quo. The bootstrap only tests `[ -f "$CLI_PATH" ]` and then
+      # executes it, so a script is as valid here as the binary, and `exec … "$@"` preserves argv exactly
+      # — including the `--version` the install path invokes.
+      cliWrapper = pkgs.writeShellScript "vscode-cli-wrapper-${rev}" ''
+        set -u
+        : "''${XDG_RUNTIME_DIR:=/run/user/$(${pkgs.coreutils}/bin/id -u)}"
+        export XDG_RUNTIME_DIR
+        ${pkgs.systemd}/bin/systemctl --user start vscode-agent-host-decoy.service 2>/dev/null || true
+        exec ${cli} "$@"
+      '';
 
       # The no-op agent-host supervisor, and the lockfile that points at it.
       #
