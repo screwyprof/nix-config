@@ -15,23 +15,19 @@
       r = config.flake.lib.vscodeRemote pkgs;
     in
     {
-      imports =
-        with config.flake.modules.homeManager;
-        [
-          happygopher-identity
-          dev-direnv
-          dev-git
-          # nix LSP + linters; nothing below depends on it.
-          dev-nix
-          core-vim
-          cli-bat
-          cli-eza
-          cli-fzf
-          cli-zoxide
-          cli-zsh
-        ]
-        # The no-op supervisor that keeps the CLI from fetching a second, channel-latest server.
-        ++ [ r.agentHostDecoy ];
+      imports = with config.flake.modules.homeManager; [
+        happygopher-identity
+        dev-direnv
+        dev-git
+        # nix LSP + linters; nothing below depends on it.
+        dev-nix
+        core-vim
+        cli-bat
+        cli-eza
+        cli-fzf
+        cli-zoxide
+        cli-zsh
+      ];
 
       home = {
         # `happygopher`, not `happygopher.guest` — only the HOME PATH carries lima's suffix, and

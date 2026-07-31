@@ -135,125 +135,30 @@
           };
         };
 
-      # `$CLI_PATH` is a WRAPPER, not the binary, purely to close a startup race.
+      # `$CLI_PATH` is a thin WRAPPER, not the binary. The bootstrap only tests `[ -f "$CLI_PATH" ]` and
+      # then executes it, so a script is as valid here as the binary, and `exec … "$@"` preserves argv
+      # exactly — including the `--version` the install path evaluates.
       #
-      # The decoy unit is `WantedBy=default.target`, and the operator has no lingering user manager (the
-      # node's operator account is lima-provisioned, so it is not in `users.users` and NixOS cannot declare
-      # `linger` for it). Without lingering the manager stops with the last session, so on the first
-      # connect of a session `default.target` is still coming up asynchronously — and the CLI's
-      # supervisor check can win that race, spawn a real supervisor, and fetch the 635MB server before the
-      # lockfile exists.
+      # Its whole job is to deny the CLI an update endpoint. On every connect the CLI unconditionally
+      # starts an "agent host" supervisor (`ensure_supervisor_running`, called from
+      # `cli/src/commands/tunnels.rs` before the workbench process exists, so no setting, flag or policy
+      # reaches it — microsoft/vscode#328397) which fetches its OWN ~635MB server resolved to
+      # channel-LATEST: a different commit from the editor, for a feature documented as opt-in.
       #
-      # Starting the unit here puts the guarantee on the CONNECT path, where it is ordered rather than
-      # raced: `systemctl --user start` blocks until the job completes, so the lockfile is on disk before
-      # the CLI runs. Already-running is a no-op. `--user` resolves the manager via
-      # `DBUS_SESSION_BUS_ADDRESS`, then `$XDG_RUNTIME_DIR/bus`, then the private socket — so defaulting
-      # `XDG_RUNTIME_DIR` is enough for a session that inherited nothing.
+      # All three `UpdateService` methods — including `get_download_stream` — build their URL from
+      # `get_update_endpoint()`, which honours this variable. So the supervisor starts, fails its version
+      # resolve once, and downloads nothing. It then writes its own correct lockfile, so later connects
+      # reuse it rather than retrying. Measured: one `warn`, no retry storm, zero children (so the
+      # `code agent kill` → `kill_tree` path is a no-op), ~16MB idle.
       #
-      # Failure degrades rather than breaks: if the unit cannot start, the CLI spawns its own supervisor
-      # and downloads, which is the status quo. The bootstrap only tests `[ -f "$CLI_PATH" ]` and then
-      # executes it, so a script is as valid here as the binary, and `exec … "$@"` preserves argv exactly
-      # — including the `--version` the install path invokes.
+      # This is safe ONLY because the server and CLI are pinned above — that endpoint is the one the
+      # editor server would otherwise be fetched from. If the hashes ever go stale, `serverFiles` is empty,
+      # this wrapper is not placed at all, and VS Code downloads normally: the degradation is losing the
+      # optimisation, never a broken editor.
       cliWrapper = pkgs.writeShellScript "vscode-cli-wrapper-${rev}" ''
         set -u
-        : "''${XDG_RUNTIME_DIR:=/run/user/$(${pkgs.coreutils}/bin/id -u)}"
-        export XDG_RUNTIME_DIR
-        sc=${pkgs.systemd}/bin/systemctl
-        unit=vscode-agent-host-decoy.service
-        lock="$HOME/.vscode-server/cli/agent-host-stable.lock"
-
-        # `start` is idempotent on the UNIT, not on the LOCKFILE — an already-active unit is a no-op and
-        # never re-asserts the file. So "the unit is running" is not the property the CLI reads: if the
-        # lock was removed (`code prune`, a manual clean) or overwritten by a real supervisor that won a
-        # race once, that state would persist for the whole session. Assert the property that matters and
-        # restart on mismatch.
-        "$sc" --user reset-failed "$unit" >/dev/null 2>&1 || true
-        "$sc" --user start "$unit" \
-          || echo "vscode-remote: agent-host decoy failed to start; a supervisor may download ~635MB" >&2
-
-        want=$("$sc" --user show "$unit" -p MainPID --value 2>/dev/null || echo 0)
-        have=$(${pkgs.gnused}/bin/sed -n 's/.*"pid":\([0-9][0-9]*\).*/\1/p' "$lock" 2>/dev/null || true)
-        if [ -z "$want" ] || [ "$want" = "0" ] || [ "$have" != "$want" ]; then
-          "$sc" --user restart "$unit" \
-            || echo "vscode-remote: agent-host decoy lockfile does not match a live supervisor" >&2
-        fi
-
-        # Proceed regardless — refusing the connect to save a download is the wrong trade — but never
-        # silently: a leaked supervisor is precisely the condition worth reporting.
+        export VSCODE_CLI_UPDATE_URL=http://127.0.0.1:1
         exec ${cli} "$@"
       '';
-
-      # The no-op agent-host supervisor, and the lockfile that points at it.
-      #
-      # WHY: on every connect the CLI unconditionally starts an "agent host" supervisor, which downloads
-      # its own ~635MB server resolved to channel-LATEST — a different commit from the editor, for a
-      # feature documented as opt-in. Nothing disables it: `ensure_supervisor_running` is called
-      # unconditionally from `cli/src/commands/tunnels.rs`, before the workbench process exists, so no
-      # setting, flag, env var or enterprise policy reaches it. Reported as microsoft/vscode#328397.
-      #
-      # HOW: the CLI reuses any lockfile that parses and whose pid is ALIVE — it never dials the port and
-      # never checks the process is really a supervisor. So a real, childless, do-nothing process is
-      # enough, and the lockfile then states the truth rather than a convenient fiction.
-      #
-      # NOT pid 1. `code agent kill` and `code agent host --replace` both feed the recorded pid straight
-      # into `kill_tree`, which walks `pgrep -P` descendants and SIGTERMs the lot. Rooted at pid 1 that is
-      # every process the operator owns — and the CLI's own reuse banner advertises `code agent kill`.
-      # Pointed at this unit it is a no-op: `sleep` has no children, and systemd restarts it.
-      #
-      # port 0 is deliberately unconnectable. The CLI passes the recorded host/port into the spawned
-      # server as `--agent-host-bridge-port`, so the bridge is configured but always fails to dial —
-      # rather than pointing at a low port something else could bind.
-      agentHostDecoy = {
-        systemd.user.services.vscode-agent-host-decoy = {
-          Unit = {
-            Description = "Placeholder VS Code agent-host supervisor (suppresses the channel-latest server download)";
-            # No start rate limit. With the default (5 starts / 10s) plus `Restart=always`, the unit lands
-            # in `failed` — and because `ExecStopPost` has already removed the lockfile, `systemctl start`
-            # then returns non-zero for the rest of the interval and EVERY connect in that window
-            # downloads the 635MB server. Reachable in ordinary use: one home-manager activation produces
-            # two stop/start cycles, so three rebuilds inside ten seconds is enough. The unit is a `sleep`;
-            # there is nothing to protect against restarting.
-            StartLimitIntervalSec = 0;
-          };
-          Install.WantedBy = [ "default.target" ];
-          Service = {
-            # `notify`, NOT `simple`. With `simple`, `systemctl start` returns once the main process is
-            # FORKED — before ExecStart has written the lockfile — so the wrapper would still race the
-            # CLI's check, just more narrowly. Verified: a Type=simple probe that sleeps before touching a
-            # marker returns from `start` with the marker absent. Signalling readiness after the write is
-            # what makes "ordered, not raced" true rather than probable.
-            Type = "notify";
-            NotifyAccess = "all";
-            Restart = "always";
-            # This blocks an interactive connect (the wrapper waits for the start job), so cap it. Every
-            # failure mode measured is fast — a missing user manager fails in ~3ms, a failed notify in
-            # ~30ms — so this is insurance against an ExecStart wedge (a stuck `$HOME` mount), not a
-            # routine path.
-            TimeoutStartSec = 10;
-            # The CLI creates this directory 0700; inheriting the user manager's 0022 would silently
-            # downgrade it to 0755, and because the wrapper now runs BEFORE the CLI, on a fresh home we
-            # win that race and the downgrade sticks.
-            UMask = "0077";
-            ExecStart = toString (
-              pkgs.writeShellScript "vscode-agent-host-decoy" ''
-                set -eu
-                lock="$HOME/.vscode-server/cli/agent-host-stable.lock"
-                mkdir -p "$(dirname "$lock")"
-                # Write-then-rename: `> "$lock"` truncates first, so a restart leaves a window where a
-                # concurrently-reading CLI sees an empty file and falls back to downloading.
-                printf '{"schemaVersion":1,"pid":%d,"port":0,"protocolVersion":"0.1.0"}\n' "$$" > "$lock.new"
-                mv -f "$lock.new" "$lock"
-                ${pkgs.systemd}/bin/systemd-notify --ready
-                exec ${pkgs.coreutils}/bin/sleep infinity
-              ''
-            );
-            ExecStopPost = toString (
-              pkgs.writeShellScript "vscode-agent-host-decoy-stop" ''
-                rm -f "$HOME/.vscode-server/cli/agent-host-stable.lock"
-              ''
-            );
-          };
-        };
-      };
     };
 }
