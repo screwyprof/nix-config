@@ -157,7 +157,11 @@
         set -u
         : "''${XDG_RUNTIME_DIR:=/run/user/$(${pkgs.coreutils}/bin/id -u)}"
         export XDG_RUNTIME_DIR
-        ${pkgs.systemd}/bin/systemctl --user start vscode-agent-host-decoy.service 2>/dev/null || true
+        # Proceed on failure — refusing the connect to save a download would be the wrong trade — but say
+        # so on stderr. A swallowed failure here is a silently leaked 635MB supervisor, which is exactly
+        # the condition worth reporting; `2>/dev/null` would discard the one signal that it happened.
+        ${pkgs.systemd}/bin/systemctl --user start vscode-agent-host-decoy.service \
+          || echo "vscode-remote: agent-host decoy failed to start; a supervisor may download ~635MB" >&2
         exec ${cli} "$@"
       '';
 
@@ -186,7 +190,13 @@
           Unit.Description = "Placeholder VS Code agent-host supervisor (suppresses the channel-latest server download)";
           Install.WantedBy = [ "default.target" ];
           Service = {
-            Type = "simple";
+            # `notify`, NOT `simple`. With `simple`, `systemctl start` returns once the main process is
+            # FORKED — before ExecStart has written the lockfile — so the wrapper would still race the
+            # CLI's check, just more narrowly. Verified: a Type=simple probe that sleeps before touching a
+            # marker returns from `start` with the marker absent. Signalling readiness after the write is
+            # what makes "ordered, not raced" true rather than probable.
+            Type = "notify";
+            NotifyAccess = "all";
             Restart = "always";
             ExecStart = toString (
               pkgs.writeShellScript "vscode-agent-host-decoy" ''
@@ -194,6 +204,7 @@
                 lock="$HOME/.vscode-server/cli/agent-host-stable.lock"
                 mkdir -p "$(dirname "$lock")"
                 printf '{"schemaVersion":1,"pid":%d,"port":0,"protocolVersion":"0.1.0"}\n' "$$" > "$lock"
+                ${pkgs.systemd}/bin/systemd-notify --ready
                 exec ${pkgs.coreutils}/bin/sleep infinity
               ''
             );
