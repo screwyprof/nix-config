@@ -69,8 +69,12 @@
           # `nix-collect-garbage`, leaving dangling symlinks and a ~635MB re-download per cage. Observed:
           # an activation package built minutes earlier was collected mid-session.
           #
-          # The name deliberately avoids `-vscode-server-`, which is the infix devbox's own gcroot reaper
-          # matches on (`prune.rs`), so this root is invisible to it.
+          # NAME CONTRACT — `cage-home-<slug>` is agreed with devbox and must not be renamed on one side
+          # alone. It deliberately avoids `-vscode-server-`, the infix devbox's gcroot reaper matches on
+          # (`prune.rs` `gather_vscode_roots`), so this root is invisible to that sweep — which is also why
+          # nothing reaps it today. devbox screwyprof/devbox#355 adds `cage-home-` to the same reaper that
+          # already handles `extensions-<slug>`, so a `devbox rm` stops leaving the generation pinned.
+          # Renaming this prefix here silently orphans that reaper; renaming it there silently leaks.
           sudo nix-store --realise --add-root "/nix/var/nix/gcroots/devbox/cage-home-$project" "$out" > /dev/null || return
 
           sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
