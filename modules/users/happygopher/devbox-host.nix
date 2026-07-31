@@ -21,6 +21,11 @@
         happygopher-identity
         dev-direnv
         dev-git
+        # Brings the nix tooling AND `nix-rebuild-devbox` / `nix-rebuild-cage`. Both are NODE commands:
+        # the first activates this very config, the second builds the cage generation here and shells
+        # into the cage to activate it — something a cage cannot do for itself (no machinectl, no host
+        # systemd). So they belong to the node's home, not a cage's.
+        dev-nix
         core-vim
         cli-bat
         cli-eza

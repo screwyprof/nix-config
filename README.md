@@ -120,6 +120,15 @@ Two homes the Mac config doesn't cover: the devbox **node** and the **cage** I a
 has a host config here — the node's NixOS config lives in the devbox repo, and a cage's system closure is
 built by devbox — so both are standalone `homeConfigurations`, applied by hand.
 
+Once the node config is active, both have aliases (from `dev-nix`, Linux-only) — run from this repo:
+
+```bash
+nix-rebuild-devbox           # the node's own home
+nix-rebuild-cage payment     # a cage's /home/dev
+```
+
+The long forms, and what to use the first time:
+
 ```bash
 # The node's own home (/home/happygopher.guest)
 nix build .#homeConfigurations.devbox-host.activationPackage && ./result/activate
