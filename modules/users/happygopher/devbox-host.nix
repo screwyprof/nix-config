@@ -15,19 +15,23 @@
       r = config.flake.lib.vscodeRemote pkgs;
     in
     {
-      imports = with config.flake.modules.homeManager; [
-        happygopher-identity
-        dev-direnv
-        dev-git
-        # nix LSP + linters; nothing below depends on it.
-        dev-nix
-        core-vim
-        cli-bat
-        cli-eza
-        cli-fzf
-        cli-zoxide
-        cli-zsh
-      ];
+      imports =
+        with config.flake.modules.homeManager;
+        [
+          happygopher-identity
+          dev-direnv
+          dev-git
+          # nix LSP + linters; nothing below depends on it.
+          dev-nix
+          core-vim
+          cli-bat
+          cli-eza
+          cli-fzf
+          cli-zoxide
+          cli-zsh
+        ]
+        # The no-op supervisor that keeps the CLI from fetching a second, channel-latest server.
+        ++ [ r.agentHostDecoy ];
 
       home = {
         # `happygopher`, not `happygopher.guest` — only the HOME PATH carries lima's suffix, and
@@ -37,7 +41,9 @@
         stateVersion = "24.11";
 
         # No `go` bundle: Go work happens in cages, which declare it themselves.
-        file = config.flake.lib.vscode.mkServerLinks (b.base ++ b.rust) // r.serverFiles;
+        file = lib.attrsets.unionOfDisjoint (config.flake.lib.vscode.mkServerLinks (
+          b.base ++ b.rust
+        )) r.serverFiles;
       };
 
       # Both surfaces' rebuild commands, kept out of the general `dev-nix` the Mac also imports. Both
