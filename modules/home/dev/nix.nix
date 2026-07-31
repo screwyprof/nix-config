@@ -30,30 +30,6 @@
             fi
           }
 
-          ${lib.optionalString pkgs.stdenv.isLinux ''
-            # The two devbox surfaces are STANDALONE homeConfigurations — neither has a host config to
-            # hang them off, so there is no `nixos-rebuild` equivalent: you build the activation package
-            # and run it. Same `.#` convention as nix-rebuild — run these from inside this repo.
-            function nix-rebuild-devbox() {
-              local out
-              out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-host.activationPackage") || return
-              "$out/activate"
-            }
-
-            # Built on the NODE, activated INSIDE the cage. Pass the STORE PATH, never ./result: a cage
-            # binds /nix/store but not this repo, so a result symlink out here is invisible in there.
-            function nix-rebuild-cage() {
-              local project="$1"
-              if [[ -z "$project" ]]; then
-                echo "usage: nix-rebuild-cage <project>" >&2
-                return 2
-              fi
-              local out
-              out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-cage.activationPackage") || return
-              sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
-            }
-          ''}
-
           function dev() {
             local shell="$1"
             shift

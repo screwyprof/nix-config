@@ -12,7 +12,7 @@
   # one extensions dir. Isolation is unavailable here at any sane price, and would buy little for a
   # workspace that can already `sudo`. The answer for this tier is MINIMISE + DECLARE, not isolate.
   flake.modules.homeManager.devbox-host =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
     let
       b = config.flake.lib.vscode.bundles pkgs;
     in
@@ -21,10 +21,8 @@
         happygopher-identity
         dev-direnv
         dev-git
-        # Brings the nix tooling AND `nix-rebuild-devbox` / `nix-rebuild-cage`. Both are NODE commands:
-        # the first activates this very config, the second builds the cage generation here and shells
-        # into the cage to activate it — something a cage cannot do for itself (no machinectl, no host
-        # systemd). So they belong to the node's home, not a cage's.
+        # nil / statix / deadnix / nixpkgs-fmt. An independent choice, not a dependency of anything
+        # below: the node is where the devbox repo (all nix) gets edited. Drop it if you disagree.
         dev-nix
         core-vim
         cli-bat
@@ -46,6 +44,33 @@
         # Go work happens in cages, which declare it themselves.
         file = config.flake.lib.vscode.mkServerLinks (b.base ++ b.rust);
       };
+
+      # The rebuild commands for BOTH surfaces live here, not in `dev-nix`: they are devbox-specific and
+      # `dev-nix` is a general module the Mac imports too. They are also both NODE commands —
+      # `nix-rebuild-cage` builds the cage generation here and shells in to activate it, which a cage
+      # cannot do for itself (no machinectl, no host systemd) — so this profile is the one place they
+      # belong. Same `.#` convention as `nix-rebuild`: run them from inside this repo.
+      programs.zsh.initContent = lib.mkAfter ''
+        function nix-rebuild-devbox() {
+          local out
+          out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-host.activationPackage") || return
+          "$out/activate"
+        }
+
+        # Pass the STORE PATH, never ./result: a cage binds /nix/store but not this repo, so a result
+        # symlink out here is invisible in there — the first version of this documented `./result` and
+        # it failed with "No such file or directory".
+        function nix-rebuild-cage() {
+          local project="$1"
+          if [[ -z "$project" ]]; then
+            echo "usage: nix-rebuild-cage <project>" >&2
+            return 2
+          fi
+          local out
+          out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-cage.activationPackage") || return
+          sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
+        }
+      '';
 
       # The node's login shell is bash and zsh is not installed there either (verified:
       # `passwd … shell=/run/current-system/sw/bin/bash`, `zsh` not on PATH) — the same position as a
