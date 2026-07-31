@@ -146,8 +146,9 @@
       #
       # Starting the unit here puts the guarantee on the CONNECT path, where it is ordered rather than
       # raced: `systemctl --user start` blocks until the job completes, so the lockfile is on disk before
-      # the CLI runs. Already-running is a no-op. `--user` needs only `XDG_RUNTIME_DIR` (it talks to the
-      # manager's private socket, not the session bus).
+      # the CLI runs. Already-running is a no-op. `--user` resolves the manager via
+      # `DBUS_SESSION_BUS_ADDRESS`, then `$XDG_RUNTIME_DIR/bus`, then the private socket — so defaulting
+      # `XDG_RUNTIME_DIR` is enough for a session that inherited nothing.
       #
       # Failure degrades rather than breaks: if the unit cannot start, the CLI spawns its own supervisor
       # and downloads, which is the status quo. The bootstrap only tests `[ -f "$CLI_PATH" ]` and then
@@ -157,11 +158,28 @@
         set -u
         : "''${XDG_RUNTIME_DIR:=/run/user/$(${pkgs.coreutils}/bin/id -u)}"
         export XDG_RUNTIME_DIR
-        # Proceed on failure — refusing the connect to save a download would be the wrong trade — but say
-        # so on stderr. A swallowed failure here is a silently leaked 635MB supervisor, which is exactly
-        # the condition worth reporting; `2>/dev/null` would discard the one signal that it happened.
-        ${pkgs.systemd}/bin/systemctl --user start vscode-agent-host-decoy.service \
+        sc=${pkgs.systemd}/bin/systemctl
+        unit=vscode-agent-host-decoy.service
+        lock="$HOME/.vscode-server/cli/agent-host-stable.lock"
+
+        # `start` is idempotent on the UNIT, not on the LOCKFILE — an already-active unit is a no-op and
+        # never re-asserts the file. So "the unit is running" is not the property the CLI reads: if the
+        # lock was removed (`code prune`, a manual clean) or overwritten by a real supervisor that won a
+        # race once, that state would persist for the whole session. Assert the property that matters and
+        # restart on mismatch.
+        "$sc" --user reset-failed "$unit" >/dev/null 2>&1 || true
+        "$sc" --user start "$unit" \
           || echo "vscode-remote: agent-host decoy failed to start; a supervisor may download ~635MB" >&2
+
+        want=$("$sc" --user show "$unit" -p MainPID --value 2>/dev/null || echo 0)
+        have=$(${pkgs.gnused}/bin/sed -n 's/.*"pid":\([0-9][0-9]*\).*/\1/p' "$lock" 2>/dev/null || true)
+        if [ -z "$want" ] || [ "$want" = "0" ] || [ "$have" != "$want" ]; then
+          "$sc" --user restart "$unit" \
+            || echo "vscode-remote: agent-host decoy lockfile does not match a live supervisor" >&2
+        fi
+
+        # Proceed regardless — refusing the connect to save a download is the wrong trade — but never
+        # silently: a leaked supervisor is precisely the condition worth reporting.
         exec ${cli} "$@"
       '';
 
@@ -187,7 +205,16 @@
       # rather than pointing at a low port something else could bind.
       agentHostDecoy = {
         systemd.user.services.vscode-agent-host-decoy = {
-          Unit.Description = "Placeholder VS Code agent-host supervisor (suppresses the channel-latest server download)";
+          Unit = {
+            Description = "Placeholder VS Code agent-host supervisor (suppresses the channel-latest server download)";
+            # No start rate limit. With the default (5 starts / 10s) plus `Restart=always`, the unit lands
+            # in `failed` — and because `ExecStopPost` has already removed the lockfile, `systemctl start`
+            # then returns non-zero for the rest of the interval and EVERY connect in that window
+            # downloads the 635MB server. Reachable in ordinary use: one home-manager activation produces
+            # two stop/start cycles, so three rebuilds inside ten seconds is enough. The unit is a `sleep`;
+            # there is nothing to protect against restarting.
+            StartLimitIntervalSec = 0;
+          };
           Install.WantedBy = [ "default.target" ];
           Service = {
             # `notify`, NOT `simple`. With `simple`, `systemctl start` returns once the main process is
@@ -198,12 +225,24 @@
             Type = "notify";
             NotifyAccess = "all";
             Restart = "always";
+            # This blocks an interactive connect (the wrapper waits for the start job), so cap it. Every
+            # failure mode measured is fast — a missing user manager fails in ~3ms, a failed notify in
+            # ~30ms — so this is insurance against an ExecStart wedge (a stuck `$HOME` mount), not a
+            # routine path.
+            TimeoutStartSec = 10;
+            # The CLI creates this directory 0700; inheriting the user manager's 0022 would silently
+            # downgrade it to 0755, and because the wrapper now runs BEFORE the CLI, on a fresh home we
+            # win that race and the downgrade sticks.
+            UMask = "0077";
             ExecStart = toString (
               pkgs.writeShellScript "vscode-agent-host-decoy" ''
                 set -eu
                 lock="$HOME/.vscode-server/cli/agent-host-stable.lock"
                 mkdir -p "$(dirname "$lock")"
-                printf '{"schemaVersion":1,"pid":%d,"port":0,"protocolVersion":"0.1.0"}\n' "$$" > "$lock"
+                # Write-then-rename: `> "$lock"` truncates first, so a restart leaves a window where a
+                # concurrently-reading CLI sees an empty file and falls back to downloading.
+                printf '{"schemaVersion":1,"pid":%d,"port":0,"protocolVersion":"0.1.0"}\n' "$$" > "$lock.new"
+                mv -f "$lock.new" "$lock"
                 ${pkgs.systemd}/bin/systemd-notify --ready
                 exec ${pkgs.coreutils}/bin/sleep infinity
               ''
