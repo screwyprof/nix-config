@@ -9,6 +9,10 @@
     { pkgs, lib, ... }:
     let
       b = config.flake.lib.vscode.bundles pkgs;
+      # The remote server + CLI, pinned to the same commit this editor negotiates. Placing them is what
+      # stops Remote-SSH fetching ~635MB into this home on every fresh connect: both of its install gates
+      # are existence checks, and a store symlink satisfies them.
+      r = config.flake.lib.vscodeRemote pkgs;
     in
     {
       imports = with config.flake.modules.homeManager; [
@@ -33,7 +37,7 @@
         stateVersion = "24.11";
 
         # No `go` bundle: Go work happens in cages, which declare it themselves.
-        file = config.flake.lib.vscode.mkServerLinks (b.base ++ b.rust);
+        file = config.flake.lib.vscode.mkServerLinks (b.base ++ b.rust) // r.serverFiles;
       };
 
       # Both surfaces' rebuild commands, kept out of the general `dev-nix` the Mac also imports. Both
