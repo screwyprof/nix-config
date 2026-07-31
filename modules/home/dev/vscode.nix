@@ -59,15 +59,23 @@
         };
         # Stops VS Code provisioning a SECOND "agent host" server on every Remote-SSH host — one that
         # resolves quality Stable to the LATEST release rather than the commit this editor is pinned to,
-        # and downloads ~635MB into each remote $HOME. Undocumented and tagged experimental upstream, so
-        # re-check it after VS Code updates.
+        # and downloads ~635MB into each remote $HOME.
         #
-        # The id has NO DOT before `Enabled`. `chat.remoteAgentHosts.enabled` — which this config carried
-        # until now — is only the localization key, so it was silently inert: VS Code drops unknown setting
-        # ids without warning, and the agent host kept installing. `chat.agentHost.enabled` above is a
-        # DIFFERENT, local-only gate and does not cover this.
-        "chat.remoteAgentHostsEnabled" = false;
+        # AutoConnect stops the unprompted outbound reach ("automatically connect to online dev tunnel and
+        # SSH-configured remote agent hosts on startup"); Enabled is the load-bearing one — vscode PR
+        # #316701 gates the WebSocket, SSH and tunnel connection paths behind it, and SSH is the path along
+        # which the install happens. Both default to TRUE upstream.
+        #
+        # The id has NO DOT before `Enabled`, and getting that wrong is why this block was inert for so
+        # long: `chat.remoteAgentHosts.enabled` (carried here until now) is only the LOCALIZATION key, and
+        # VS Code drops unknown setting ids without warning. `chat.agentHost.enabled` above is a different,
+        # LOCAL-only gate that never covered this. Ids confirmed against microsoft/vscode at tags 1.129.1
+        # and 1.131.0 (`RemoteAgentHostsEnabledSettingId`, registered `default: true`, scope APPLICATION —
+        # so USER settings only, workspace will not take). Undocumented and tagged experimental upstream:
+        # re-check after a VS Code update, and treat "the setting exists" as separate from "it worked" —
+        # the proof is that no new Stable-<commit> tree appears on a remote after a fresh connect.
         "chat.remoteAgentHostsAutoConnect" = false;
+        "chat.remoteAgentHostsEnabled" = false;
         "chat.sendElementsToChat.attachCSS" = false;
         "chat.sendElementsToChat.enabled" = false;
         "chat.setupFromDialog" = false;
