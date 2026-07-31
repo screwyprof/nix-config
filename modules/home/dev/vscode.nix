@@ -59,7 +59,6 @@
           ".github/prompts" = false;
         };
         "chat.sendElementsToChat.attachCSS" = false;
-        "chat.sendElementsToChat.attachImages" = false;
         "chat.sendElementsToChat.enabled" = false;
         "chat.setupFromDialog" = false;
         "chat.showAgentSessionsViewDescription" = false;
