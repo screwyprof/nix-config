@@ -1,12 +1,10 @@
 { config, ... }:
 {
-  # The operator's home INSIDE a devbox cage — one per project, since a cage home is per-project.
-  # The unix user is `dev`, but the person is the same, hence `happygopher-identity`.
+  # The operator's home INSIDE a cage — one per project. The unix user is `dev`, the person is not.
   #
-  # SCOPE, deliberately narrow: dotfiles and identity only. VS Code extensions are NOT here, because
-  # devbox already owns `<home>/.vscode-server/extensions` per project — it places the declared set
-  # before the editor attaches and fails the `up` if the declaration is broken, a moment home-manager has
-  # no equivalent of. Two owners, disjoint paths, no fight over the same directory.
+  # Dotfiles and identity only. VS Code extensions stay devbox's: it owns
+  # `<home>/.vscode-server/extensions` per project and places the declared set before the editor
+  # attaches, failing the `up` if the declaration is broken. Two owners, disjoint paths.
   flake.modules.homeManager.devbox-cage = {
     imports = with config.flake.modules.homeManager; [
       happygopher-identity
@@ -20,21 +18,16 @@
       cli-zsh
     ];
 
-    # A cage's occupant is always `dev` at `/home/dev` (devbox `host/sandbox/base.nix`), whichever project
-    # the cage is for — project identity lives in the bind mounts, not in the user.
+    # Always `dev` at `/home/dev`, whichever project: identity lives in the bind mounts, not the user.
     home = {
       username = "dev";
       homeDirectory = "/home/dev";
       stateVersion = "24.11";
     };
 
-    # devbox sets the cage user's login shell to bash (`host/sandbox/base.nix`), and deliberately so —
-    # the security floor carries no user preferences, which is why `cage-tooling`/`vm-tooling` were
-    # removed from the closures. Changing that shell would put a preference back into the TCB.
-    #
-    # So the preference stays HERE: home-manager puts `zsh` in the user's own profile, and bash hands off
-    # to it for interactive sessions only. Non-interactive uses (`machinectl shell … --command`, scripts,
-    # the devbox session rail) keep bash and are unaffected.
+    # The cage's login shell is bash and stays that way — devbox's security floor carries no user
+    # preferences. So the preference lives here: zsh comes from the user profile and bash execs it for
+    # INTERACTIVE shells only, leaving the session rail and `--command` invocations alone.
     programs.bash = {
       enable = true;
       initExtra = ''
