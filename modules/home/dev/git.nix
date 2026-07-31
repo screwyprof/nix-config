@@ -27,6 +27,10 @@
           ".env"
           ".direnv"
           ".CFUserTextEncoding"
+          # Claude Code writes a per-project local settings file — machine state, never shared. This was
+          # an UNDECLARED line in the devbox node's ~/.config/git/ignore; declaring it keeps the rule when
+          # home-manager takes ownership of that file, and applies it on every machine.
+          "**/.claude/settings.local.json"
         ];
       };
 

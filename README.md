@@ -114,6 +114,37 @@ dev claude-unrestricted  # Claude + MCP (skip permissions)
 # Just cd into any project with flake.nix and direnv does the rest
 ```
 
+## devbox surfaces (Linux)
+
+Two homes the Mac config doesn't cover: the devbox **node** and the **cage** I actually work in. Neither
+has a host config here — the node's NixOS config lives in the devbox repo, and a cage's system closure is
+built by devbox — so both are standalone `homeConfigurations`, applied by hand.
+
+```bash
+# The node's own home (/home/happygopher.guest)
+nix build .#homeConfigurations.devbox-host.activationPackage && ./result/activate
+
+# A cage's /home/dev — build on the node, activate INSIDE the cage.
+# Pass the STORE PATH, not ./result: a cage binds /nix/store but not this repo,
+# so a result symlink here is invisible in there.
+OUT=$(nix build --no-link --print-out-paths .#homeConfigurations.devbox-cage.activationPackage)
+sudo machinectl shell dev@<project> /run/current-system/sw/bin/bash -lc "$OUT/activate"
+```
+
+**Standalone has no `-b backup` flag.** If activation refuses with "would be clobbered", move the files
+aside first — `mv ~/.bashrc ~/.bashrc.pre-hm` — then re-run. Worth reading the list before you do: an
+undeclared line in `~/.config/git/ignore` was nearly lost that way (it's declared in `dev-git` now).
+
+**zsh needs the handoff, not a chsh.** Both the node and the cage log you into `bash`, and the cage's
+shell is set by devbox's security floor, which deliberately carries no user preferences. So home-manager
+supplies `zsh` in the user profile and `programs.bash.initExtra` execs it for interactive shells only —
+scripts, `ssh <host> <command>` and devbox's session rail stay on bash.
+
+**Extensions differ by surface.** The node gets its VS Code set from here (`base + rust`, via
+`vscode-sets.nix`), because nothing else manages that home. A cage does **not** — devbox owns
+`~/.vscode-server/extensions` per project, placing the set declared in the project's session flake before
+the editor attaches. Two owners, disjoint paths.
+
 ## Honest Trade-offs
 
 **Accepted**:
