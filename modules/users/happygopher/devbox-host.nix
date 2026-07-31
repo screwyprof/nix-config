@@ -60,6 +60,23 @@
           fi
           local out
           out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-cage.activationPackage") || return
+
+          # ROOT IT FROM THE NODE, before activating. home-manager roots its own generation at
+          # `$HOME/.local/state/nix/...` — but a cage's `$HOME` is `/home/dev`, which does NOT exist on the
+          # node, so nix drops those roots as stale links and the generation is unrooted from the only
+          # place GC actually runs. Everything the cage home points at (the placed VS Code server and CLI
+          # live *inside* the generation's `home-manager-files`) would then be collected by the next
+          # `nix-collect-garbage`, leaving dangling symlinks and a ~635MB re-download per cage. Observed:
+          # an activation package built minutes earlier was collected mid-session.
+          #
+          # NAME CONTRACT — `cage-home-<slug>` is agreed with devbox and must not be renamed on one side
+          # alone. It deliberately avoids `-vscode-server-`, the infix devbox's gcroot reaper matches on
+          # (`prune.rs` `gather_vscode_roots`), so this root is invisible to that sweep — which is also why
+          # nothing reaps it today. devbox screwyprof/devbox#355 adds `cage-home-` to the same reaper that
+          # already handles `extensions-<slug>`, so a `devbox rm` stops leaving the generation pinned.
+          # Renaming this prefix here silently orphans that reaper; renaming it there silently leaks.
+          sudo nix-store --realise --add-root "/nix/var/nix/gcroots/devbox/cage-home-$project" "$out" > /dev/null || return
+
           sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
         }
       '';
