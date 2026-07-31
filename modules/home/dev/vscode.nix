@@ -59,10 +59,6 @@
           ".github/prompts" = false;
         };
         "chat.sendElementsToChat.attachCSS" = false;
-        # `chat.sendElementsToChat.attachImages` REMOVED: VS Code no longer knows it. It shipped with
-        # attachCSS as an experimental Simple Browser pair and has since gone, so the editor prunes it
-        # on write — and the write fails against this read-only settings.json. Diffing the declared set
-        # against what VS Code holds showed 156 vs 155 keys, differing in exactly this one.
         "chat.sendElementsToChat.enabled" = false;
         "chat.setupFromDialog" = false;
         "chat.showAgentSessionsViewDescription" = false;
