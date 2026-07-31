@@ -12,7 +12,6 @@
         "chat.agent.codeBlockProgress" = false;
         "chat.agent.enabled" = false;
         "chat.agentHost.enabled" = false;
-        "chat.remoteAgentHosts.enabled" = false;
         "chat.agent.maxRequests" = 0;
         "chat.agent.thinking.generateTitles" = false;
         "chat.agent.thinking.terminalTools" = false;
@@ -58,6 +57,17 @@
         "chat.promptFilesLocations" = {
           ".github/prompts" = false;
         };
+        # Stops VS Code provisioning a SECOND "agent host" server on every Remote-SSH host — one that
+        # resolves quality Stable to the LATEST release rather than the commit this editor is pinned to,
+        # and downloads ~635MB into each remote $HOME. Undocumented and tagged experimental upstream, so
+        # re-check it after VS Code updates.
+        #
+        # The id has NO DOT before `Enabled`. `chat.remoteAgentHosts.enabled` — which this config carried
+        # until now — is only the localization key, so it was silently inert: VS Code drops unknown setting
+        # ids without warning, and the agent host kept installing. `chat.agentHost.enabled` above is a
+        # DIFFERENT, local-only gate and does not cover this.
+        "chat.remoteAgentHostsEnabled" = false;
+        "chat.remoteAgentHostsAutoConnect" = false;
         "chat.sendElementsToChat.attachCSS" = false;
         "chat.sendElementsToChat.enabled" = false;
         "chat.setupFromDialog" = false;
