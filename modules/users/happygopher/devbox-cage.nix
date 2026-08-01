@@ -11,7 +11,9 @@
   # The extension set sits behind `extensions.json`, which the server trusts OVER the directory and which
   # nothing reconciles: delivering extensions as per-entry `home.file` symlinks means a declarative REMOVAL
   # silently never takes effect (measured — dir 7, cache 8, cold server enumerated 8 including the removed
-  # one). Only devbox's atomic whole-dir replace defeats that cache. Do not move extensions here.
+  # one). What defeats the cache is replacing the DIRECTORY, which the server then re-scans — devbox's swap
+  # does that, and so would an immutable store dir with a pre-built manifest (also measured). So extensions
+  # are devbox's because that is what ships today, not because this config could not carry them.
   flake.modules.homeManager.devbox-cage =
     { pkgs, ... }:
     let
@@ -46,6 +48,9 @@
       # INTERACTIVE shells only, leaving the session rail and `--command` invocations alone.
       programs.bash = {
         enable = true;
+        # bash only springboards to zsh (initExtra below), so completion is never used — and the
+        # default sources it unguarded, which errors on nixpkgs' minimal bash.
+        enableCompletion = false;
         initExtra = ''
           if [[ $- == *i* ]] && [[ -z "$ZSH_VERSION" ]] && command -v zsh > /dev/null; then
             exec zsh -l
