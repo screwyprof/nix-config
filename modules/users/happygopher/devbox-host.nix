@@ -85,6 +85,9 @@
       # execs it for INTERACTIVE shells only, so scripts and `ssh <host> <cmd>` are unaffected.
       programs.bash = {
         enable = true;
+        # bash only springboards to zsh (initExtra below), so completion is never used — and the
+        # default sources it unguarded, which errors on nixpkgs' minimal bash.
+        enableCompletion = false;
         initExtra = ''
           if [[ $- == *i* ]] && [[ -z "$ZSH_VERSION" ]] && command -v zsh > /dev/null; then
             exec zsh -l
