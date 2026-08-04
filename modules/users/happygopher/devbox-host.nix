@@ -131,6 +131,18 @@
           # slug that does not match its directory cannot send the placement somewhere else.
           home="$(dirname "$(printf %s "$st" | jq -r .code)")/home"
 
+          # RESIDUAL, and it is not closed by the pin: this repo is itself a devbox CAGE project, so
+          # its occupant owns the tree (`sandbox:sandbox`) and `git+file://` reads the DIRTY worktree —
+          # no commit needed. An occupant who edits it gets their `home.file` placed into a native
+          # home and executed as the operator on the next session. The pin narrows WHO can do it from
+          # "any project's occupant, if the operator's cwd is in their tree" to "the nix-config
+          # occupant, always"; it does not remove it. `nix-rebuild-devbox` above has the same exposure
+          # and additionally runs `activate`, so this is a class the whole file shares.
+          #
+          # Closing it means taking the flake from somewhere the occupant cannot write — a
+          # `github:owner/repo/<rev>` ref, or an operator-owned checkout outside `/work/projects`.
+          # That is a layout decision, not something this function can do.
+          #
           # PINNED, not cwd-derived. `git rev-parse --show-toplevel` resolves against wherever the
           # operator happens to be, and every `/work/projects/*/code` is an agent-writable git repo —
           # so running this from inside one would evaluate THAT project's flake, build it as the
@@ -150,7 +162,12 @@
                 --expr "(builtins.getFlake \"git+file://$repo\")\
                         .lib.nativeProjectHome \"$project\"") || return
           root="/nix/var/nix/gcroots/devbox/native-home-$project"
-          old=$(readlink -f "$root" 2>/dev/null)
+          # Existence, not just the string: `readlink -f` on a path whose parent exists but whose final
+          # component does not PRINTS the path and exits 0. Since the root is created a few lines down,
+          # a later `-d "$old/home-files"` would then resolve through the NEW root and report a stale
+          # sweep that never happened.
+          old=
+          [[ -L "$root" ]] && old=$(readlink -f "$root" 2>/dev/null)
 
           # A failure PART WAY through leaves a half-placed home with the root already moved: the
           # previous generation is unrooted while some of its links remain. Root-before-place is still
