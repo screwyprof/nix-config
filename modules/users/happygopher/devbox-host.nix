@@ -123,7 +123,8 @@
           }
           tier=$(printf %s "$st" | jq -r .tier)
           if [[ "$tier" != "native" ]]; then
-            echo "nix-rebuild-native: $project is tier=$tier — refusing, this would overwrite a cage's home" >&2
+            echo "nix-rebuild-native: $project is tier=$tier — refusing," \
+                 "this would overwrite a cage's home" >&2
             return 1
           fi
           # ONE source of truth for the location: devbox reports where the project actually is, so a
@@ -135,7 +136,8 @@
           # `.#`, which nix resolves the same way.
           local out root old
           out=$(nix build --no-link --print-out-paths --impure \
-                --expr "(builtins.getFlake \"git+file://$(git rev-parse --show-toplevel)\").lib.nativeProjectHome \"$project\"") || return
+                --expr "(builtins.getFlake \"git+file://$(git rev-parse --show-toplevel)\")\
+                        .lib.nativeProjectHome \"$project\"") || return
           root="/nix/var/nix/gcroots/devbox/native-home-$project"
           old=$(readlink -f "$root" 2>/dev/null)
 
@@ -209,7 +211,7 @@
               # `-T`: `mv` follows a SYMLINKED destination, so a planted `<file>.hm-backup -> <dir>`
               # moves the file there. Same class as the `ln -n` → `ln -T` fix below.
               elif [[ -e "$target.hm-backup" ]]; then
-                echo "nix-rebuild-native: $target.hm-backup exists — refusing to clobber it" >&2
+                echo "nix-rebuild-native: $target.hm-backup exists — refusing" >&2
                 return 1
               else mv -Tf "$target" "$target.hm-backup" || return 1
               fi
@@ -243,7 +245,9 @@
               [[ -e "$out/home-files/$rel" ]] && continue
               _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
               target="$home/$rel"
-              if [[ -L "$target" && "$(readlink "$target")" == /nix/store/*-home-manager-generation/home-files/* ]]; then
+              local t
+              t=$(readlink "$target" 2>/dev/null)
+              if [[ -L "$target" && "$t" == /nix/store/*-home-manager-generation/home-files/* ]]; then
                 rm -f "$target" && removed=$((removed + 1))
               fi
             done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
