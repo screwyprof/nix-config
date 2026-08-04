@@ -6,7 +6,17 @@
   # available: the Remote-SSH server is per host+user, so every folder opened on the node shares one
   # extensions dir. Minimise and declare rather than isolate.
   flake.modules.homeManager.devbox-host =
-    { pkgs, lib, ... }:
+    {
+      pkgs,
+      lib,
+      # OFF for a native PROJECT home (see `flake.lib.nativeProjectHome`): there
+      # `.vscode-server/extensions` belongs to devbox, which materialises what the project's session
+      # flake declares and swaps the WHOLE directory. Two writers on one directory means an `up`
+      # erases these links and a rebuild re-injects them. A module arg rather than an option so this
+      # file needs no `options`/`config` split.
+      placeVscodeExtensions,
+      ...
+    }:
     let
       b = config.flake.lib.vscode.bundles pkgs;
       # The remote server + CLI, pinned to the same commit this editor negotiates. Placing them is what
@@ -30,6 +40,10 @@
         cli-zsh
       ];
 
+      # The DEFAULT lives here rather than as a pattern default: the module system resolves a module
+      # argument through `_module.args`, so a `? true` in the formals is not consulted.
+      _module.args.placeVscodeExtensions = lib.mkDefault true;
+
       home = {
         # `happygopher`, not `happygopher.guest` — only the HOME PATH carries lima's suffix, and
         # home-manager validates this against $USER.
@@ -38,8 +52,9 @@
         stateVersion = "24.11";
 
         # No `go` bundle: Go work happens in cages, which declare it themselves.
-        file = lib.attrsets.unionOfDisjoint (config.flake.lib.vscode.mkServerLinks (
-          b.base ++ b.rust
+        # The server+CLI pin is unconditional — that half is the operator's on every home.
+        file = lib.attrsets.unionOfDisjoint (lib.optionalAttrs placeVscodeExtensions (
+          config.flake.lib.vscode.mkServerLinks (b.base ++ b.rust)
         )) r.serverFiles;
       };
 
@@ -81,53 +96,110 @@
           sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
         }
 
-        # A NATIVE project has no cage to `machinectl shell` into, so its home is PLACED, not activated.
-        # STORE PATH, and run from inside this repo, same as the cage function above.
+        # A NATIVE project has no cage to `machinectl shell` into, so its home is PLACED, not
+        # activated. STORE PATH, and run from inside this repo, same as the cage function above.
         function nix-rebuild-native() {
           local project="$1"
           if [[ -z "$project" ]]; then
             echo "usage: nix-rebuild-native <project>" >&2
             return 2
           fi
+          # A NAME, not a path: `devbox sandbox status` accepts both, and a path would pass the tier
+          # guard and then build a home at `/work/projects//work/projects/<x>/home`.
+          if [[ "$project" == */* ]]; then
+            echo "nix-rebuild-native: pass a project NAME, not a path" >&2
+            return 2
+          fi
 
           # REFUSE a non-native project. `/work/projects/<p>/home` IS the cage's `$HOME` — the same
           # inode — and a cage already carries its own home-manager files owned by the cage principal.
           # Placing here would overwrite them with a generation built for the wrong path and uid.
-          local tier
-          tier=$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)
-          if [[ -z "$tier" || "$tier" == "null" ]]; then
-            echo "nix-rebuild-native: cannot read tier for $project — is it registered?" >&2
+          local status tier home
+          status=$(devbox sandbox status "$project" --json 2>&1) || {
+            echo "nix-rebuild-native: $status" >&2
             return 1
-          fi
+          }
+          tier=$(printf %s "$status" | jq -r .tier)
           if [[ "$tier" != "native" ]]; then
             echo "nix-rebuild-native: $project is tier=$tier — refusing, this would overwrite a cage's home" >&2
             return 1
           fi
+          # ONE source of truth for the location: devbox reports where the project actually is, so a
+          # slug that does not match its directory cannot send the placement somewhere else.
+          home="$(dirname "$(printf %s "$status" | jq -r .code)")/home"
 
-          local out home
+          # `git+file://`, not a bare path: a path flakeref copies the whole worktree (including
+          # `.git`) into the store and re-hashes on every git operation. The two functions above use
+          # `.#`, which nix resolves the same way.
+          local out root old
           out=$(nix build --no-link --print-out-paths --impure \
-                --expr "(builtins.getFlake \"$PWD\").lib.nativeProjectHome \"$project\"") || return
-          home="/work/projects/$project/home"
+                --expr "(builtins.getFlake \"git+file://$(git rev-parse --show-toplevel)\").lib.nativeProjectHome \"$project\"") || return
+          root="/nix/var/nix/gcroots/devbox/native-home-$project"
+          old=$(readlink -f "$root" 2>/dev/null)
 
           # ROOT BEFORE PLACING: the symlinks below point into this generation and nothing else roots
           # it — home-manager's own root would live under a `$HOME` we never activate against. The
-          # `native-home-` prefix is what devbox's reaper matches (screwyprof/devbox#395); renaming it
-          # on either side silently leaks here or orphans the reaper there.
-          sudo nix-store --realise --add-root \
-            "/nix/var/nix/gcroots/devbox/native-home-$project" "$out" > /dev/null || return
+          # `native-home-` prefix is a name contract with devbox's reaper; renaming it on one side
+          # leaks here or orphans the reaper there.
+          sudo nix-store --realise --add-root "$root" "$out" > /dev/null || return
 
           # PLACE, never `activate`. Activation runs `nix-env`/`nix profile`, and running those with
-          # `HOME=<project>/home` reads nix config from an AGENT-WRITABLE directory — `plugin-files` is
-          # client-side and dlopen'd before any daemon trust negotiation, so that is a path to code
+          # `HOME=<project>/home` reads nix config from an AGENT-WRITABLE directory — `plugin-files`
+          # is client-side and dlopen'd before any daemon trust negotiation, so that is a path to code
           # execution as the operator. Symlinking touches no nix client at all.
-          local rel
+          # NO SYMLINKED COMPONENT, anywhere. `mkdir -p` and `ln` resolve INTERMEDIATE components, and
+          # this home was the cage's `$HOME` — occupant-owned. A promotion preserves a planted symlink
+          # (devbox's chown is `AT_SYMLINK_NOFOLLOW` by design), so `~/.config -> <operator home>/.config`
+          # planted while caged would send these operator-privileged writes outside the project. devbox
+          # solved the same problem for `.vscode-server` with `openat`/`O_NOFOLLOW`; shell cannot, so
+          # walk and refuse. Reproduced before fixing.
+          if [[ -L "$home" ]]; then
+            echo "nix-rebuild-native: $home is a symlink — refusing" >&2
+            return 1
+          fi
+          local rel target dir part cur placed=0 removed=0
           while IFS= read -r rel; do
-            mkdir -p "$home/$(dirname "$rel")"
-            ln -sfn "$out/home-files/$rel" "$home/$rel"
-          done < <(cd "$out/home-files" && find . \( -type l -o -type f \) | sed 's|^\./||')
-          ln -sfn "$out/home-path" "$home/.nix-profile"
+            target="$home/$rel"
+            cur="$home"
+            dir=$(dirname "$rel")
+            if [[ "$dir" != "." ]]; then
+              while IFS= read -r part; do
+                cur="$cur/$part"
+                if [[ -L "$cur" ]]; then
+                  echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
+                  return 1
+                fi
+                [[ -d "$cur" ]] || mkdir "$cur" || return 1
+              done < <(printf %s "$dir" | tr '/' '\n')
+            fi
+            # `-T`, never `-n`: with `-n` a target that is a REAL directory makes `ln` link INSIDE it
+            # and exit 0 — silently skipping the ~635MB server pin on any home VS Code has opened.
+            if [[ -e "$target" || -L "$target" ]] && [[ ! -L "$target" ]]; then
+              # Not ours. A directory is what the editor recreates, so replace it (home-manager marks
+              # these `force`); a regular file may be the operator's, so keep a copy.
+              if [[ -d "$target" ]]; then rm -rf "$target" || return 1
+              else mv -f "$target" "$target.hm-backup" || return 1
+              fi
+            fi
+            ln -Tsf "$out/home-files/$rel" "$target" || return 1
+            placed=$((placed + 1))
+          done < <(cd "$out/home-files" && find . \( -type l -o -type f \) -printf '%P\n')
+          ln -Tsf "$out/home-path" "$home/.nix-profile" || return 1
 
-          echo "placed $(cd "$out/home-files" && find . \( -type l -o -type f \) | wc -l) files into $home"
+          # What the PREVIOUS generation placed and this one does not: without this the link survives,
+          # the gcroot has moved on, and the next GC leaves it dangling — which the editor's
+          # existence-check install gate happily accepts.
+          if [[ -n "$old" && -d "$old/home-files" ]]; then
+            while IFS= read -r rel; do
+              [[ -e "$out/home-files/$rel" ]] && continue
+              target="$home/$rel"
+              if [[ -L "$target" && "$(readlink "$target")" == /nix/store/*-home-manager-files/* ]]; then
+                rm -f "$target" && removed=$((removed + 1))
+              fi
+            done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\n')
+          fi
+
+          echo "placed $placed, removed $removed stale, into $home"
         }
       '';
 

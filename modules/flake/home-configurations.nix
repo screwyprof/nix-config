@@ -38,7 +38,11 @@
     project:
     (config.flake.homeConfigurations."devbox-host".extendModules {
       modules = [
-        { home.homeDirectory = lib.mkForce "/work/projects/${project}/home"; }
+        {
+          home.homeDirectory = lib.mkForce "/work/projects/${project}/home";
+          # devbox owns `.vscode-server/extensions` for a project; the server+CLI pin stays.
+          _module.args.placeVscodeExtensions = false;
+        }
       ];
     }).activationPackage;
 
