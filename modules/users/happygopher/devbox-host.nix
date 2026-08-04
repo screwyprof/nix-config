@@ -114,19 +114,21 @@
           # REFUSE a non-native project. `/work/projects/<p>/home` IS the cage's `$HOME` — the same
           # inode — and a cage already carries its own home-manager files owned by the cage principal.
           # Placing here would overwrite them with a generation built for the wrong path and uid.
-          local status tier home
-          status=$(devbox sandbox status "$project" --json 2>&1) || {
-            echo "nix-rebuild-native: $status" >&2
+          # NOT `status`: that is a zsh special parameter (a synonym for `?`) and assigning to it
+          # fails read-only, which killed this function outright — invisible when testing under bash.
+          local st tier home
+          st=$(devbox sandbox status "$project" --json 2>&1) || {
+            echo "nix-rebuild-native: $st" >&2
             return 1
           }
-          tier=$(printf %s "$status" | jq -r .tier)
+          tier=$(printf %s "$st" | jq -r .tier)
           if [[ "$tier" != "native" ]]; then
             echo "nix-rebuild-native: $project is tier=$tier — refusing, this would overwrite a cage's home" >&2
             return 1
           fi
           # ONE source of truth for the location: devbox reports where the project actually is, so a
           # slug that does not match its directory cannot send the placement somewhere else.
-          home="$(dirname "$(printf %s "$status" | jq -r .code)")/home"
+          home="$(dirname "$(printf %s "$st" | jq -r .code)")/home"
 
           # `git+file://`, not a bare path: a path flakeref copies the whole worktree (including
           # `.git`) into the store and re-hashes on every git operation. The two functions above use
@@ -164,28 +166,38 @@
             echo "nix-rebuild-native: $home is a symlink — refusing" >&2
             return 1
           fi
-          local rel target dir part cur placed=0 removed=0
+          # Walk EVERY component and refuse a symlinked one. Shared by both loops: the cleanup loop
+          # takes its rels from the OLD generation and is just as able to write outside the home.
+          # `printf '%s\n'`, not `%s`: an unterminated last line makes `read` return non-zero on the
+          # final component, so it is never checked and never created — which is exactly the component
+          # an occupant plants, and left the escape open after the first fix.
+          _devbox_native_walk() {
+            local base="$1" dir="$2" cur="$1" part
+            [[ "$dir" == "." ]] && return 0
+            while IFS= read -r part; do
+              [[ -z "$part" ]] && continue
+              cur="$cur/$part"
+              if [[ -L "$cur" ]]; then
+                echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
+                return 1
+              fi
+              [[ -d "$cur" ]] || mkdir "$cur" || return 1
+            done < <(printf '%s\n' "$dir" | tr '/' '\n')
+          }
+
+          local rel target placed=0 removed=0
           while IFS= read -r -d ''' rel; do
             target="$home/$rel"
-            cur="$home"
-            dir=$(dirname "$rel")
-            if [[ "$dir" != "." ]]; then
-              while IFS= read -r part; do
-                cur="$cur/$part"
-                if [[ -L "$cur" ]]; then
-                  echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
-                  return 1
-                fi
-                [[ -d "$cur" ]] || mkdir "$cur" || return 1
-              done < <(printf %s "$dir" | tr '/' '\n')
-            fi
+            _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
             # `-T`, never `-n`: with `-n` a target that is a REAL directory makes `ln` link INSIDE it
             # and exit 0 — silently skipping the ~635MB server pin on any home VS Code has opened.
             if [[ -e "$target" || -L "$target" ]] && [[ ! -L "$target" ]]; then
               # Not ours. A directory is what the editor recreates, so replace it (home-manager marks
               # these `force`); a regular file may be the operator's, so keep a copy.
               if [[ -d "$target" ]]; then rm -rf "$target" || return 1
-              else mv -f "$target" "$target.hm-backup" || return 1
+              # `-T`: `mv` follows a SYMLINKED destination, so a planted `<file>.hm-backup -> <dir>`
+              # moves the file there. Same class as the `ln -n` → `ln -T` fix below.
+              else mv -Tf "$target" "$target.hm-backup" || return 1
               fi
             fi
             ln -Tsf "$out/home-files/$rel" "$target" || return 1
@@ -202,6 +214,7 @@
           if [[ -n "$old" && -d "$old/home-files" ]]; then
             while IFS= read -r -d ''' rel; do
               [[ -e "$out/home-files/$rel" ]] && continue
+              _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
               target="$home/$rel"
               if [[ -L "$target" && "$(readlink "$target")" == /nix/store/*-home-manager-files/* ]]; then
                 rm -f "$target" && removed=$((removed + 1))
