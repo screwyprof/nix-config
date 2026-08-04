@@ -149,6 +149,8 @@
           # between. Cheap, and the whole guard is about not writing into a cage's home.
           if [[ "$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)" != "native" ]]; then
             echo "nix-rebuild-native: $project is no longer native — refusing" >&2
+            # Do not leave the root pinning a generation for a project that is not native any more.
+            sudo rm -f "$root"
             return 1
           fi
 
@@ -172,7 +174,7 @@
           # final component, so it is never checked and never created — which is exactly the component
           # an occupant plants, and left the escape open after the first fix.
           _devbox_native_walk() {
-            local base="$1" dir="$2" cur="$1" part
+            local dir="$2" cur="$1" part
             [[ "$dir" == "." ]] && return 0
             while IFS= read -r part; do
               [[ -z "$part" ]] && continue
@@ -185,18 +187,30 @@
             done < <(printf '%s\n' "$dir" | tr '/' '\n')
           }
 
+          # The `|| return 1`s guard each STEP; this guards the ENUMERATION. A failed `cd` left the
+          # loop body unexecuted and the function reported success having placed nothing — after
+          # pointing `.nix-profile` at a path that did not exist.
+          [[ -d "$out/home-files" ]] || {
+            echo "nix-rebuild-native: $out/home-files is missing" >&2
+            return 1
+          }
           local rel target placed=0 removed=0
           while IFS= read -r -d ''' rel; do
             target="$home/$rel"
             _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
             # `-T`, never `-n`: with `-n` a target that is a REAL directory makes `ln` link INSIDE it
             # and exit 0 — silently skipping the ~635MB server pin on any home VS Code has opened.
-            if [[ -e "$target" || -L "$target" ]] && [[ ! -L "$target" ]]; then
-              # Not ours. A directory is what the editor recreates, so replace it (home-manager marks
-              # these `force`); a regular file may be the operator's, so keep a copy.
+            if [[ -e "$target" && ! -L "$target" ]]; then
+              # Not ours. A directory is what the editor recreates, so replace it — home-manager marks
+              # the two server/CLI entries `force` for that reason, though this branch is broader than
+              # those two. A regular file may be the operator's, so keep a copy. home-manager's own
+              # `checkLinkTargets` would ABORT here instead; this is deliberately more permissive.
               if [[ -d "$target" ]]; then rm -rf "$target" || return 1
               # `-T`: `mv` follows a SYMLINKED destination, so a planted `<file>.hm-backup -> <dir>`
               # moves the file there. Same class as the `ln -n` → `ln -T` fix below.
+              elif [[ -e "$target.hm-backup" ]]; then
+                echo "nix-rebuild-native: $target.hm-backup exists — refusing to clobber it" >&2
+                return 1
               else mv -Tf "$target" "$target.hm-backup" || return 1
               fi
             fi
@@ -206,7 +220,20 @@
           # This makes PATH and `hm-session-vars.sh` resolve, at the cost of `nix profile` in that home:
           # the target is a plain store path with no `manifest.json`. The occupant here IS the operator,
           # so that is a real if minor loss.
-          ln -Tsf "$out/home-path" "$home/.nix-profile" || return 1
+          # Through the same real-target handling as the loop: `ln -T` refuses to overwrite a real
+          # DIRECTORY, which would otherwise fail here after every link was already placed.
+          target="$home/.nix-profile"
+          if [[ -e "$target" && ! -L "$target" ]]; then
+            if [[ -d "$target" ]]; then
+              rm -rf "$target" || return 1
+            elif [[ -e "$target.hm-backup" ]]; then
+              echo "nix-rebuild-native: $target.hm-backup exists — refusing to clobber it" >&2
+              return 1
+            else
+              mv -Tf "$target" "$target.hm-backup" || return 1
+            fi
+          fi
+          ln -Tsf "$out/home-path" "$target" || return 1
 
           # What the PREVIOUS generation placed and this one does not: without this the link survives,
           # the gcroot has moved on, and the next GC leaves it dangling — which the editor's
@@ -216,13 +243,17 @@
               [[ -e "$out/home-files/$rel" ]] && continue
               _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
               target="$home/$rel"
-              if [[ -L "$target" && "$(readlink "$target")" == /nix/store/*-home-manager-files/* ]]; then
+              if [[ -L "$target" && "$(readlink "$target")" == /nix/store/*-home-manager-generation/home-files/* ]]; then
                 rm -f "$target" && removed=$((removed + 1))
               fi
             done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
           fi
 
-          echo "placed $placed, removed $removed stale, into $home"
+          (( placed > 0 )) || {
+            echo "nix-rebuild-native: placed nothing — refusing to report success" >&2
+            return 1
+          }
+          echo "placed $placed (+ .nix-profile), removed $removed stale, into $home"
         }
       '';
 
