@@ -25,6 +25,7 @@
         cli-bat
         cli-eza
         cli-fzf
+        cli-jq
         cli-zoxide
         cli-zsh
       ];
@@ -93,11 +94,8 @@
           # inode — and a cage already carries its own home-manager files owned by the cage principal.
           # Placing here would overwrite them with a generation built for the wrong path and uid.
           local tier
-          # No `jq`: it is in the cage's `operator-defaults`, not this home, so depending on it here
-          # fails closed but uselessly. `tier` is a documented `--json` field, so read it directly.
-          tier=$(devbox sandbox status "$project" --json 2>/dev/null \
-                 | grep -o '"tier":"[^"]*"' | cut -d'"' -f4)
-          if [[ -z "$tier" ]]; then
+          tier=$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)
+          if [[ -z "$tier" || "$tier" == "null" ]]; then
             echo "nix-rebuild-native: cannot read tier for $project — is it registered?" >&2
             return 1
           fi
