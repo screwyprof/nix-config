@@ -58,8 +58,9 @@
         )) r.serverFiles;
       };
 
-      # Both surfaces' rebuild commands, kept out of the general `dev-nix` the Mac also imports. Both
-      # are NODE commands — a cage has no machinectl to activate itself. Run from inside this repo.
+      # The rebuild commands, kept out of the general `dev-nix` the Mac also imports. All are NODE
+      # commands — a cage has no machinectl to activate itself. The first two must be run from inside
+      # this repo; `nix-rebuild-native` builds from `${self}` and needs no particular cwd.
       programs.zsh.initContent = lib.mkAfter ''
         function nix-rebuild-devbox() {
           local out
@@ -113,17 +114,23 @@
           # REFUSE a non-native project. `/work/projects/<p>/home` IS the cage's `$HOME` — the same
           # inode — and a cage already has its own generation owned by the cage principal.
           local st tier home out
-          st=$(devbox sandbox status "$project" --json 2>&1) || {
-            echo "nix-rebuild-native: $st" >&2
+          st=$(devbox sandbox status "$project" --json) || {
+            echo "nix-rebuild-native: cannot read $project" >&2
             return 1
           }
           tier=$(printf %s "$st" | jq -r .tier)
+          if [[ -z "$tier" || "$tier" == "null" ]]; then
+            echo "nix-rebuild-native: no tier for $project — is it registered?" >&2
+            return 1
+          fi
           if [[ "$tier" != "native" ]]; then
             echo "nix-rebuild-native: $project is tier=$tier — refusing," \
                  "that home belongs to the cage" >&2
             return 1
           fi
-          # ONE source of truth for the location: devbox reports where the project actually is.
+          # devbox reports where the project actually is. Note this and the generation's baked
+          # `homeDirectory` are derived separately, from `.code` and from `$project`; `activate`'s own
+          # `checkPathEq HOME` is what catches a mismatch, loudly.
           home="$(dirname "$(printf %s "$st" | jq -r .code)")/home"
 
           # THIS FLAKE as a store path — not a checkout, not the operator's cwd, so there is no writer
@@ -139,10 +146,36 @@
           # profile, keeps generation bookkeeping, and roots the generation itself (a native home is a
           # node-real path, unlike a cage's `/home/dev` — devbox `decisions.md`, verified).
           #
-          # RESIDUAL, for a project PROMOTED from cage: that home was occupant-authored, and `activate`
-          # runs `nix-env`, which reads nix config from `$HOME`. Review such a home before the first
-          # activate. Never-caged projects have no such exposure — the agent there is already you.
-          HOME="$home" "$out/activate"
+          # RESIDUAL, for a project PROMOTED from cage — its home was occupant-authored. TWO ways that
+          # bites, and `activate` stops neither: it runs `nix-env`, which reads nix config from `$HOME`;
+          # and it writes THROUGH a symlinked path component. Measured: with `.config` pointing
+          # elsewhere, activation populates the target and rc=0, and an existing home-manager link there
+          # is replaced with no collision message, because `checkLinkTargets` treats any
+          # `-home-manager-files/*` symlink as its own.
+          #
+          # The shallow check below refuses the realistic plant — a top-level directory the generation
+          # writes into. It is deliberately NOT a full-depth walk: that was ~90 lines of this file and
+          # four HIGH findings, for a threat that only exists on the promotion path. A promoted home
+          # should be reset before its first activate; a never-caged project has no exposure at all,
+          # because the agent working there already holds the operator's uid.
+          local d
+          for d in $(cd "$out/home-files" && find . -maxdepth 1 -type d ! -name . -printf '%P\n'); do
+            if [[ -L "$home/$d" ]]; then
+              echo "nix-rebuild-native: $home/$d is a symlink — refusing, reset this home first" >&2
+              return 1
+            fi
+          done
+
+          # M2: re-read the tier. The build takes minutes and the guard above is that old by now.
+          if [[ "$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)" != "native" ]]; then
+            echo "nix-rebuild-native: $project is no longer native — refusing" >&2
+            return 1
+          fi
+          # `env -u XDG_*`: home-manager derives the profile and its gcroots from
+          # `''${XDG_STATE_HOME:-$HOME/.local/state}`, so with those set the project generation would be
+          # installed into the OPERATOR's profile. Unset today, latent tomorrow.
+          env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
+            HOME="$home" "$out/activate"
         }
       '';
 
