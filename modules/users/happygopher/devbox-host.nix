@@ -175,8 +175,11 @@
           # `printf '%s\n'`, not `%s`: an unterminated last line makes `read` return non-zero on the
           # final component, so it is never checked and never created — which is exactly the component
           # an occupant plants, and left the escape open after the first fix.
+          # $3 = "check" to validate without creating: the CLEANUP caller must not materialise
+          # directories from the OLD generation — a fresh home would end up with an empty
+          # `.vscode-server/extensions`, which the native generation deliberately disowns to devbox.
           _devbox_native_walk() {
-            local dir="$2" cur="$1" part
+            local dir="$2" cur="$1" mode="$3" part
             [[ "$dir" == "." ]] && return 0
             while IFS= read -r part; do
               [[ -z "$part" ]] && continue
@@ -185,7 +188,10 @@
                 echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
                 return 1
               fi
-              [[ -d "$cur" ]] || mkdir "$cur" || return 1
+              if [[ ! -d "$cur" ]]; then
+                [[ "$mode" == "check" ]] && return 1
+                mkdir "$cur" || return 1
+              fi
             done < <(printf '%s\n' "$dir" | tr '/' '\n')
           }
 
@@ -243,7 +249,7 @@
           if [[ -n "$old" && -d "$old/home-files" ]]; then
             while IFS= read -r -d ''' rel; do
               [[ -e "$out/home-files/$rel" ]] && continue
-              _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
+              _devbox_native_walk "$home" "$(dirname "$rel")" check || continue
               target="$home/$rel"
               local t
               t=$(readlink "$target" 2>/dev/null)
