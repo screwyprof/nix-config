@@ -116,16 +116,25 @@ dev claude-unrestricted  # Claude + MCP (skip permissions)
 
 ## devbox surfaces (Linux)
 
-Two homes the Mac config doesn't cover: the devbox **node** and the **cage** I actually work in. Neither
-has a host config here — the node's NixOS config lives in the devbox repo, and a cage's system closure is
-built by devbox — so both are standalone `homeConfigurations`, applied by hand.
+Three homes the Mac config doesn't cover: the devbox **node**, the **cage** I actually work in, and a
+**native project's** home. None has a host config here — the node's NixOS config lives in the devbox
+repo, and a cage's system closure is built by devbox — so they are standalone `homeConfigurations`,
+applied by hand.
 
-Once the node config is active, both have aliases (from `dev-nix`, Linux-only) — run from this repo:
+Once the node config is active, each has an alias (from `dev-nix`, Linux-only):
 
 ```bash
-nix-rebuild-devbox           # the node's own home
-nix-rebuild-cage payment     # a cage's /home/dev
+nix-rebuild-devbox                 # the node's own home            (run from this repo)
+nix-rebuild-cage payment           # a cage's /home/dev             (run from this repo)
+nix-rebuild-native devbox-planer   # a native project's home        (any cwd)
 ```
+
+`nix-rebuild-native` is the odd one out on purpose. A native devbox project runs UNCAGED as the
+operator with `$HOME` rewritten to `/work/projects/<name>/home`, so that home needs its own generation
+— the login one is not relocatable, since `.zshenv` and `.config/zsh/*` bake the home path. It builds
+from `${self}`, this flake's own store path, so it needs no particular cwd; the trade is that a config
+change reaches a project home only after `nix-rebuild-devbox` **and a new shell**. It refuses a
+non-native project, because that home belongs to the cage.
 
 The long forms, and what to use the first time:
 
