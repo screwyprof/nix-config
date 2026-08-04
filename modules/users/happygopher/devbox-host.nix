@@ -143,6 +143,13 @@
           # leaks here or orphans the reaper there.
           sudo nix-store --realise --add-root "$root" "$out" > /dev/null || return
 
+          # RE-READ the tier: the build can take minutes, and the operator may have re-tiered in
+          # between. Cheap, and the whole guard is about not writing into a cage's home.
+          if [[ "$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)" != "native" ]]; then
+            echo "nix-rebuild-native: $project is no longer native — refusing" >&2
+            return 1
+          fi
+
           # PLACE, never `activate`. Activation runs `nix-env`/`nix profile`, and running those with
           # `HOME=<project>/home` reads nix config from an AGENT-WRITABLE directory — `plugin-files`
           # is client-side and dlopen'd before any daemon trust negotiation, so that is a path to code
@@ -158,7 +165,7 @@
             return 1
           fi
           local rel target dir part cur placed=0 removed=0
-          while IFS= read -r rel; do
+          while IFS= read -r -d ''' rel; do
             target="$home/$rel"
             cur="$home"
             dir=$(dirname "$rel")
@@ -183,20 +190,23 @@
             fi
             ln -Tsf "$out/home-files/$rel" "$target" || return 1
             placed=$((placed + 1))
-          done < <(cd "$out/home-files" && find . \( -type l -o -type f \) -printf '%P\n')
+          done < <(cd "$out/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
+          # This makes PATH and `hm-session-vars.sh` resolve, at the cost of `nix profile` in that home:
+          # the target is a plain store path with no `manifest.json`. The occupant here IS the operator,
+          # so that is a real if minor loss.
           ln -Tsf "$out/home-path" "$home/.nix-profile" || return 1
 
           # What the PREVIOUS generation placed and this one does not: without this the link survives,
           # the gcroot has moved on, and the next GC leaves it dangling — which the editor's
           # existence-check install gate happily accepts.
           if [[ -n "$old" && -d "$old/home-files" ]]; then
-            while IFS= read -r rel; do
+            while IFS= read -r -d ''' rel; do
               [[ -e "$out/home-files/$rel" ]] && continue
               target="$home/$rel"
               if [[ -L "$target" && "$(readlink "$target")" == /nix/store/*-home-manager-files/* ]]; then
                 rm -f "$target" && removed=$((removed + 1))
               fi
-            done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\n')
+            done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
           fi
 
           echo "placed $placed, removed $removed stale, into $home"
