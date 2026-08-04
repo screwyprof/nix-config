@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, self, ... }:
 {
   # The operator's home on the devbox NODE — the surface devbox does not manage.
   #
@@ -127,7 +127,8 @@
         }
 
         # A NATIVE project has no cage to `machinectl shell` into, so its home is PLACED, not
-        # activated. STORE PATH, and run from inside this repo, same as the cage function above.
+        # activated. Unlike the two functions above it needs no particular cwd: the flake it builds
+        # from is baked in as a store path.
         function nix-rebuild-native() {
           local project="$1"
           if [[ -z "$project" ]]; then
@@ -161,36 +162,27 @@
           # slug that does not match its directory cannot send the placement somewhere else.
           home="$(dirname "$(printf %s "$st" | jq -r .code)")/home"
 
-          # RESIDUAL, and it is not closed by the pin: this repo is itself a devbox CAGE project, so
-          # its occupant owns the tree (`sandbox:sandbox`) and `git+file://` reads the DIRTY worktree —
-          # no commit needed. An occupant who edits it gets their `home.file` placed into a native
-          # home and executed as the operator on the next session. The pin narrows WHO can do it from
-          # "any project's occupant, if the operator's cwd is in their tree" to "the nix-config
-          # occupant, always"; it does not remove it. `nix-rebuild-devbox` above has the same exposure
-          # and additionally runs `activate`, so this is a class the whole file shares.
+          # THIS FLAKE, as a store path — not a checkout, and not the operator's cwd.
           #
-          # Closing it means taking the flake from somewhere the occupant cannot write — a
-          # `github:owner/repo/<rev>` ref, or an operator-owned checkout outside `/work/projects`.
-          # That is a layout decision, not something this function can do.
+          # `${self}` is the source that produced this very zshrc, immutable in the nix store. Earlier
+          # cuts read a git worktree: first whatever `git rev-parse --show-toplevel` found (so any
+          # project an occupant could write became the input, if the operator's cwd was inside it),
+          # then a pin at `/work/projects/nix-config/code` — which is a devbox PROJECT that happens to
+          # contain this config, owned by its cage occupant, and `git+file://` reads the DIRTY
+          # worktree. A store path has no writer at all, so there is nothing to guard.
           #
-          # PINNED, not cwd-derived. `git rev-parse --show-toplevel` resolves against wherever the
-          # operator happens to be, and every `/work/projects/*/code` is an agent-writable git repo —
-          # so running this from inside one would evaluate THAT project's flake, build it as the
-          # operator, pin it with `sudo`, and symlink its `home-files` (`.zshenv`, `.bashrc`, …) into
-          # a home. Proven end to end by review. The comment "run from inside this repo" was not a
-          # control.
-          #
-          # `git+file://`, not a bare path: a path flakeref copies the whole worktree (including
-          # `.git`) into the store and re-hashes on every git operation.
-          local out root old repo
+          # Consequence worth knowing: this tracks the config generation that is ACTIVE, so a config
+          # change needs `nix-rebuild-devbox` before it reaches a project home. That is the same
+          # generation the operator's own home is on, which is the behaviour to want.
+          local out root old
+
           repo=/work/projects/nix-config/code
           if [[ "$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" != "$repo" ]]; then
             echo "nix-rebuild-native: $repo is not a git worktree — clone screwyprof/nix-config there" >&2
             return 1
           fi
           out=$(nix build --no-link --print-out-paths --impure \
-                --expr "(builtins.getFlake \"git+file://$repo\")\
-                        .lib.nativeProjectHome \"$project\"") || return
+                --expr "(builtins.getFlake \"${self}\").lib.nativeProjectHome \"$project\"") || return
           root="/nix/var/nix/gcroots/devbox/native-home-$project"
           # Existence, not just the string: `readlink -f` on a path whose parent exists but whose final
           # component does not PRINTS the path and exits 0. Since the root is created a few lines down,
