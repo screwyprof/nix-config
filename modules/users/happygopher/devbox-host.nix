@@ -79,6 +79,58 @@
 
           sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
         }
+
+        # A NATIVE project has no cage to `machinectl shell` into, so its home is PLACED, not activated.
+        # STORE PATH, and run from inside this repo, same as the cage function above.
+        function nix-rebuild-native() {
+          local project="$1"
+          if [[ -z "$project" ]]; then
+            echo "usage: nix-rebuild-native <project>" >&2
+            return 2
+          fi
+
+          # REFUSE a non-native project. `/work/projects/<p>/home` IS the cage's `$HOME` — the same
+          # inode — and a cage already carries its own home-manager files owned by the cage principal.
+          # Placing here would overwrite them with a generation built for the wrong path and uid.
+          local tier
+          # No `jq`: it is in the cage's `operator-defaults`, not this home, so depending on it here
+          # fails closed but uselessly. `tier` is a documented `--json` field, so read it directly.
+          tier=$(devbox sandbox status "$project" --json 2>/dev/null \
+                 | grep -o '"tier":"[^"]*"' | cut -d'"' -f4)
+          if [[ -z "$tier" ]]; then
+            echo "nix-rebuild-native: cannot read tier for $project — is it registered?" >&2
+            return 1
+          fi
+          if [[ "$tier" != "native" ]]; then
+            echo "nix-rebuild-native: $project is tier=$tier — refusing, this would overwrite a cage's home" >&2
+            return 1
+          fi
+
+          local out home
+          out=$(nix build --no-link --print-out-paths --impure \
+                --expr "(builtins.getFlake \"$PWD\").lib.nativeProjectHome \"$project\"") || return
+          home="/work/projects/$project/home"
+
+          # ROOT BEFORE PLACING: the symlinks below point into this generation and nothing else roots
+          # it — home-manager's own root would live under a `$HOME` we never activate against. The
+          # `native-home-` prefix is what devbox's reaper matches (screwyprof/devbox#395); renaming it
+          # on either side silently leaks here or orphans the reaper there.
+          sudo nix-store --realise --add-root \
+            "/nix/var/nix/gcroots/devbox/native-home-$project" "$out" > /dev/null || return
+
+          # PLACE, never `activate`. Activation runs `nix-env`/`nix profile`, and running those with
+          # `HOME=<project>/home` reads nix config from an AGENT-WRITABLE directory — `plugin-files` is
+          # client-side and dlopen'd before any daemon trust negotiation, so that is a path to code
+          # execution as the operator. Symlinking touches no nix client at all.
+          local rel
+          while IFS= read -r rel; do
+            mkdir -p "$home/$(dirname "$rel")"
+            ln -sfn "$out/home-files/$rel" "$home/$rel"
+          done < <(cd "$out/home-files" && find . \( -type l -o -type f \) | sed 's|^\./||')
+          ln -sfn "$out/home-path" "$home/.nix-profile"
+
+          echo "placed $(cd "$out/home-files" && find . \( -type l -o -type f \) | wc -l) files into $home"
+        }
       '';
 
       # Login shell is bash here and in cages; home-manager supplies zsh in the user profile and bash
