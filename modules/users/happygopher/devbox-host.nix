@@ -96,50 +96,23 @@
           sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
         }
 
-        # $3 = "check" to validate without creating: the CLEANUP caller must not materialise
-        # directories from the OLD generation — a fresh home would end up with an empty
-        # `.vscode-server/extensions`, which the native generation deliberately disowns to devbox.
-        _devbox_native_walk() {
-          local dir="$2" cur="$1" mode="$3" part
-          [[ "$dir" == "." ]] && return 0
-          while IFS= read -r part; do
-            [[ -z "$part" ]] && continue
-            cur="$cur/$part"
-            if [[ -L "$cur" ]]; then
-              [[ "$mode" == "check" ]] \
-                && echo "nix-rebuild-native: skipping $cur — symlinked component" >&2 \
-                || echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
-              return 1
-            fi
-            if [[ ! -d "$cur" ]]; then
-              [[ "$mode" == "check" ]] && return 1
-              mkdir "$cur" || return 1
-            fi
-          done < <(printf '%s\n' "$dir" | tr '/' '\n')
-        }
-
-        # A NATIVE project has no cage to `machinectl shell` into, so its home is PLACED, not
-        # activated. Unlike the two functions above it needs no particular cwd: the flake it builds
-        # from is baked in as a store path.
+        # A NATIVE project has no cage to `machinectl shell` into, so activate straight into its home.
         function nix-rebuild-native() {
           local project="$1"
           if [[ -z "$project" ]]; then
             echo "usage: nix-rebuild-native <project>" >&2
             return 2
           fi
-          # A NAME, not a path: `devbox sandbox status` accepts both, and a path would pass the tier
-          # guard and then build a home at `/work/projects//work/projects/<x>/home`.
+          # A NAME, not a path: `devbox sandbox status` accepts both, and a path would build a home at
+          # `/work/projects//work/projects/<x>/home`.
           if [[ "$project" == */* ]]; then
             echo "nix-rebuild-native: pass a project NAME, not a path" >&2
             return 2
           fi
 
           # REFUSE a non-native project. `/work/projects/<p>/home` IS the cage's `$HOME` — the same
-          # inode — and a cage already carries its own home-manager files owned by the cage principal.
-          # Placing here would overwrite them with a generation built for the wrong path and uid.
-          # NOT `status`: that is a zsh special parameter (a synonym for `?`) and assigning to it
-          # fails read-only, which killed this function outright — invisible when testing under bash.
-          local st tier home
+          # inode — and a cage already has its own generation owned by the cage principal.
+          local st tier home out
           st=$(devbox sandbox status "$project" --json 2>&1) || {
             echo "nix-rebuild-native: $st" >&2
             return 1
@@ -147,153 +120,29 @@
           tier=$(printf %s "$st" | jq -r .tier)
           if [[ "$tier" != "native" ]]; then
             echo "nix-rebuild-native: $project is tier=$tier — refusing," \
-                 "this would overwrite a cage's home" >&2
+                 "that home belongs to the cage" >&2
             return 1
           fi
-          # ONE source of truth for the location: devbox reports where the project actually is, so a
-          # slug that does not match its directory cannot send the placement somewhere else.
+          # ONE source of truth for the location: devbox reports where the project actually is.
           home="$(dirname "$(printf %s "$st" | jq -r .code)")/home"
 
-          # THIS FLAKE, as a store path — not a checkout, and not the operator's cwd.
-          #
-          # `${self}` is the source that produced this very zshrc, immutable in the nix store. Earlier
-          # cuts read a git worktree: first whatever `git rev-parse --show-toplevel` found (so any
-          # project an occupant could write became the input, if the operator's cwd was inside it),
-          # then a pin at `/work/projects/nix-config/code` — which is a devbox PROJECT that happens to
-          # contain this config, owned by its cage occupant, and `git+file://` reads the DIRTY
-          # worktree. A store path has no writer at all, so there is nothing to guard.
-          #
-          # Consequence worth knowing: the path is frozen into the shell's function table when the
-          # zshrc is sourced, so a config change needs `nix-rebuild-devbox` AND A NEW SHELL before it
-          # reaches a project home. In the same shell you silently get the previous generation. What
-          # a project home tracks is the generation the operator's own home is on.
-          local out root old
-
+          # THIS FLAKE as a store path — not a checkout, not the operator's cwd, so there is no writer
+          # to guard. The path is frozen into the shell's function table when the zshrc is sourced, so
+          # a config change needs `nix-rebuild-devbox` AND A NEW SHELL before it reaches a project home.
           out=$(nix build --no-link --print-out-paths --impure \
                 --expr "(builtins.getFlake \"${self}\").lib.nativeProjectHome \"$project\"") || return
-          # The `|| return 1`s guard each STEP; this guards the ENUMERATION. A failed `cd` left the
-          # loop body unexecuted and the function reported success having placed nothing — after
-          # pointing `.nix-profile` at a path that did not exist. Here, where `$out` exists.
-          [[ -d "$out/home-files" ]] || {
-            echo "nix-rebuild-native: $out/home-files is missing" >&2
-            return 1
-          }
-          root="/nix/var/nix/gcroots/devbox/native-home-$project"
-          # Existence, not just the string: `readlink -f` on a path whose parent exists but whose final
-          # component does not PRINTS the path and exits 0. Since the root is created a few lines down,
-          # a later `-d "$old/home-files"` would then resolve through the NEW root and report a stale
-          # sweep that never happened.
-          old=
-          [[ -L "$root" ]] && old=$(readlink -f "$root" 2>/dev/null)
 
-          # A failure PART WAY through leaves a half-placed home with the root already moved: the
-          # previous generation is unrooted while some of its links remain. Root-before-place is still
-          # right — the alternative is placing links nothing roots.
+          # `activate`, not a hand-rolled placement. A native project runs UNCAGED AS THE OPERATOR, so
+          # an agent working there already holds this uid and `wheel` — there is no boundary a
+          # placement loop could defend, and home-manager does the job better: `checkLinkTargets`
+          # REFUSES to clobber a file the operator owns rather than moving it aside, it installs the
+          # profile, keeps generation bookkeeping, and roots the generation itself (a native home is a
+          # node-real path, unlike a cage's `/home/dev` — devbox `decisions.md`, verified).
           #
-          # ROOT BEFORE PLACING: the symlinks below point into this generation and nothing else roots
-          # it — home-manager's own root would live under a `$HOME` we never activate against. The
-          # `native-home-` prefix is a name contract with devbox's reaper; renaming it on one side
-          # leaks here or orphans the reaper there.
-          sudo nix-store --realise --add-root "$root" "$out" > /dev/null || return
-
-          # RE-READ the tier: the build can take minutes, and the operator may have re-tiered in
-          # between. Cheap, and the whole guard is about not writing into a cage's home.
-          if [[ "$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)" != "native" ]]; then
-            echo "nix-rebuild-native: $project is no longer native — refusing" >&2
-            # Do not leave the root pinning a generation for a project that is not native any more.
-            # Cost: any links already in that home now point at an unrooted path and dangle at the
-            # next GC — acceptable, since the home is no longer one this function maintains.
-            sudo rm -f "$root"
-            return 1
-          fi
-
-          # PLACE, never `activate`. Activation runs `nix-env`/`nix profile`, and running those with
-          # `HOME=<project>/home` reads nix config from an AGENT-WRITABLE directory — `plugin-files`
-          # is client-side and dlopen'd before any daemon trust negotiation, so that is a path to code
-          # execution as the operator. Symlinking touches no nix client at all.
-          # NO SYMLINKED COMPONENT, anywhere. `mkdir -p` and `ln` resolve INTERMEDIATE components, and
-          # this home was the cage's `$HOME` — occupant-owned. A promotion preserves a planted symlink
-          # (devbox's chown is `AT_SYMLINK_NOFOLLOW` by design), so `~/.config -> <operator home>/.config`
-          # planted while caged would send these operator-privileged writes outside the project. devbox
-          # solved the same problem for `.vscode-server` with `openat`/`O_NOFOLLOW`; shell cannot, so
-          # walk and refuse. Reproduced before fixing.
-          if [[ -L "$home" || ! -d "$home" ]]; then
-            echo "nix-rebuild-native: $home is missing or a symlink — refusing" >&2
-            return 1
-          fi
-          # Walk EVERY component and refuse a symlinked one. Shared by both loops: the cleanup loop
-          # takes its rels from the OLD generation and is just as able to write outside the home.
-          # `printf '%s\n'`, not `%s`: an unterminated last line makes `read` return non-zero on the
-          # final component, so it is never checked and never created — which is exactly the component
-          # an occupant plants, and left the escape open after the first fix.
-          local rel target t placed=0 removed=0
-          while IFS= read -r -d ''' rel; do
-            target="$home/$rel"
-            _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
-            # `-T`, never `-n`: with `-n` a target that is a REAL directory makes `ln` link INSIDE it
-            # and exit 0 — silently skipping the ~635MB server pin on any home VS Code has opened.
-            if [[ -e "$target" && ! -L "$target" ]]; then
-              # Not ours. A directory is what the editor recreates, so replace it — home-manager marks
-              # the two server/CLI entries `force` for that reason, though this branch is broader than
-              # those two. A regular file may be the operator's, so keep a copy. home-manager's own
-              # `checkLinkTargets` would ABORT here instead; this is deliberately more permissive.
-              if [[ -d "$target" ]]; then rm -rf "$target" || return 1
-              # `-T`: `mv` follows a SYMLINKED destination, so a planted `<file>.hm-backup -> <dir>`
-              # moves the file there. Same class as the `ln -n` → `ln -T` fix below.
-              elif [[ -e "$target.hm-backup" ]]; then
-                echo "nix-rebuild-native: $target.hm-backup exists — refusing" >&2
-                return 1
-              else mv -Tf "$target" "$target.hm-backup" || return 1
-              fi
-            fi
-            ln -Tsf "$out/home-files/$rel" "$target" || return 1
-            placed=$((placed + 1))
-          done < <(cd "$out/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
-          (( placed > 0 )) || {
-            echo "nix-rebuild-native: placed nothing — refusing to report success" >&2
-            return 1
-          }
-
-          # Through the same real-target handling as the loop: `ln -T` refuses to overwrite a real
-          # DIRECTORY, which would otherwise fail here after every link was already placed.
-          target="$home/.nix-profile"
-          if [[ -e "$target" && ! -L "$target" ]]; then
-            if [[ -d "$target" ]]; then
-              rm -rf "$target" || return 1
-            elif [[ -e "$target.hm-backup" ]]; then
-              echo "nix-rebuild-native: $target.hm-backup exists — refusing to clobber it" >&2
-              return 1
-            else
-              mv -Tf "$target" "$target.hm-backup" || return 1
-            fi
-          fi
-          # This makes PATH and `hm-session-vars.sh` resolve, at the cost of `nix profile` in that home:
-          # the target is a plain store path with no `manifest.json`. The occupant here IS the operator,
-          # so that is a real if minor loss.
-          ln -Tsf "$out/home-path" "$target" || return 1
-
-          # What the PREVIOUS generation placed and this one does not: without this the link survives,
-          # the gcroot has moved on, and the next GC leaves it dangling — which the editor's
-          # existence-check install gate happily accepts.
-          local had_previous=
-          [[ -d "$old/home-files" ]] && had_previous=1
-          if [[ -n "$had_previous" ]]; then
-            while IFS= read -r -d ''' rel; do
-              [[ -e "$out/home-files/$rel" ]] && continue
-              _devbox_native_walk "$home" "$(dirname "$rel")" check || continue
-              target="$home/$rel"
-              t=$(readlink "$target" 2>/dev/null)
-              if [[ -L "$target" && "$t" == /nix/store/*-home-manager-generation/home-files/* ]]; then
-                rm -f "$target" && removed=$((removed + 1))
-              fi
-            done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
-          fi
-
-          if [[ -n "$had_previous" ]]; then
-            echo "placed $placed (+ .nix-profile), removed $removed stale, into $home"
-          else
-            echo "placed $placed (+ .nix-profile), no previous generation, into $home"
-          fi
+          # RESIDUAL, for a project PROMOTED from cage: that home was occupant-authored, and `activate`
+          # runs `nix-env`, which reads nix config from `$HOME`. Review such a home before the first
+          # activate. Never-caged projects have no such exposure — the agent there is already you.
+          HOME="$home" "$out/activate"
         }
       '';
 
