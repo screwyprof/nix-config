@@ -25,7 +25,7 @@
     pkgs:
     let
       inherit (pkgs.stdenv.hostPlatform) system;
-      rev = pkgs.vscode.rev;
+      inherit (pkgs.vscode) rev;
 
       platforms = {
         aarch64-linux = {
