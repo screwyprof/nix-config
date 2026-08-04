@@ -131,16 +131,31 @@
           # slug that does not match its directory cannot send the placement somewhere else.
           home="$(dirname "$(printf %s "$st" | jq -r .code)")/home"
 
+          # PINNED, not cwd-derived. `git rev-parse --show-toplevel` resolves against wherever the
+          # operator happens to be, and every `/work/projects/*/code` is an agent-writable git repo —
+          # so running this from inside one would evaluate THAT project's flake, build it as the
+          # operator, pin it with `sudo`, and symlink its `home-files` (`.zshenv`, `.bashrc`, …) into
+          # a home. Proven end to end by review. The comment "run from inside this repo" was not a
+          # control.
+          #
           # `git+file://`, not a bare path: a path flakeref copies the whole worktree (including
-          # `.git`) into the store and re-hashes on every git operation. The two functions above use
-          # `.#`, which nix resolves the same way.
-          local out root old
+          # `.git`) into the store and re-hashes on every git operation.
+          local out root old repo
+          repo=/work/projects/nix-config/code
+          if [[ "$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" != "$repo" ]]; then
+            echo "nix-rebuild-native: $repo is not a git worktree — refusing" >&2
+            return 1
+          fi
           out=$(nix build --no-link --print-out-paths --impure \
-                --expr "(builtins.getFlake \"git+file://$(git rev-parse --show-toplevel)\")\
+                --expr "(builtins.getFlake \"git+file://$repo\")\
                         .lib.nativeProjectHome \"$project\"") || return
           root="/nix/var/nix/gcroots/devbox/native-home-$project"
           old=$(readlink -f "$root" 2>/dev/null)
 
+          # A failure PART WAY through leaves a half-placed home with the root already moved: the
+          # previous generation is unrooted while some of its links remain. Root-before-place is still
+          # right — the alternative is placing links nothing roots.
+          #
           # ROOT BEFORE PLACING: the symlinks below point into this generation and nothing else roots
           # it — home-manager's own root would live under a `$HOME` we never activate against. The
           # `native-home-` prefix is a name contract with devbox's reaper; renaming it on one side
@@ -152,6 +167,8 @@
           if [[ "$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)" != "native" ]]; then
             echo "nix-rebuild-native: $project is no longer native — refusing" >&2
             # Do not leave the root pinning a generation for a project that is not native any more.
+            # Cost: any links already in that home now point at an unrooted path and dangle at the
+            # next GC — acceptable, since the home is no longer one this function maintains.
             sudo rm -f "$root"
             return 1
           fi
@@ -185,7 +202,9 @@
               [[ -z "$part" ]] && continue
               cur="$cur/$part"
               if [[ -L "$cur" ]]; then
-                echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
+                [[ "$mode" == "check" ]] \
+                  && echo "nix-rebuild-native: skipping $cur — symlinked component" >&2 \
+                  || echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
                 return 1
               fi
               if [[ ! -d "$cur" ]]; then
@@ -202,7 +221,7 @@
             echo "nix-rebuild-native: $out/home-files is missing" >&2
             return 1
           }
-          local rel target placed=0 removed=0
+          local rel target t placed=0 removed=0
           while IFS= read -r -d ''' rel; do
             target="$home/$rel"
             _devbox_native_walk "$home" "$(dirname "$rel")" || return 1
@@ -228,6 +247,11 @@
           # This makes PATH and `hm-session-vars.sh` resolve, at the cost of `nix profile` in that home:
           # the target is a plain store path with no `manifest.json`. The occupant here IS the operator,
           # so that is a real if minor loss.
+          (( placed > 0 )) || {
+            echo "nix-rebuild-native: placed nothing — refusing to report success" >&2
+            return 1
+          }
+
           # Through the same real-target handling as the loop: `ln -T` refuses to overwrite a real
           # DIRECTORY, which would otherwise fail here after every link was already placed.
           target="$home/.nix-profile"
@@ -246,12 +270,11 @@
           # What the PREVIOUS generation placed and this one does not: without this the link survives,
           # the gcroot has moved on, and the next GC leaves it dangling — which the editor's
           # existence-check install gate happily accepts.
-          if [[ -n "$old" && -d "$old/home-files" ]]; then
+          if [[ -d "$old/home-files" ]]; then
             while IFS= read -r -d ''' rel; do
               [[ -e "$out/home-files/$rel" ]] && continue
               _devbox_native_walk "$home" "$(dirname "$rel")" check || continue
               target="$home/$rel"
-              local t
               t=$(readlink "$target" 2>/dev/null)
               if [[ -L "$target" && "$t" == /nix/store/*-home-manager-generation/home-files/* ]]; then
                 rm -f "$target" && removed=$((removed + 1))
@@ -259,11 +282,11 @@
             done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
           fi
 
-          (( placed > 0 )) || {
-            echo "nix-rebuild-native: placed nothing — refusing to report success" >&2
-            return 1
-          }
-          echo "placed $placed (+ .nix-profile), removed $removed stale, into $home"
+          if [[ -d "$old/home-files" ]]; then
+            echo "placed $placed (+ .nix-profile), removed $removed stale, into $home"
+          else
+            echo "placed $placed (+ .nix-profile), no previous generation, into $home"
+          fi
         }
       '';
 
