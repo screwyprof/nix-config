@@ -96,6 +96,36 @@
           sudo machinectl shell "dev@$project" /run/current-system/sw/bin/bash -lc "$out/activate"
         }
 
+        # $3 = "check" to validate without creating: the CLEANUP caller must not materialise
+        # directories from the OLD generation — a fresh home would end up with an empty
+        # `.vscode-server/extensions`, which the native generation deliberately disowns to devbox.
+        _devbox_native_walk() {
+          local dir="$2" cur="$1" mode="$3" part
+          [[ "$dir" == "." ]] && return 0
+          while IFS= read -r part; do
+            [[ -z "$part" ]] && continue
+            cur="$cur/$part"
+            if [[ -L "$cur" ]]; then
+              [[ "$mode" == "check" ]] \
+                && echo "nix-rebuild-native: skipping $cur — symlinked component" >&2 \
+                || echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
+              return 1
+            fi
+            if [[ ! -d "$cur" ]]; then
+              [[ "$mode" == "check" ]] && return 1
+              mkdir "$cur" || return 1
+            fi
+          done < <(printf '%s\n' "$dir" | tr '/' '\n')
+        }
+
+        # The `|| return 1`s guard each STEP; this guards the ENUMERATION. A failed `cd` left the
+        # loop body unexecuted and the function reported success having placed nothing — after
+        # pointing `.nix-profile` at a path that did not exist.
+        [[ -d "$out/home-files" ]] || {
+          echo "nix-rebuild-native: $out/home-files is missing" >&2
+          return 1
+        }
+
         # A NATIVE project has no cage to `machinectl shell` into, so its home is PLACED, not
         # activated. STORE PATH, and run from inside this repo, same as the cage function above.
         function nix-rebuild-native() {
@@ -155,7 +185,7 @@
           local out root old repo
           repo=/work/projects/nix-config/code
           if [[ "$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" != "$repo" ]]; then
-            echo "nix-rebuild-native: $repo is not a git worktree — refusing" >&2
+            echo "nix-rebuild-native: $repo is not a git worktree — clone screwyprof/nix-config there" >&2
             return 1
           fi
           out=$(nix build --no-link --print-out-paths --impure \
@@ -200,8 +230,8 @@
           # planted while caged would send these operator-privileged writes outside the project. devbox
           # solved the same problem for `.vscode-server` with `openat`/`O_NOFOLLOW`; shell cannot, so
           # walk and refuse. Reproduced before fixing.
-          if [[ -L "$home" ]]; then
-            echo "nix-rebuild-native: $home is a symlink — refusing" >&2
+          if [[ -L "$home" || ! -d "$home" ]]; then
+            echo "nix-rebuild-native: $home is missing or a symlink — refusing" >&2
             return 1
           fi
           # Walk EVERY component and refuse a symlinked one. Shared by both loops: the cleanup loop
@@ -209,35 +239,6 @@
           # `printf '%s\n'`, not `%s`: an unterminated last line makes `read` return non-zero on the
           # final component, so it is never checked and never created — which is exactly the component
           # an occupant plants, and left the escape open after the first fix.
-          # $3 = "check" to validate without creating: the CLEANUP caller must not materialise
-          # directories from the OLD generation — a fresh home would end up with an empty
-          # `.vscode-server/extensions`, which the native generation deliberately disowns to devbox.
-          _devbox_native_walk() {
-            local dir="$2" cur="$1" mode="$3" part
-            [[ "$dir" == "." ]] && return 0
-            while IFS= read -r part; do
-              [[ -z "$part" ]] && continue
-              cur="$cur/$part"
-              if [[ -L "$cur" ]]; then
-                [[ "$mode" == "check" ]] \
-                  && echo "nix-rebuild-native: skipping $cur — symlinked component" >&2 \
-                  || echo "nix-rebuild-native: $cur is a symlink — refusing to place through it" >&2
-                return 1
-              fi
-              if [[ ! -d "$cur" ]]; then
-                [[ "$mode" == "check" ]] && return 1
-                mkdir "$cur" || return 1
-              fi
-            done < <(printf '%s\n' "$dir" | tr '/' '\n')
-          }
-
-          # The `|| return 1`s guard each STEP; this guards the ENUMERATION. A failed `cd` left the
-          # loop body unexecuted and the function reported success having placed nothing — after
-          # pointing `.nix-profile` at a path that did not exist.
-          [[ -d "$out/home-files" ]] || {
-            echo "nix-rebuild-native: $out/home-files is missing" >&2
-            return 1
-          }
           local rel target t placed=0 removed=0
           while IFS= read -r -d ''' rel; do
             target="$home/$rel"
@@ -261,9 +262,6 @@
             ln -Tsf "$out/home-files/$rel" "$target" || return 1
             placed=$((placed + 1))
           done < <(cd "$out/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
-          # This makes PATH and `hm-session-vars.sh` resolve, at the cost of `nix profile` in that home:
-          # the target is a plain store path with no `manifest.json`. The occupant here IS the operator,
-          # so that is a real if minor loss.
           (( placed > 0 )) || {
             echo "nix-rebuild-native: placed nothing — refusing to report success" >&2
             return 1
@@ -282,12 +280,17 @@
               mv -Tf "$target" "$target.hm-backup" || return 1
             fi
           fi
+          # This makes PATH and `hm-session-vars.sh` resolve, at the cost of `nix profile` in that home:
+          # the target is a plain store path with no `manifest.json`. The occupant here IS the operator,
+          # so that is a real if minor loss.
           ln -Tsf "$out/home-path" "$target" || return 1
 
           # What the PREVIOUS generation placed and this one does not: without this the link survives,
           # the gcroot has moved on, and the next GC leaves it dangling — which the editor's
           # existence-check install gate happily accepts.
-          if [[ -d "$old/home-files" ]]; then
+          local had_previous=
+          [[ -d "$old/home-files" ]] && had_previous=1
+          if [[ -n "$had_previous" ]]; then
             while IFS= read -r -d ''' rel; do
               [[ -e "$out/home-files/$rel" ]] && continue
               _devbox_native_walk "$home" "$(dirname "$rel")" check || continue
@@ -299,7 +302,7 @@
             done < <(cd "$old/home-files" && find . \( -type l -o -type f \) -printf '%P\0')
           fi
 
-          if [[ -d "$old/home-files" ]]; then
+          if [[ -n "$had_previous" ]]; then
             echo "placed $placed (+ .nix-profile), removed $removed stale, into $home"
           else
             echo "placed $placed (+ .nix-profile), no previous generation, into $home"
