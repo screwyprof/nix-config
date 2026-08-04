@@ -118,14 +118,6 @@
           done < <(printf '%s\n' "$dir" | tr '/' '\n')
         }
 
-        # The `|| return 1`s guard each STEP; this guards the ENUMERATION. A failed `cd` left the
-        # loop body unexecuted and the function reported success having placed nothing — after
-        # pointing `.nix-profile` at a path that did not exist.
-        [[ -d "$out/home-files" ]] || {
-          echo "nix-rebuild-native: $out/home-files is missing" >&2
-          return 1
-        }
-
         # A NATIVE project has no cage to `machinectl shell` into, so its home is PLACED, not
         # activated. Unlike the two functions above it needs no particular cwd: the flake it builds
         # from is baked in as a store path.
@@ -171,18 +163,21 @@
           # contain this config, owned by its cage occupant, and `git+file://` reads the DIRTY
           # worktree. A store path has no writer at all, so there is nothing to guard.
           #
-          # Consequence worth knowing: this tracks the config generation that is ACTIVE, so a config
-          # change needs `nix-rebuild-devbox` before it reaches a project home. That is the same
-          # generation the operator's own home is on, which is the behaviour to want.
+          # Consequence worth knowing: the path is frozen into the shell's function table when the
+          # zshrc is sourced, so a config change needs `nix-rebuild-devbox` AND A NEW SHELL before it
+          # reaches a project home. In the same shell you silently get the previous generation. What
+          # a project home tracks is the generation the operator's own home is on.
           local out root old
 
-          repo=/work/projects/nix-config/code
-          if [[ "$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" != "$repo" ]]; then
-            echo "nix-rebuild-native: $repo is not a git worktree — clone screwyprof/nix-config there" >&2
-            return 1
-          fi
           out=$(nix build --no-link --print-out-paths --impure \
                 --expr "(builtins.getFlake \"${self}\").lib.nativeProjectHome \"$project\"") || return
+          # The `|| return 1`s guard each STEP; this guards the ENUMERATION. A failed `cd` left the
+          # loop body unexecuted and the function reported success having placed nothing — after
+          # pointing `.nix-profile` at a path that did not exist. Here, where `$out` exists.
+          [[ -d "$out/home-files" ]] || {
+            echo "nix-rebuild-native: $out/home-files is missing" >&2
+            return 1
+          }
           root="/nix/var/nix/gcroots/devbox/native-home-$project"
           # Existence, not just the string: `readlink -f` on a path whose parent exists but whose final
           # component does not PRINTS the path and exits 0. Since the root is created a few lines down,
