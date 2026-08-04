@@ -98,6 +98,11 @@
         }
 
         # A NATIVE project has no cage to `machinectl shell` into, so activate straight into its home.
+        #
+        # MANUAL ONLY — never call this from a brokered or automated path. The safety argument is that
+        # the operator invokes it deliberately: devbox#395 was rejected precisely because the same
+        # operation ran inside brokered `up`, as root, unattended and cage-triggerable. Wiring this
+        # into `up` would resurrect that.
         function nix-rebuild-native() {
           local project="$1"
           if [[ -z "$project" ]]; then
@@ -174,7 +179,14 @@
           # `env -u XDG_*`: home-manager derives the profile and its gcroots from
           # `''${XDG_STATE_HOME:-$HOME/.local/state}`, so with those set the project generation would be
           # installed into the OPERATOR's profile. Unset today, latent tomorrow.
+          # `NIX_USER_CONF_FILES=` closes the OTHER promotion-path vector structurally, rather than
+          # relying on the operator remembering to reset the home: `activate` runs `nix-env`, which
+          # would read `$HOME/.config/nix/nix.conf` — occupant-authored on a promoted home — and
+          # `plugin-files` there is dlopen'd before any trust negotiation. Verified: nix tries to load
+          # the named plugin without this, and does not with it. Nothing is lost — that file is the
+          # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
           env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
+            NIX_USER_CONF_FILES= \
             HOME="$home" "$out/activate"
         }
       '';
