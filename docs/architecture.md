@@ -80,6 +80,25 @@ Aggregator modules compose feature modules:
 }
 ```
 
+That inline form works only while the aggregated module is a plain attrset. One that is a FUNCTION taking
+`config` — home-manager's — must bind the flake's `config` in an enclosing `let` instead:
+
+```nix
+# modules/users/happygopher/darwin.nix
+{ config, ... }:
+let
+  inherit (config.flake.modules.homeManager) happygopher-identity;
+in {
+  flake.modules.homeManager.happygopher-darwin =
+    { config, lib, pkgs, ... }: {      # <- shadows the flake's `config`
+      imports = [ happygopher-identity ];
+    };
+}
+```
+
+Reaching for `config.flake…` inside that function is not a wrong value, it is `error: infinite recursion
+encountered` — `imports` may never reference the module's own `config`.
+
 ## Host Configuration
 
 Hosts are declared using the `darwinHosts` option defined in `builder.nix`:

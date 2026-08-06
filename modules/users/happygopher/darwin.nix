@@ -1,3 +1,11 @@
+{ config, ... }:
+let
+  # The module below shadows `config` with home-manager's, and `imports` may not touch a module's own
+  # `config` — that is infinite recursion, not a wrong value. So bind the flake's here. `devbox-host.nix`
+  # and `devbox-cage.nix` can write `imports = with config.flake.modules.homeManager; …` inline only
+  # because their inner modules never take `config` as a formal.
+  inherit (config.flake.modules.homeManager) happygopher-identity;
+in
 {
   flake.modules.homeManager.happygopher-darwin =
     {
@@ -7,6 +15,8 @@
       ...
     }:
     {
+      imports = [ happygopher-identity ];
+
       home = {
         stateVersion = "24.11";
 
@@ -123,11 +133,6 @@
             fi
           '';
         };
-      };
-
-      programs.git.settings.user = {
-        name = "Happy Gopher";
-        email = "max@happygopher.nl";
       };
 
       xdg.enable = true;
