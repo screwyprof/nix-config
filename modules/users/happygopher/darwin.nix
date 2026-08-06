@@ -1,8 +1,9 @@
 { config, ... }:
 let
-  # Bound HERE because the module below takes its OWN `config` (home-manager's, used for
-  # `lib.file.mkOutOfStoreSymlink` and `home.homeDirectory`). Reaching for the flake's `config` inside that
-  # function resolves to the wrong one — the first cut did exactly that and would not have evaluated.
+  # The module below shadows `config` with home-manager's, and `imports` may not touch a module's own
+  # `config` — that is infinite recursion, not a wrong value. So bind the flake's here. `devbox-host.nix`
+  # and `devbox-cage.nix` can write `imports = with config.flake.modules.homeManager; …` inline only
+  # because their inner modules never take `config` as a formal.
   inherit (config.flake.modules.homeManager) happygopher-identity;
 in
 {
@@ -14,9 +15,6 @@ in
       ...
     }:
     {
-      # Identity is the SAME here as on the node and in every cage — a commit from the Mac is no more or
-      # less the operator's. `identity.nix` says so; this file kept its own copy, and the two agreed only
-      # by luck, so a change there would silently not reach macOS.
       imports = [ happygopher-identity ];
 
       home = {
