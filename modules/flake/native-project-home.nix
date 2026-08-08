@@ -14,49 +14,32 @@
   #
   # NAMED arguments rather than a bare `project:` string, because there are now two of them and the second
   # is optional. The old positional form has one caller, `nix-rebuild-native`, updated with it.
-  flake.lib.nativeProjectHome =
-    {
-      project,
-      projectExtensionsDir ? null,
-    }:
-    (config.flake.homeConfigurations."devbox-host".extendModules {
+  # The CONFIG, so a caller can extend it further. `nativeProjectHome` below stays the
+  # activationPackage wrapper `nix-rebuild-native` already calls.
+  #
+  # `placeVscodeExtensions = false` lives HERE, not in the caller: `devbox-host` places the operator's
+  # own `base ++ rust` pick for their LOGIN home, which is right for a Rust repo and wrong for a Go one.
+  # A project home must never inherit it — the project declares what the repo is written in.
+  flake.lib.nativeProjectHomeConfig =
+    { project }:
+    config.flake.homeConfigurations."devbox-host".extendModules {
       modules = [
         {
-          home.homeDirectory = lib.mkForce "/work/projects/${project}/home";
-
-          # STAYS OFF, and that is the point rather than an oversight. It would place `base ++ rust` from
-          # THIS repo's catalog — right for a Rust project, wrong for a Go one, and wrong in principle:
-          # a project declares its own set and devbox realises it. This flag is nix-config choosing for
-          # someone else's project, which is the thing screwyprof/devbox#460 exists to stop.
           _module.args.placeVscodeExtensions = false;
-
-          # The project's own set, as a realised STORE PATH — the same seam `devbox-cage` has (decision
-          # 009), for the same trust reason, with the same guard. See 009 for the measurements; the two
-          # must not drift.
-          assertions = [
-            {
-              assertion =
-                projectExtensionsDir == null || builtins.dirOf (toString projectExtensionsDir) == builtins.storeDir;
-              message = ''
-                projectExtensionsDir must be a store OUTPUT — exactly one component under
-                ${builtins.storeDir} — realised by the caller before it gets here.
-                Got: ${toString projectExtensionsDir}
-              '';
-            }
+          imports = with config.flake.modules.homeManager; [
+            editors-vscode
+            happygopher-vscode-taste
           ];
-
-          # PRECONDITION, identical to the cage's: nothing may already exist at this path. A native project
-          # that has been opened has a REAL DIRECTORY there, placed by devbox, and `checkLinkTargets`
-          # aborts the whole activation on it. Measured against this very generation — see 009 and
-          # screwyprof/devbox#490.
-          #
-          # NOTHING CLEARS IT YET, deliberately. `nix-rebuild-native` passes no path, so this arg is inert
-          # and the collision cannot arise; a clearing step landed here now would strip a project's
-          # extensions and put nothing back. It travels with the caller.
-          home.file = lib.optionalAttrs (projectExtensionsDir != null) {
-            ".vscode-server/extensions".source = "${projectExtensionsDir}/share/vscode/extensions";
-          };
         }
+        (
+          { lib, ... }:
+          {
+            home.homeDirectory = lib.mkForce "/work/projects/${project}/home";
+          }
+        )
       ];
-    }).activationPackage;
+    };
+
+  flake.lib.nativeProjectHome =
+    { project }: (config.flake.lib.nativeProjectHomeConfig { inherit project; }).activationPackage;
 }
