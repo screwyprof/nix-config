@@ -189,14 +189,14 @@
             # `plugin-files` there is dlopen'd before any trust negotiation. Verified: nix tries to load
             # the named plugin without this, and does not with it. Nothing is lost — that file is the
             # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
-              # `HOME_MANAGER_BACKUP_EXT`: a project that has been OPENED has a real directory at
-              # `.vscode-server/extensions`, placed by devbox. `checkLinkTargets` refuses to clobber it
-              # and aborts the WHOLE activation — measured against this generation: exit 1, "would be
-              # clobbered". With this set it is MOVED to `<name>.hm-old` and activation succeeds.
-              # `force = true` is not an alternative: its `ln -Tsf` cannot overwrite a directory.
-              #
-              # NOTHING IS DELETED — the displaced directory stays on disk under the suffix, so an
-              # occupant's ad-hoc installs survive and a mistake is recoverable by hand.
+            # `HOME_MANAGER_BACKUP_EXT`: a project that has been OPENED has a real directory at
+            # `.vscode-server/extensions`, placed by devbox. `checkLinkTargets` refuses to clobber it
+            # and aborts the WHOLE activation — measured against this generation: exit 1, "would be
+            # clobbered". With this set it is MOVED to `<name>.hm-old` and activation succeeds.
+            # `force = true` is not an alternative: its `ln -Tsf` cannot overwrite a directory.
+            #
+            # NOTHING IS DELETED — the displaced directory stays on disk under the suffix, so an
+            # occupant's ad-hoc installs survive and a mistake is recoverable by hand.
             env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
               NIX_USER_CONF_FILES= \
               HOME="$home" HOME_MANAGER_BACKUP_EXT=hm-old "$out/activate"

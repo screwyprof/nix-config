@@ -360,7 +360,7 @@ A project declares its own set; devbox realises it unprivileged and hands over a
 **The backup variable lands in a different place from the cage, and this is the part that does not
 generalise.** Cage activation runs through devbox's `systemd-run` in `apply_operator_profile`, so devbox
 sets it there. Native activation is `"$out/activate"` inside `nix-rebuild-native` — devbox is never in
-that path — so it is set here, in this repo. Measured against the real `nativeProjectHome "cqrs"`
+that path — so it is set here, in this repo. Measured against the real `nativeProjectHome { project = "cqrs"; }`
 generation, driving `check-link-targets.sh` exactly as `activate` does:
 
 | native home | result |
