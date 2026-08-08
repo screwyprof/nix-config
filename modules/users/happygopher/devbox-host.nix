@@ -54,7 +54,10 @@
         # No `go` bundle: Go work happens in cages, which declare it themselves.
         # The server+CLI pin is unconditional — that half is the operator's on every home.
         file = lib.attrsets.unionOfDisjoint (lib.optionalAttrs placeVscodeExtensions (
-          config.flake.lib.vscode.mkServerLinks (b.base ++ b.rust)
+          config.flake.lib.vscode.mkServerExtensions {
+            inherit pkgs;
+            exts = b.base ++ b.rust;
+          }
         )) r.serverFiles;
       };
 
