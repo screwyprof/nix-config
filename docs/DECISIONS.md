@@ -293,6 +293,15 @@ a real Remote-SSH connect, not `--list-extensions`:
 | contested key | project's `Solarized Light` beat the operator's `mkDefault "Dracula"` |
 | server download | none — every home symlinks ONE shared 560 MB store copy |
 
+**PRECONDITION — the render is OFF by default (`editors.vscode.enable`), and that is a safety gate.**
+Every project home that has ever been opened holds a REAL DIRECTORY at `.vscode-server/extensions`;
+`checkLinkTargets` refuses to clobber it and aborts the WHOLE activation, which devbox records as a
+warning, so the home stalls on its last generation. `mkServerExtensions`' own docstring and 008 both say
+switching to immutable needs a one-time `rm -rf` per home. **A home opts in only once that directory is
+gone** (screwyprof/devbox#481 reaps them). The first cut of this entry had no gate and its evidence was
+two FRESH spikes — structurally the same blind spot as the two withdrawn PRs, on the same row, for the
+third time.
+
 **Three things only the real connect caught.** `mkhl.direnv` is REQUIRED and is not in the language
 catalog — without it the devShell never reaches the extension host and rust-analyzer activates then dies
 `Failed to spawn "rustfmt"`; declaring extensions is not declaring a toolchain. Operator taste must live

@@ -21,7 +21,7 @@
   # own `base ++ rust` pick for their LOGIN home, which is right for a Rust repo and wrong for a Go one.
   # A project home must never inherit it — the project declares what the repo is written in.
   flake.lib.nativeProjectHomeConfig =
-    project:
+    { project }:
     config.flake.homeConfigurations."devbox-host".extendModules {
       modules = [
         {
@@ -41,5 +41,5 @@
     };
 
   flake.lib.nativeProjectHome =
-    { project }: (config.flake.lib.nativeProjectHomeConfig project).activationPackage;
+    { project }: (config.flake.lib.nativeProjectHomeConfig { inherit project; }).activationPackage;
 }
