@@ -265,6 +265,15 @@ right tool where the operator composes a home deliberately (`nativeProjectHome`)
 no say. Here the placement — including the `/share/vscode/extensions` suffix, matching
 `mkServerExtensions` — stays in this repo, so the caller needs to know nothing about VS Code's layout.
 
+**The module FAILS CLOSED on a non-store path**, because otherwise the paragraph above is only a comment.
+Measured: a non-store directory that EXISTS is accepted, and nix COPIES it into the store (`/tmp/x` became
+`...-hm_extensions`). That is not the live-symlink-into-occupant-ground hazard it first looks like — the
+result is frozen — it is a worse one: the copy is made by ROOT's daemon into a world-readable store
+bind-mounted into EVERY cage, so one project's content would be published to all of them. That exact
+publication surface was deliberately removed once already (screwyprof/devbox#426). An `assertions` entry
+now rejects anything not under `builtins.storeDir`; both deleting it and loosening its predicate to
+"non-empty" turn the rejection test red, while the null case stays green.
+
 **Verified in a real cage, both directions**, not by evaluation alone: activation run the way devbox runs
 it (`systemd-run --machine --uid=1000 --pipe --wait`), then `code-server --list-extensions --show-versions`
 inside the cage.

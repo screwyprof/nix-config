@@ -37,6 +37,24 @@
       # survive home-manager's module wrapping — it falls through to `_module.args` and fails "missing".
       _module.args.projectExtensionsDir = lib.mkDefault null;
 
+      # FAIL CLOSED on anything that is not a store path. Without this the guarantee above is only a
+      # comment: a non-store directory that EXISTS is accepted, and nix COPIES it into the store
+      # (measured — `/tmp/x` became `…-hm_extensions`). The result is frozen rather than live, so it is
+      # not the mutable-drift hazard it looks like; it is a worse one. The copy is made by ROOT's daemon
+      # into a world-readable store that is bind-mounted into EVERY cage, so one project's content would
+      # be published to all of them. That publication surface was deliberately removed once already
+      # (screwyprof/devbox#426); nothing should quietly reintroduce it.
+      assertions = [
+        {
+          assertion =
+            projectExtensionsDir == null || lib.hasPrefix builtins.storeDir (toString projectExtensionsDir);
+          message = ''
+            projectExtensionsDir must be a ${builtins.storeDir} path, realised by the caller before it
+            gets here. Got: ${toString projectExtensionsDir}
+          '';
+        }
+      ];
+
       imports = with config.flake.modules.homeManager; [
         happygopher-identity
         dev-direnv # loads the project devshell on cd — why anything else is on PATH
