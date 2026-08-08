@@ -23,6 +23,24 @@ in
     in
     {
       options.editors.vscode = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Render the assembled set into this home. **Off by default, and that is a safety gate rather
+            than a preference.**
+
+            Every project home that has ever been opened holds a REAL DIRECTORY at
+            `.vscode-server/extensions`, placed by devbox. home-manager's `checkLinkTargets` refuses to
+            clobber it and `checkNewGenCollision || exit 1` aborts the WHOLE activation, which devbox
+            records as a warning — so the home silently stalls on its last generation. `mkServerExtensions`
+            says the same thing in its own docstring, and decision 008 says it again.
+
+            Turn on per home only once that directory is gone (screwyprof/devbox#481 reaps them). Until
+            then a home that never opts in renders nothing and behaves exactly as before.
+          '';
+        };
+
         extensions = lib.mkOption {
           type = lib.types.listOf lib.types.package;
           default = [ ];
@@ -43,13 +61,14 @@ in
         };
       };
 
-      config.home.file =
+      config.home.file = lib.mkIf cfg.enable (
         lib.optionalAttrs (cfg.extensions != [ ]) (mkServerExtensions {
           inherit pkgs;
           exts = cfg.extensions;
         })
         // lib.optionalAttrs (cfg.settings != { }) {
           ".vscode-server/data/Machine/settings.json".text = builtins.toJSON cfg.settings;
-        };
+        }
+      );
     };
 }
