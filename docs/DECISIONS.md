@@ -388,8 +388,15 @@ across devbox's Rust source returns ZERO, and `apply_operator_profile`'s `system
 variable, `--setenv=PATH=…`. The cage's policy is the OPPOSITE: fail closed, abort, and require whoever
 placed the directory to remove it first (009, screwyprof/devbox#481).
 
-Note the delivery lag this inherits: `nix-rebuild-native` is frozen into the shell's function table when
-the zshrc is sourced, so the variable reaches no project home until `nix-rebuild-devbox` AND a new shell.
+Note the delivery lag: `nix-rebuild-native` is frozen into the shell's function table when the zshrc is
+sourced, so the CALL-SYNTAX change here reaches no project home until `nix-rebuild-devbox` AND a new
+shell. Until both have happened, a stale function still calls `nativeProjectHome "<project>"` positionally
+and fails `cannot coerce a set to a string`. The same lag will apply to the clearing step when it lands.
+
+**On evidence for this entry: `nix flake check` is not a gate here.** It reported `running 0 flake checks`
+and still exited 0 — it verified evaluation and nothing else. The checks have to be built by name:
+`nix build .#checks.<system>.{pre-commit,treefmt}`. This is the second shape of vacuous green from that
+command in one day; the other was `--no-build`, which skips building the checks entirely.
 
 **On the evidence, stated rather than implied.** This repo has no test harness, so the mutation table
 behind the guard is a set of MANUAL checks that nothing re-runs: dropping the assertion, loosening it to
