@@ -338,3 +338,50 @@ CHOICE — devbox decides what to pass — but the placement is here. screwyprof
 screwyprof/devbox#481 then deletes devbox's own placement.
 
 ---
+
+## 010: `nativeProjectHome` takes the same extensions path, and moves the old directory aside
+
+`nativeProjectHome` gains `projectExtensionsDir`, mirroring 009's seam on `devbox-cage` — same
+`dirOf == builtins.storeDir` guard, same `${dir}/share/vscode/extensions` suffix appended here, same
+`null` default that places nothing. Its signature becomes NAMED arguments; `nix-rebuild-native` is the one
+caller and moves with it.
+
+**Why native needed its own entry rather than riding 009.** `nativeProjectHome` extends `devbox-host`, not
+`devbox-cage`, so 009's arg was never reachable from it. screwyprof/devbox#481 removes devbox's placement
+for BOTH tiers and `materialise_extensions` is not tier-gated, so without this, three live native projects
+(`cqrs`, `devbox`, `devbox-planer` — each holding a devbox-placed directory today) would have been left
+with nobody placing extensions at all.
+
+**`placeVscodeExtensions` stays FALSE, and that is the decision, not an omission.** It would place
+`base ++ rust` from THIS repo's catalog: right for a Rust project, wrong for a Go one, and wrong in
+principle — nix-config choosing for someone else's project is what screwyprof/devbox#460 exists to stop.
+A project declares its own set; devbox realises it unprivileged and hands over a path.
+
+**The backup variable lands in a different place from the cage, and this is the part that does not
+generalise.** Cage activation runs through devbox's `systemd-run` in `apply_operator_profile`, so devbox
+sets it there. Native activation is `"$out/activate"` inside `nix-rebuild-native` — devbox is never in
+that path — so it is set here, in this repo. Measured against the real `nativeProjectHome "cqrs"`
+generation, driving `check-link-targets.sh` exactly as `activate` does:
+
+| native home | result |
+|---|---|
+| fresh | exit 0 |
+| real `extensions` directory present | exit 1, `Existing file … would be clobbered` |
+| same + `HOME_MANAGER_BACKUP_EXT` | exit 0, `will be moved to '….vscode-server/extensions.hm-old'` |
+
+Nothing is deleted: the displaced directory stays on disk under the suffix, so an occupant's ad-hoc
+installs survive and a mistake is recoverable by hand. `force = true` is not an alternative — its
+`ln -Tsf` cannot overwrite a directory (009).
+
+Note the delivery lag this inherits: `nix-rebuild-native` is frozen into the shell's function table when
+the zshrc is sourced, so the variable reaches no project home until `nix-rebuild-devbox` AND a new shell.
+
+**On the evidence, stated rather than implied.** This repo has no test harness, so the mutation table
+behind the guard is a set of MANUAL checks that nothing re-runs: dropping the assertion, loosening it to
+`hasPrefix`, and dropping the placement each redden a named check. The `hasPrefix` mutation initially
+SURVIVED, because the probe used a `/tmp/nix-store-evil-…` stand-in that a weak predicate rejects anyway —
+the near-miss has to sit at a genuinely `/nix/store`-prefixed path. Same defect as 009's first cut, caught
+the same way, which is an argument for the guard living in the caller (screwyprof/devbox#487) where a real
+test can hold it.
+
+---
