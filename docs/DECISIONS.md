@@ -224,11 +224,21 @@ extension cannot silently diverge from what nix declares. Combined with declare-
 the set is reviewable and the bytes are pinned — which is the whole of the guarantee. Confinement, where
 it exists at all, comes from the cage, not from a directory mode.
 
+**The recorded revisit trigger did NOT fire, and this is not it firing.** devbox's `decisions.md`
+(#374/#375) says to revisit only "if an ad-hoc install into a read-only extensions dir ever returns a
+graceful 'this is managed' refusal instead of an unhandled exception". It still crashes — measured here:
+`EACCES` then `name: 'Extract'`, exit 1. What changed is the surrounding facts, not VS Code's behaviour:
+legs 1-3 above fell, so the trigger stopped being the right test rather than being met. Recorded
+explicitly because the next reader will find that trigger and assume it was satisfied.
+
+**MIGRATION — the one irreversible step in this change.** Before the first activation, each home needs
+`rm -rf ~/.vscode-server/extensions`. That directory holds files home-manager never managed — the server's
+`extensions.json` AND anything installed by hand — and home-manager refuses to clobber them. Nothing else
+here loses data; this does, for whatever a user installed ad hoc. Do it deliberately, per home.
+
 **Future Me Notes:** The manifest is not optional garnish — an immutable dir without `extensions.json` is
 broken outright ("Unable to read file ... extensions.json"), not merely install-hostile. Switching back to
-mutable needs nothing; switching TO immutable needs a one-time `rm -rf ~/.vscode-server/extensions` per
-home, because the directory holds files home-manager never managed and it refuses to clobber them. Revisit
-only if VS Code starts refusing an ad-hoc install gracefully instead of crashing — then mutable's one
-remaining argument disappears too.
+mutable needs nothing. Revisit if VS Code ever starts refusing an ad-hoc install gracefully instead of
+crashing — then mutable's one remaining argument disappears too.
 
 ---
