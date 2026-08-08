@@ -173,3 +173,62 @@ Initially cargo-culted the Gaetan-style "wrapper pattern" — standard NixOS/HM 
 **Future Me Notes:** The system flake is for system configuration; project/dev tools belong in `nix-devx`. If a package in this repo isn't referenced by any system or home profile, it probably shouldn't be here — orphaned flake `packages` outputs still cost maintenance (version bumps, EOL runtimes, eval failures in `nix flake check`).
 
 ---
+
+## 008: Remote VS Code extensions become an immutable store dir
+
+**What sparked this:** devbox is getting out of the editor business (screwyprof/devbox#460), so the
+`.vscode-server/extensions` directory it materialises for every project has to move here. The obvious port
+was the shape devbox uses — per-entry symlinks into a writable dir — but the mutable/immutable question had
+never actually been decided for the SERVER side, only for the client.
+
+**The journey:** devbox's own decision record kept mutable on three legs, and all three failed on
+inspection. (1) "home-manager cannot place a server extensions dir" — it already does, on the login home,
+via this repo. (2) "mutable fails soft on a reflex `code --install-extension`" — it does not fail, it
+SUCCEEDS and gets reverted later; and under per-entry `home.file` it is worse still, because home-manager
+prunes only what it managed, so an ad-hoc install survives every rebuild as undeclared drift. (3) "do not
+replace working code" — the working code is devbox's, and it is being deleted.
+
+Mutable also needs machinery immutable does not: the server writes `extensions.json` itself and does NOT
+reconcile it, so removing an extension leaves the entry listed as `isValid: false`, warning on every
+connect. Fixing that needs a sentinel file plus `home.file`'s `onChange`.
+
+**What we tried:**
+
+1. Per-entry links, delete `extensions.json` on every activation → blind invalidation, no change detection
+2. Per-entry links + a store-path-keyed sentinel with `onChange` → works, but is machinery in service of a
+   shape we did not want; this is what home-manager itself does for `mutableExtensionsDir = true`
+3. One symlink to a `buildEnv` carrying a nix-generated manifest (`vscode-utils.toExtensionJson`) →
+   adopted; staleness becomes impossible because the manifest is replaced with the directory
+
+**Outcome:** `flake.lib.vscode.mkServerExtensions { pkgs, exts, mutable ? false }`, defaulting to
+immutable and matching `vscode.nix`'s `mutableExtensionsDir = false` on the client. Both branches return
+`home.file` entries, so switching is one argument, not a rewrite. Measured against the real server
+(v1.129.1): the generated manifest is accepted (`--list-extensions --show-versions`, exit 0, all 7 with
+versions); listing from a `0555` dir is exit 0; and a rebuilt env of 7 → 4 lists exactly 4 with no stale
+entries — removal works by construction. The cost is that `--install-extension` dies with `EACCES` and an
+unhandled `name: 'Extract'` exception, which is the same cost the client already pays.
+
+**Why this is a feature, not a cost:** you cannot install an extension without declaring it, which forces
+reviewing and pinning it before it ever runs. The reflex `--install-extension` becoming an error is the
+mechanism that enforces that, not a wart to be softened.
+
+**The security claim, bounded honestly:** an immutable install dir is NOT containment and must never be
+sold as one. **The extension host runs as the user**, so an extension writes anywhere that user can —
+`data/User/globalStorage`, `workspaceStorage`, `Machine`, `logs`, the workspace, the rest of `$HOME`, and
+on the login home that means node privileges. `devbox-host.nix` already states the position: "No
+containment here ... Minimise and declare rather than isolate."
+
+What immutability actually buys is INTEGRITY, not confinement: an extension cannot mutate its own
+installed bytes, so the store hash stays the truth about what runs and a self-updating or self-patching
+extension cannot silently diverge from what nix declares. Combined with declare-before-install, that means
+the set is reviewable and the bytes are pinned — which is the whole of the guarantee. Confinement, where
+it exists at all, comes from the cage, not from a directory mode.
+
+**Future Me Notes:** The manifest is not optional garnish — an immutable dir without `extensions.json` is
+broken outright ("Unable to read file ... extensions.json"), not merely install-hostile. Switching back to
+mutable needs nothing; switching TO immutable needs a one-time `rm -rf ~/.vscode-server/extensions` per
+home, because the directory holds files home-manager never managed and it refuses to clobber them. Revisit
+only if VS Code starts refusing an ad-hoc install gracefully instead of crashing — then mutable's one
+remaining argument disappears too.
+
+---
