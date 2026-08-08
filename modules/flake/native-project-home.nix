@@ -41,6 +41,5 @@
     };
 
   flake.lib.nativeProjectHome =
-    { project }:
-    (config.flake.lib.nativeProjectHomeConfig project).activationPackage;
+    { project }: (config.flake.lib.nativeProjectHomeConfig project).activationPackage;
 }
