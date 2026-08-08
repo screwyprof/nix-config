@@ -48,8 +48,11 @@
           # PRECONDITION, identical to the cage's: nothing may already exist at this path. A native project
           # that has been opened has a REAL DIRECTORY there, placed by devbox, and `checkLinkTargets`
           # aborts the whole activation on it. Measured against this very generation — see 009 and
-          # screwyprof/devbox#490. `nix-rebuild-native` sets `HOME_MANAGER_BACKUP_EXT` so the directory is
-          # MOVED aside rather than requiring anyone to delete it.
+          # screwyprof/devbox#490.
+          #
+          # NOTHING CLEARS IT YET, deliberately. `nix-rebuild-native` passes no path, so this arg is inert
+          # and the collision cannot arise; a clearing step landed here now would strip a project's
+          # extensions and put nothing back. It travels with the caller.
           home.file = lib.optionalAttrs (projectExtensionsDir != null) {
             ".vscode-server/extensions".source = "${projectExtensionsDir}/share/vscode/extensions";
           };
