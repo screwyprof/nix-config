@@ -63,6 +63,7 @@
       ];
 
       imports = with config.flake.modules.homeManager; [
+        editors-vscode
         happygopher-identity
         dev-direnv # loads the project devshell on cd — why anything else is on PATH
         dev-git
