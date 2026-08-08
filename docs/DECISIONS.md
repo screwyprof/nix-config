@@ -275,8 +275,15 @@ now requires `dirOf == builtins.storeDir` — a store OUTPUT, exactly one compon
 
 `hasPrefix builtins.storeDir` was the first cut and is **bypassable**: it has no path-separator boundary,
 so `/nix/store-evil/...` passes it, and that spelling was measured getting real content copied into the
-real store. Deleting the assertion, loosening it to "non-empty", and reverting it to `hasPrefix` each turn
-a named rejection test red; the null case stays green in all three. Note also that the near-miss probe has
+real store. Deleting the assertion, loosening it to "non-empty", and reverting it to `hasPrefix` each let
+`/nix/store-evil/...` through; the null case stays green in all three. Those were MANUAL mutation checks,
+not a checked-in test — this repo has no test harness, so nothing re-runs them. That is the cost of
+putting the guard here rather than in the caller, and it is why screwyprof/devbox#487 should assert on the
+path's PROVENANCE (a `nix build --print-out-paths` run unprivileged) rather than lean on this check.
+
+`dirOf` also rejects a trailing slash (`/nix/store/<hash>-foo/`), which `hasPrefix` accepted. That is a
+strictness increase failing in the safe direction; the realised paths a caller passes carry no trailing
+slash. Note also that the near-miss probe has
 to live at a genuinely `/nix/store`-prefixed path — a `/tmp/nix-store-evil-...` stand-in is refused by the
 weak predicate too, so it proves nothing.
 
