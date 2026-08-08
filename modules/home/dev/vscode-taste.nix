@@ -1,5 +1,4 @@
-_:
-{
+_: {
   # The OPERATOR's editor taste for any PROJECT home — cage or native alike.
   #
   # Separate from `devbox-cage` because taste follows the PERSON, not the placement: a project home is a

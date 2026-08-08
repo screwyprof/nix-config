@@ -41,9 +41,6 @@
     };
 
   flake.lib.nativeProjectHome =
-    {
-      project,
-      projectExtensionsDir ? null,
-    }:
+    { project }:
     (config.flake.lib.nativeProjectHomeConfig project).activationPackage;
 }
