@@ -189,17 +189,29 @@
             # `plugin-files` there is dlopen'd before any trust negotiation. Verified: nix tries to load
             # the named plugin without this, and does not with it. Nothing is lost — that file is the
             # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
-            # `HOME_MANAGER_BACKUP_EXT`: a project that has been OPENED has a real directory at
-            # `.vscode-server/extensions`, placed by devbox. `checkLinkTargets` refuses to clobber it
-            # and aborts the WHOLE activation — measured against this generation: exit 1, "would be
-            # clobbered". With this set it is MOVED to `<name>.hm-old` and activation succeeds.
-            # `force = true` is not an alternative: its `ln -Tsf` cannot overwrite a directory.
+            # devbox placed a REAL DIRECTORY at `.vscode-server/extensions` on any project that has been
+            # opened, and `checkLinkTargets` aborts the whole activation rather than clobber it. Move that
+            # ONE path aside here.
             #
-            # NOTHING IS DELETED — the displaced directory stays on disk under the suffix, so an
-            # occupant's ad-hoc installs survive and a mistake is recoverable by hand.
+            # NOT `HOME_MANAGER_BACKUP_EXT`: that variable is read inside `check-link-targets.sh`'s
+            # per-entry loop with no path restriction, so it would silently move ANY occupant leftover
+            # anywhere in the generation — defeating the abort tripwire this function relies on for a home
+            # promoted from a cage. `HOME_MANAGER_BACKUP_COMMAND` is no narrower: the script assumes it
+            # always succeeds. Scope has to come from us.
+            #
+            # REFUSES rather than overwrites if the backup already exists, and never deletes.
+            local staleExt="$home/.vscode-server/extensions"
+            if [[ -d "$staleExt" && ! -L "$staleExt" ]]; then
+              if [[ -e "$staleExt.hm-old" ]]; then
+                echo "nix-rebuild-native: $staleExt.hm-old exists — move or remove it first" >&2
+                return 1
+              fi
+              mv "$staleExt" "$staleExt.hm-old" || return 1
+            fi
+
             env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
               NIX_USER_CONF_FILES= \
-              HOME="$home" HOME_MANAGER_BACKUP_EXT=hm-old "$out/activate"
+              HOME="$home" "$out/activate"
           }
         '';
 

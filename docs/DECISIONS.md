@@ -357,21 +357,32 @@ with nobody placing extensions at all.
 principle — nix-config choosing for someone else's project is what screwyprof/devbox#460 exists to stop.
 A project declares its own set; devbox realises it unprivileged and hands over a path.
 
-**The backup variable lands in a different place from the cage, and this is the part that does not
-generalise.** Cage activation runs through devbox's `systemd-run` in `apply_operator_profile`, so devbox
-sets it there. Native activation is `"$out/activate"` inside `nix-rebuild-native` — devbox is never in
-that path — so it is set here, in this repo. Measured against the real `nativeProjectHome { project = "cqrs"; }`
-generation, driving `check-link-targets.sh` exactly as `activate` does:
+**The stale directory is moved aside by `nix-rebuild-native` itself, and NOT by
+`HOME_MANAGER_BACKUP_EXT`.** An opened project has a real directory at `.vscode-server/extensions`, placed
+by devbox, and `checkLinkTargets` aborts the whole activation rather than clobber it. Measured against the
+real generation, driving `check-link-targets.sh` exactly as `activate` does:
 
 | native home | result |
 |---|---|
-| fresh | exit 0 |
-| real `extensions` directory present | exit 1, `Existing file … would be clobbered` |
-| same + `HOME_MANAGER_BACKUP_EXT` | exit 0, `will be moved to '….vscode-server/extensions.hm-old'` |
+| stale `extensions` directory, before the move | exit 1, `Existing file … would be clobbered` |
+| same, after `nix-rebuild-native` moves it to `extensions.hm-old` | exit 0 |
+| an UNRELATED occupant leftover (`.config/git/config`) | **exit 1 — the tripwire still fires** |
 
-Nothing is deleted: the displaced directory stays on disk under the suffix, so an occupant's ad-hoc
-installs survive and a mistake is recoverable by hand. `force = true` is not an alternative — its
-`ln -Tsf` cannot overwrite a directory (009).
+**Row 3 is why the env var was rejected**, and the first cut of this entry used it. `HOME_MANAGER_BACKUP_EXT`
+is read inside `check-link-targets.sh`'s per-entry loop with no path restriction, so it would have silently
+moved ANY occupant leftover anywhere in the generation — defeating the abort tripwire this function relies
+on for a home promoted from a cage, which is #395's whole class. `HOME_MANAGER_BACKUP_COMMAND` is no
+narrower: the script assumes it always succeeds. Scope had to come from us, so it does: one path, an
+explicit `mv`, refusing rather than overwriting if the backup exists, and never deleting.
+
+**A CORRECTION to what this entry first claimed: the cage does NOT do this.** I wrote that cage activation
+"runs through devbox's `systemd-run`, so devbox sets it there". False — `grep HOME_MANAGER_BACKUP` across
+devbox's Rust source returns ZERO, and `apply_operator_profile`'s `systemd-run` sets exactly one variable,
+`--setenv=PATH=…`. The cage's chosen policy is the OPPOSITE: fail closed, abort, and require whoever placed
+the directory to remove it first (009, screwyprof/devbox#481). So this is a NEW and more permissive policy
+for native, not continuity with the cage — deliberately, because native's activation is operator-run on the
+operator's own uid and there is no second party to demand a removal from. Naming it as continuity would
+have let a future reader conclude cages already work this way.
 
 Note the delivery lag this inherits: `nix-rebuild-native` is frozen into the shell's function table when
 the zshrc is sourced, so the variable reaches no project home until `nix-rebuild-devbox` AND a new shell.
