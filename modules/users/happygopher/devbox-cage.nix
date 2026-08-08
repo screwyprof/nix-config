@@ -64,6 +64,7 @@
 
       imports = with config.flake.modules.homeManager; [
         editors-vscode
+        happygopher-vscode-taste
         happygopher-identity
         dev-direnv # loads the project devshell on cd — why anything else is on PATH
         dev-git
@@ -114,16 +115,6 @@
             exec zsh -l
           fi
         '';
-      };
-
-      # OPERATOR TASTE — follows the person, not the repo. Merges with whatever the project declares.
-      # `mkDefault` on settings so a project wins on anything language-shaped and the operator wins here.
-      editors.vscode = {
-        extensions = [ pkgs.vscode-extensions.dracula-theme.theme-dracula ];
-        settings = {
-          "workbench.colorTheme" = lib.mkDefault "Dracula";
-          "editor.fontSize" = lib.mkDefault 13;
-        };
       };
 
       programs.home-manager.enable = true;

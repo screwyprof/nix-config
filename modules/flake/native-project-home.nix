@@ -26,7 +26,10 @@
       modules = [
         {
           _module.args.placeVscodeExtensions = false;
-          imports = [ config.flake.modules.homeManager.editors-vscode ];
+          imports = with config.flake.modules.homeManager; [
+            editors-vscode
+            happygopher-vscode-taste
+          ];
         }
         (
           { lib, ... }:
