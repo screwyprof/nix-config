@@ -36,20 +36,6 @@
         username = "dev";
         homeDirectory = "/home/dev";
         stateVersion = "24.11";
-        # PRECONDITION ON THE CALLER: nothing may already exist at `.vscode-server/extensions`.
-        #
-        # Every cage that has ever been opened has a REAL DIRECTORY there, placed by devbox.
-        # home-manager's `checkLinkTargets` refuses to clobber it and `checkNewGenCollision || exit 1`
-        # aborts the whole activation script. It runs `entryBefore [writeBoundary]`, so nothing has been
-        # written yet: the home stays pinned on its last successful generation and this — plus every later
-        # change — silently stops landing. devbox records the abort as a warning and continues.
-        #
-        # `force = true`, which `serverFiles` below uses for exactly this class, does NOT help here, and
-        # that was measured: its `ln -Tsf` exits 1 with "cannot overwrite directory" on a directory (0 on a
-        # file), so forcing just moves the abort into `linkGeneration`.
-        #
-        # The removal belongs to devbox, which placed it (screwyprof/devbox#481). Not an activation step
-        # here: this repo never created that directory. See DECISIONS.md 009 for the measurements.
         file = r.serverFiles;
       };
 
