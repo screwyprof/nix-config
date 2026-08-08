@@ -79,6 +79,24 @@
         username = "dev";
         homeDirectory = "/home/dev";
         stateVersion = "24.11";
+        # PRECONDITION ON THE CALLER: nothing may already exist at `.vscode-server/extensions`.
+        #
+        # Every cage that has ever been opened has a REAL DIRECTORY there — devbox places one today, and
+        # 9 of 15 project homes on this node hold one. home-manager's `checkLinkTargets` refuses it
+        # ("Existing file ... would be clobbered") and `checkNewGenCollision || exit 1` aborts the WHOLE
+        # activation, not just this entry. devbox treats that as `warnings.push("operator profile not
+        # applied: ...")` and carries on, so the visible result is the project's entire operator home
+        # silently reverting to nothing.
+        #
+        # `force = true` — which `serverFiles` below uses for exactly this class — is NOT the fix here and
+        # was measured, not assumed: its link step is `ln -Tsf`, which exits 1 with "cannot overwrite
+        # directory" on a directory (0 on a file). Forcing only moves the abort from `checkLinkTargets` to
+        # `linkGeneration`, which `files.nix` predicts in its own comment. Its two entries are safe because
+        # what pre-exists at THEIR paths is a file.
+        #
+        # So the directory must be GONE before the arg is first set. That removal belongs to whoever placed
+        # it — devbox (screwyprof/devbox#481, which deletes the placement, must also reap what it placed) —
+        # not to an activation step here that would delete a directory this repo never created.
         file = lib.attrsets.unionOfDisjoint r.serverFiles (
           lib.optionalAttrs (projectExtensionsDir != null) {
             ".vscode-server/extensions".source = "${projectExtensionsDir}/share/vscode/extensions";

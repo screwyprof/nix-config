@@ -283,24 +283,40 @@ path's PROVENANCE (a `nix build --print-out-paths` run unprivileged) rather than
 
 `dirOf` also rejects a trailing slash (`/nix/store/<hash>-foo/`), which `hasPrefix` accepted. That is a
 strictness increase failing in the safe direction; the realised paths a caller passes carry no trailing
-slash. Note also that the near-miss probe has
-to live at a genuinely `/nix/store`-prefixed path — a `/tmp/nix-store-evil-...` stand-in is refused by the
+slash. Note also that the near-miss probe has to live at a
+genuinely `/nix/store`-prefixed path — a `/tmp/nix-store-evil-...` stand-in is refused by the
 weak predicate too, so it proves nothing.
 
 This is the same hazard CLASS as screwyprof/devbox#426, not the same surface: that issue removed a
 server-binary dedup pass and deliberately KEPT extensions with devbox.
 
-**Verified in a real cage, both directions**, not by evaluation alone: activation run the way devbox runs
-it (`systemd-run --machine --uid=1000 --pipe --wait`), then `code-server --list-extensions --show-versions`
+**Verified in a real cage**, not by evaluation alone: activation run the way devbox runs it
+(`systemd-run --machine --uid=1000 --pipe --wait`), then `code-server --list-extensions --show-versions`
 inside the cage.
 
-| home activated | server reports |
-|---|---|
-| extended, `projectExtensionsDir` set | all 5, with versions, from a read-only store dir |
-| plain generic, arg absent | nothing; home-manager removed the entry |
+| cage | home activated | result |
+|---|---|---|
+| FRESH | extended, `projectExtensionsDir` set | all 5, with versions, from a read-only store dir |
+| FRESH | plain generic, arg absent | nothing; home-manager removed the entry |
+| ALREADY OPENED | extended, arg set | **activation ABORTS** — see the precondition below |
 
-The second row is the removal property in the open: dropping the arg took the extensions away and the
-server agreed, which is what per-entry symlinks cannot do (see 008).
+Row 2 is the removal property in the open: dropping the arg took the extensions away and the server
+agreed, which is what per-entry symlinks cannot do (see 008).
+
+**Row 3 is the one the first cut of this decision omitted, and the omission was structural: the cage I
+tested was FRESH.** A cage that has ever been opened has a real directory at `.vscode-server/extensions` —
+devbox places one — and 9 of 15 project homes on this node hold one. home-manager's `checkLinkTargets`
+refuses to clobber it and `checkNewGenCollision || exit 1` aborts the ENTIRE activation; devbox records
+that as a warning and continues, so the project's whole operator home silently reverts to nothing.
+
+**PRECONDITION, therefore: the directory must be gone before the arg is first set.** `force = true` is not
+the escape — measured, not assumed: its `ln -Tsf` exits 1 with "cannot overwrite directory" on a directory
+(0 on a file), so forcing only moves the abort from `checkLinkTargets` into `linkGeneration`. The two
+`serverFiles` entries can force safely because what pre-exists at their paths is a file, not a directory.
+
+The removal belongs to whoever placed the directory — devbox, in screwyprof/devbox#481, which already
+deletes the placement and must also reap what it placed. Not an activation step here: this repo never
+created that directory and should not be the thing that deletes it.
 
 Supersedes this module's previous claim that "VS Code EXTENSIONS stay devbox's". They stay devbox's
 CHOICE — devbox decides what to pass — but the placement is here. screwyprof/devbox#487 is the caller;
