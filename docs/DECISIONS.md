@@ -283,9 +283,9 @@ path's PROVENANCE (a `nix build --print-out-paths` run unprivileged) rather than
 
 `dirOf` also rejects a trailing slash (`/nix/store/<hash>-foo/`), which `hasPrefix` accepted. That is a
 strictness increase failing in the safe direction; the realised paths a caller passes carry no trailing
-slash. Note also that the near-miss probe has to live at a
-genuinely `/nix/store`-prefixed path — a `/tmp/nix-store-evil-...` stand-in is refused by the
-weak predicate too, so it proves nothing.
+slash. Note also that the near-miss probe has to live at a genuinely
+`/nix/store`-prefixed path: a `/tmp/nix-store-evil-...` stand-in is refused by the weak predicate too, so
+it proves nothing.
 
 This is the same hazard CLASS as screwyprof/devbox#426, not the same surface: that issue removed a
 server-binary dedup pass and deliberately KEPT extensions with devbox.
@@ -321,8 +321,13 @@ attempts the placement.
 
 **PRECONDITION, therefore: the directory must be gone before the arg is first set.** `force = true` is not
 the escape — measured, not assumed: its `ln -Tsf` exits 1 with "cannot overwrite directory" on a directory
-(0 on a file), so forcing only moves the abort from `checkLinkTargets` into `linkGeneration`. The two
-`serverFiles` entries can force safely because what pre-exists at their paths is a file, not a directory.
+(0 on a file), so forcing only moves the abort from `checkLinkTargets` into `linkGeneration`. **OPEN, and deliberately not asserted either way: whether `serverFiles`' own `force = true` is safe.** Its
+comment says a connected home has "REAL files" at both paths; I wrote "a symlink"; both are unverifiable
+here, because every home on this node now holds SYMLINKS at those paths — nix has already placed them, so
+the pre-existing vanilla state no longer exists to inspect. It matters because the VS Code server unpacks
+into a real DIRECTORY tree, and if that is what a vanilla download leaves at
+`cli/servers/Stable-<rev>/server`, `force` would not rescue that entry either. Nothing on this node is in
+that state, so this is a question to settle before the next clean connect, not a defect to fix now.
 
 The removal belongs to whoever placed the directory — devbox, in screwyprof/devbox#481, which already
 deletes the placement and must also reap what it placed. Not an activation step here: this repo never

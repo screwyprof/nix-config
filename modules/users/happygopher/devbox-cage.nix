@@ -89,8 +89,7 @@
         #
         # `force = true`, which `serverFiles` below uses for exactly this class, does NOT help here, and
         # that was measured: its `ln -Tsf` exits 1 with "cannot overwrite directory" on a directory (0 on a
-        # file), so forcing just moves the abort into `linkGeneration`. Those two entries can force safely
-        # because what pre-exists at THEIR paths is a symlink, not a directory.
+        # file), so forcing just moves the abort into `linkGeneration`.
         #
         # The removal belongs to devbox, which placed it (screwyprof/devbox#481). Not an activation step
         # here: this repo never created that directory. See DECISIONS.md 009 for the measurements.
