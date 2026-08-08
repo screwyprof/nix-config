@@ -242,3 +242,99 @@ mutable needs nothing. Revisit if VS Code ever starts refusing an ad-hoc install
 crashing — then mutable's one remaining argument disappears too.
 
 ---
+
+## 009: The cage home takes a project's extensions as a PATH, never as a module
+
+`devbox-cage` gains one module arg, `projectExtensionsDir`, defaulting to `null`. When set, it places
+`${dir}/share/vscode/extensions` as a single symlink; when null it places nothing and every project keeps
+sharing one generation, exactly as before.
+
+**Why a path and not a home-manager module.** The obvious shape — hand the generic home a fragment the
+project supplies — was rejected on trust, not taste. devbox builds this home as ROOT: `Request::CageUp`
+is served by `devboxd`, which runs at uid 0 (measured: `Uid: 0 0 0 0`), and reaches
+`apply_operator_profile` at `up.rs:2044`. A project's own flake is deliberately evaluated UNPRIVILEGED
+on the other side of that fence, as the `sandbox` user under a pure eval, because — devbox's own comment
+at `up.rs:475` — "a session flake is PROJECT-authored: the occupant can write it". devbox's existing
+guard (`resolves_under`) validates the flake REF and cannot see a module injected into `extendModules`,
+so a module here would put occupant-authored Nix into root's evaluator with nothing checking it. A store
+path cannot carry code. The caller must realise it on the unprivileged side first.
+
+**Why this repo places it rather than nix-devx.** nix-devx grew `lib.vscodeServerHomeModule` for exactly
+this job, but it is a MODULE, so it cannot be the thing that crosses the boundary above. It remains the
+right tool where the operator composes a home deliberately (`nativeProjectHome`), where the occupant has
+no say. Here the placement — including the `/share/vscode/extensions` suffix, matching
+`mkServerExtensions` — stays in this repo, so the caller needs to know nothing about VS Code's layout.
+
+**The module FAILS CLOSED on a non-store path**, because otherwise the paragraph above is only a comment.
+Measured: a non-store directory that EXISTS is accepted, and nix COPIES it into the store (`/tmp/x` became
+`...-hm_extensions`). That is not the live-symlink-into-occupant-ground hazard it first looks like — the
+result is frozen — it is a worse one: the copy is made by ROOT's daemon into a world-readable store
+bind-mounted into EVERY cage, so one project's content would be published to all of them. The same shape of
+publication surface was deliberately removed once already (screwyprof/devbox#426). An `assertions` entry
+now requires `dirOf == builtins.storeDir` — a store OUTPUT, exactly one component under the store.
+
+`hasPrefix builtins.storeDir` was the first cut and is **bypassable**: it has no path-separator boundary,
+so `/nix/store-evil/...` passes it, and that spelling was measured getting real content copied into the
+real store. Deleting the assertion, loosening it to "non-empty", and reverting it to `hasPrefix` each let
+`/nix/store-evil/...` through; the null case stays green in all three. Those were MANUAL mutation checks,
+not a checked-in test — this repo has no test harness, so nothing re-runs them. That is the cost of
+putting the guard here rather than in the caller, and it is why screwyprof/devbox#487 should assert on the
+path's PROVENANCE (a `nix build --print-out-paths` run unprivileged) rather than lean on this check.
+
+`dirOf` also rejects a trailing slash (`/nix/store/<hash>-foo/`), which `hasPrefix` accepted. That is a
+strictness increase failing in the safe direction; the realised paths a caller passes carry no trailing
+slash. Note also that the near-miss probe has to live at a genuinely
+`/nix/store`-prefixed path: a `/tmp/nix-store-evil-...` stand-in is refused by the weak predicate too, so
+it proves nothing.
+
+This is the same hazard CLASS as screwyprof/devbox#426, not the same surface: that issue removed a
+server-binary dedup pass and deliberately KEPT extensions with devbox.
+
+**Verified in a real cage**, not by evaluation alone: activation run the way devbox runs it
+(`systemd-run --machine --uid=1000 --pipe --wait`), then `code-server --list-extensions --show-versions`
+inside the cage.
+
+| cage | home activated | result |
+|---|---|---|
+| FRESH | extended, `projectExtensionsDir` set | all 5, with versions, from a read-only store dir |
+| FRESH | plain generic, arg absent | nothing; home-manager removed the entry |
+| ALREADY OPENED | extended, arg set | **activation ABORTS** — DEDUCED, not reproduced; see below |
+
+Row 2 is the removal property in the open: dropping the arg took the extensions away and the server
+agreed, which is what per-entry symlinks cannot do (see 008).
+
+**Row 3 is the one the first cut of this decision omitted, and the omission was structural: the cage I
+tested was FRESH.** A cage that has ever been opened has a real directory at `.vscode-server/extensions` —
+devbox places one — and 9 of 15 project homes on this node hold one. home-manager's `checkLinkTargets`
+refuses to clobber it and `checkNewGenCollision || exit 1` aborts the ENTIRE activation script; devbox
+records that as a warning and continues.
+
+**It does NOT "revert the home to nothing" — I wrote that and it is wrong.** `checkLinkTargets` runs
+`entryBefore [writeBoundary]` while `linkGeneration` runs `entryAfter`, so the abort happens before
+anything in `$HOME` is touched. The affected homes are provably on generations 1-4 with working configs.
+The real effect is a STALL: the home stays pinned on its last successful generation, and this change plus
+every later one silently stops landing. Less dramatic, and harder to notice, which is the actual problem.
+
+Row 3 is DEDUCED — from the directory census, home-manager's own source, and an isolated `ln -Tsf` test —
+not reproduced end to end like rows 1 and 2. It cannot be, yet: nothing sets the arg, so no real `up` path
+attempts the placement.
+
+**PRECONDITION, therefore: the directory must be gone before the arg is first set.** `force = true` is not
+the escape — measured, not assumed: its `ln -Tsf` exits 1 with "cannot overwrite directory" on a directory
+(0 on a file), so forcing only moves the abort from `checkLinkTargets` into `linkGeneration`. **OPEN, and deliberately not asserted either way: whether `serverFiles`' own `force = true` is safe.** Its
+comment says a connected home has "REAL files" at both paths; I wrote "a symlink"; both are unverifiable
+here, because every home on this node now holds SYMLINKS at those paths — nix has already placed them, so
+the pre-existing vanilla state no longer exists to inspect. It matters because the VS Code server unpacks
+into a real DIRECTORY tree, and if that is what a vanilla download leaves at
+`cli/servers/Stable-<rev>/server`, `force` would not rescue that entry either. Nothing on this node is in
+that state, so this is a question to settle before the next clean connect, not a defect to fix now.
+
+The removal belongs to whoever placed the directory — devbox, in screwyprof/devbox#481, which already
+deletes the placement and must also reap what it placed. Not an activation step here: this repo never
+created that directory and should not be the thing that deletes it.
+
+Supersedes this module's previous claim that "VS Code EXTENSIONS stay devbox's". They stay devbox's
+CHOICE — devbox decides what to pass — but the placement is here. screwyprof/devbox#487 is the caller;
+screwyprof/devbox#481 then deletes devbox's own placement.
+
+---
