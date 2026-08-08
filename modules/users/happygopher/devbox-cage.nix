@@ -43,14 +43,21 @@
       # not the mutable-drift hazard it looks like; it is a worse one. The copy is made by ROOT's daemon
       # into a world-readable store that is bind-mounted into EVERY cage, so one project's content would
       # be published to all of them. That publication surface was deliberately removed once already
-      # (screwyprof/devbox#426); nothing should quietly reintroduce it.
+      # (screwyprof/devbox#426) — the same CLASS of hazard, on a different artifact; that issue removed a
+      # server-binary dedup pass and deliberately kept extensions with devbox. Nothing should reintroduce
+      # the shape.
+      #
+      # `dirOf == storeDir`, not `hasPrefix storeDir`: the prefix test has no path-separator boundary, so
+      # `/nix/store-evil/...` passes it. Measured — that spelling got real content copied into the real
+      # store. Requiring exactly one component under the store is what the caller actually hands over.
       assertions = [
         {
           assertion =
-            projectExtensionsDir == null || lib.hasPrefix builtins.storeDir (toString projectExtensionsDir);
+            projectExtensionsDir == null || builtins.dirOf (toString projectExtensionsDir) == builtins.storeDir;
           message = ''
-            projectExtensionsDir must be a ${builtins.storeDir} path, realised by the caller before it
-            gets here. Got: ${toString projectExtensionsDir}
+            projectExtensionsDir must be a store OUTPUT — exactly one component under
+            ${builtins.storeDir} — realised by the caller before it gets here.
+            Got: ${toString projectExtensionsDir}
           '';
         }
       ];

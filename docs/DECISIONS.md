@@ -269,10 +269,19 @@ no say. Here the placement — including the `/share/vscode/extensions` suffix, 
 Measured: a non-store directory that EXISTS is accepted, and nix COPIES it into the store (`/tmp/x` became
 `...-hm_extensions`). That is not the live-symlink-into-occupant-ground hazard it first looks like — the
 result is frozen — it is a worse one: the copy is made by ROOT's daemon into a world-readable store
-bind-mounted into EVERY cage, so one project's content would be published to all of them. That exact
+bind-mounted into EVERY cage, so one project's content would be published to all of them. The same shape of
 publication surface was deliberately removed once already (screwyprof/devbox#426). An `assertions` entry
-now rejects anything not under `builtins.storeDir`; both deleting it and loosening its predicate to
-"non-empty" turn the rejection test red, while the null case stays green.
+now requires `dirOf == builtins.storeDir` — a store OUTPUT, exactly one component under the store.
+
+`hasPrefix builtins.storeDir` was the first cut and is **bypassable**: it has no path-separator boundary,
+so `/nix/store-evil/...` passes it, and that spelling was measured getting real content copied into the
+real store. Deleting the assertion, loosening it to "non-empty", and reverting it to `hasPrefix` each turn
+a named rejection test red; the null case stays green in all three. Note also that the near-miss probe has
+to live at a genuinely `/nix/store`-prefixed path — a `/tmp/nix-store-evil-...` stand-in is refused by the
+weak predicate too, so it proves nothing.
+
+This is the same hazard CLASS as screwyprof/devbox#426, not the same surface: that issue removed a
+server-binary dedup pass and deliberately KEPT extensions with devbox.
 
 **Verified in a real cage, both directions**, not by evaluation alone: activation run the way devbox runs
 it (`systemd-run --machine --uid=1000 --pipe --wait`), then `code-server --list-extensions --show-versions`
