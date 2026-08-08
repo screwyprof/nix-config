@@ -146,7 +146,7 @@
             # to guard. The path is frozen into the shell's function table when the zshrc is sourced, so
             # a config change needs `nix-rebuild-devbox` AND A NEW SHELL before it reaches a project home.
             out=$(nix build --no-link --print-out-paths --impure \
-                  --expr "(builtins.getFlake \"${self}\").lib.nativeProjectHome \"$project\"") || return
+                  --expr "(builtins.getFlake \"${self}\").lib.nativeProjectHome { project = \"$project\"; }") || return
 
             # `activate`, not a hand-rolled placement. A native project runs UNCAGED AS THE OPERATOR, so
             # an agent working there already holds this uid and `wheel` — there is no boundary a

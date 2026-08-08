@@ -338,3 +338,72 @@ CHOICE — devbox decides what to pass — but the placement is here. screwyprof
 screwyprof/devbox#481 then deletes devbox's own placement.
 
 ---
+
+## 010: `nativeProjectHome` takes the same extensions path, and moves the old directory aside
+
+`nativeProjectHome` gains `projectExtensionsDir`, mirroring 009's seam on `devbox-cage` — same
+`dirOf == builtins.storeDir` guard, same `${dir}/share/vscode/extensions` suffix appended here, same
+`null` default that places nothing. Its signature becomes NAMED arguments; `nix-rebuild-native` is the one
+caller and moves with it.
+
+**Why native needed its own entry rather than riding 009.** `nativeProjectHome` extends `devbox-host`, not
+`devbox-cage`, so 009's arg was never reachable from it. screwyprof/devbox#481 removes devbox's placement
+for BOTH tiers and `materialise_extensions` is not tier-gated, so without this, three live native projects
+(`cqrs`, `devbox`, `devbox-planer` — each holding a devbox-placed directory today) would have been left
+with nobody placing extensions at all.
+
+**`placeVscodeExtensions` stays FALSE, and that is the decision, not an omission.** It would place
+`base ++ rust` from THIS repo's catalog: right for a Rust project, wrong for a Go one, and wrong in
+principle — nix-config choosing for someone else's project is what screwyprof/devbox#460 exists to stop.
+A project declares its own set; devbox realises it unprivileged and hands over a path.
+
+**NOTHING CLEARS THE STALE DIRECTORY YET, and that is deliberate.** An opened project has a real
+directory at `.vscode-server/extensions`, placed by devbox, and `checkLinkTargets` aborts the whole
+activation rather than clobber it. The first two cuts of this entry shipped a clearing step anyway — first
+a blanket `HOME_MANAGER_BACKUP_EXT`, then a scoped `mv` in `nix-rebuild-native`. **Both were wrong, for the
+same underlying reason: nothing passes `projectExtensionsDir`**, so the generation places nothing at that
+path, and a clearing step would strip a native project's extensions and put nothing back. Run twice it is
+worse — the second refuses on the `.hm-old` the first left, after a multi-minute build.
+
+So the seam lands alone and the clearing step travels with the caller. What is already measured, for
+whoever writes it:
+
+| native home | result |
+|---|---|
+| stale `extensions` directory present, arg set | exit 1, `Existing file … would be clobbered` |
+| same, after the directory is moved aside | exit 0 |
+| an UNRELATED occupant leftover (`.config/git/config`) | **exit 1 — the tripwire still fires** |
+
+**Row 3 is why `HOME_MANAGER_BACKUP_EXT` must not be used for it.** The variable is read inside
+`check-link-targets.sh`'s per-entry loop with no path restriction, so it silently moves ANY occupant
+leftover anywhere in the generation — defeating the abort tripwire `nix-rebuild-native` relies on for a
+home promoted from a cage, which is screwyprof/devbox#395's class. `HOME_MANAGER_BACKUP_COMMAND` is no
+narrower: the script assumes it always succeeds. Scope has to be supplied by the caller — one path, an
+explicit move, refusing rather than overwriting, never deleting — and it needs a rollback if `activate`
+then fails, or the project is left with neither directory.
+
+**A CORRECTION to what this entry first claimed: the cage does NOT do any of this.** I wrote that cage
+activation "runs through devbox's `systemd-run`, so devbox sets it there". False — `grep HOME_MANAGER_BACKUP`
+across devbox's Rust source returns ZERO, and `apply_operator_profile`'s `systemd-run` sets exactly one
+variable, `--setenv=PATH=…`. The cage's policy is the OPPOSITE: fail closed, abort, and require whoever
+placed the directory to remove it first (009, screwyprof/devbox#481).
+
+Note the delivery lag: `nix-rebuild-native` is frozen into the shell's function table when the zshrc is
+sourced, so the CALL-SYNTAX change here reaches no project home until `nix-rebuild-devbox` AND a new
+shell. Until both have happened, a stale function still calls `nativeProjectHome "<project>"` positionally
+and fails `cannot coerce a set to a string`. The same lag will apply to the clearing step when it lands.
+
+**On evidence for this entry: `nix flake check` is not a gate here.** It reported `running 0 flake checks`
+and still exited 0 — it verified evaluation and nothing else. The checks have to be built by name:
+`nix build .#checks.<system>.{pre-commit,treefmt}`. This is the second shape of vacuous green from that
+command in one day; the other was `--no-build`, which skips building the checks entirely.
+
+**On the evidence, stated rather than implied.** This repo has no test harness, so the mutation table
+behind the guard is a set of MANUAL checks that nothing re-runs: dropping the assertion, loosening it to
+`hasPrefix`, and dropping the placement each redden a named check. The `hasPrefix` mutation initially
+SURVIVED, because the probe used a `/tmp/nix-store-evil-…` stand-in that a weak predicate rejects anyway —
+the near-miss has to sit at a genuinely `/nix/store`-prefixed path. Same defect as 009's first cut, caught
+the same way, which is an argument for the guard living in the caller (screwyprof/devbox#487) where a real
+test can hold it.
+
+---
