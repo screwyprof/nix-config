@@ -81,22 +81,19 @@
         stateVersion = "24.11";
         # PRECONDITION ON THE CALLER: nothing may already exist at `.vscode-server/extensions`.
         #
-        # Every cage that has ever been opened has a REAL DIRECTORY there — devbox places one today, and
-        # 9 of 15 project homes on this node hold one. home-manager's `checkLinkTargets` refuses it
-        # ("Existing file ... would be clobbered") and `checkNewGenCollision || exit 1` aborts the WHOLE
-        # activation, not just this entry. devbox treats that as `warnings.push("operator profile not
-        # applied: ...")` and carries on, so the visible result is the project's entire operator home
-        # silently reverting to nothing.
+        # Every cage that has ever been opened has a REAL DIRECTORY there, placed by devbox.
+        # home-manager's `checkLinkTargets` refuses to clobber it and `checkNewGenCollision || exit 1`
+        # aborts the whole activation script. It runs `entryBefore [writeBoundary]`, so nothing has been
+        # written yet: the home stays pinned on its last successful generation and this — plus every later
+        # change — silently stops landing. devbox records the abort as a warning and continues.
         #
-        # `force = true` — which `serverFiles` below uses for exactly this class — is NOT the fix here and
-        # was measured, not assumed: its link step is `ln -Tsf`, which exits 1 with "cannot overwrite
-        # directory" on a directory (0 on a file). Forcing only moves the abort from `checkLinkTargets` to
-        # `linkGeneration`, which `files.nix` predicts in its own comment. Its two entries are safe because
-        # what pre-exists at THEIR paths is a file.
+        # `force = true`, which `serverFiles` below uses for exactly this class, does NOT help here, and
+        # that was measured: its `ln -Tsf` exits 1 with "cannot overwrite directory" on a directory (0 on a
+        # file), so forcing just moves the abort into `linkGeneration`. Those two entries can force safely
+        # because what pre-exists at THEIR paths is a symlink, not a directory.
         #
-        # So the directory must be GONE before the arg is first set. That removal belongs to whoever placed
-        # it — devbox (screwyprof/devbox#481, which deletes the placement, must also reap what it placed) —
-        # not to an activation step here that would delete a directory this repo never created.
+        # The removal belongs to devbox, which placed it (screwyprof/devbox#481). Not an activation step
+        # here: this repo never created that directory. See DECISIONS.md 009 for the measurements.
         file = lib.attrsets.unionOfDisjoint r.serverFiles (
           lib.optionalAttrs (projectExtensionsDir != null) {
             ".vscode-server/extensions".source = "${projectExtensionsDir}/share/vscode/extensions";

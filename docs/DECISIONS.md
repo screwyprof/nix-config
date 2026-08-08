@@ -298,7 +298,7 @@ inside the cage.
 |---|---|---|
 | FRESH | extended, `projectExtensionsDir` set | all 5, with versions, from a read-only store dir |
 | FRESH | plain generic, arg absent | nothing; home-manager removed the entry |
-| ALREADY OPENED | extended, arg set | **activation ABORTS** — see the precondition below |
+| ALREADY OPENED | extended, arg set | **activation ABORTS** — DEDUCED, not reproduced; see below |
 
 Row 2 is the removal property in the open: dropping the arg took the extensions away and the server
 agreed, which is what per-entry symlinks cannot do (see 008).
@@ -306,8 +306,18 @@ agreed, which is what per-entry symlinks cannot do (see 008).
 **Row 3 is the one the first cut of this decision omitted, and the omission was structural: the cage I
 tested was FRESH.** A cage that has ever been opened has a real directory at `.vscode-server/extensions` —
 devbox places one — and 9 of 15 project homes on this node hold one. home-manager's `checkLinkTargets`
-refuses to clobber it and `checkNewGenCollision || exit 1` aborts the ENTIRE activation; devbox records
-that as a warning and continues, so the project's whole operator home silently reverts to nothing.
+refuses to clobber it and `checkNewGenCollision || exit 1` aborts the ENTIRE activation script; devbox
+records that as a warning and continues.
+
+**It does NOT "revert the home to nothing" — I wrote that and it is wrong.** `checkLinkTargets` runs
+`entryBefore [writeBoundary]` while `linkGeneration` runs `entryAfter`, so the abort happens before
+anything in `$HOME` is touched. The affected homes are provably on generations 1-4 with working configs.
+The real effect is a STALL: the home stays pinned on its last successful generation, and this change plus
+every later one silently stops landing. Less dramatic, and harder to notice, which is the actual problem.
+
+Row 3 is DEDUCED — from the directory census, home-manager's own source, and an isolated `ln -Tsf` test —
+not reproduced end to end like rows 1 and 2. It cannot be, yet: nothing sets the arg, so no real `up` path
+attempts the placement.
 
 **PRECONDITION, therefore: the directory must be gone before the arg is first set.** `force = true` is not
 the escape — measured, not assumed: its `ln -Tsf` exits 1 with "cannot overwrite directory" on a directory
