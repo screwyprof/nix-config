@@ -242,3 +242,43 @@ mutable needs nothing. Revisit if VS Code ever starts refusing an ad-hoc install
 crashing — then mutable's one remaining argument disappears too.
 
 ---
+
+## 009: The cage home takes a project's extensions as a PATH, never as a module
+
+`devbox-cage` gains one module arg, `projectExtensionsDir`, defaulting to `null`. When set, it places
+`${dir}/share/vscode/extensions` as a single symlink; when null it places nothing and every project keeps
+sharing one generation, exactly as before.
+
+**Why a path and not a home-manager module.** The obvious shape — hand the generic home a fragment the
+project supplies — was rejected on trust, not taste. devbox builds this home as ROOT: `Request::CageUp`
+is served by `devboxd`, which runs at uid 0 (measured: `Uid: 0 0 0 0`), and reaches
+`apply_operator_profile` at `up.rs:2044`. A project's own flake is deliberately evaluated UNPRIVILEGED
+on the other side of that fence, as the `sandbox` user under a pure eval, because — devbox's own comment
+at `up.rs:475` — "a session flake is PROJECT-authored: the occupant can write it". devbox's existing
+guard (`resolves_under`) validates the flake REF and cannot see a module injected into `extendModules`,
+so a module here would put occupant-authored Nix into root's evaluator with nothing checking it. A store
+path cannot carry code. The caller must realise it on the unprivileged side first.
+
+**Why this repo places it rather than nix-devx.** nix-devx grew `lib.vscodeServerHomeModule` for exactly
+this job, but it is a MODULE, so it cannot be the thing that crosses the boundary above. It remains the
+right tool where the operator composes a home deliberately (`nativeProjectHome`), where the occupant has
+no say. Here the placement — including the `/share/vscode/extensions` suffix, matching
+`mkServerExtensions` — stays in this repo, so the caller needs to know nothing about VS Code's layout.
+
+**Verified in a real cage, both directions**, not by evaluation alone: activation run the way devbox runs
+it (`systemd-run --machine --uid=1000 --pipe --wait`), then `code-server --list-extensions --show-versions`
+inside the cage.
+
+| home activated | server reports |
+|---|---|
+| extended, `projectExtensionsDir` set | all 5, with versions, from a read-only store dir |
+| plain generic, arg absent | nothing; home-manager removed the entry |
+
+The second row is the removal property in the open: dropping the arg took the extensions away and the
+server agreed, which is what per-entry symlinks cannot do (see 008).
+
+Supersedes this module's previous claim that "VS Code EXTENSIONS stay devbox's". They stay devbox's
+CHOICE — devbox decides what to pass — but the placement is here. screwyprof/devbox#487 is the caller;
+screwyprof/devbox#481 then deletes devbox's own placement.
+
+---

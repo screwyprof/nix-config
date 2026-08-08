@@ -2,20 +2,30 @@
 {
   # The operator's home INSIDE a cage — one per project. The unix user is `dev`, the person is not.
   #
-  # Dotfiles, identity, and the VS Code SERVER. VS Code EXTENSIONS stay devbox's: it owns
-  # `<home>/.vscode-server/extensions` per project and places the declared set before the editor
-  # attaches, failing the `up` if the declaration is broken. Two owners, disjoint paths.
+  # Dotfiles, identity, the VS Code SERVER — and the project's extensions when it is handed some.
   #
-  # That split is measured, not stylistic. The server sits behind a plain `exists()` check over
-  # content-identical bytes, so a store symlink from anywhere satisfies it — which is why it can live here.
-  # The extension set sits behind `extensions.json`, which the server trusts OVER the directory and which
-  # nothing reconciles: delivering extensions as per-entry `home.file` symlinks means a declarative REMOVAL
-  # silently never takes effect (measured — dir 7, cache 8, cold server enumerated 8 including the removed
-  # one). What defeats the cache is replacing the DIRECTORY, which the server then re-scans — devbox's swap
-  # does that, and so would an immutable store dir with a pre-built manifest (also measured). So extensions
-  # are devbox's because that is what ships today, not because this config could not carry them.
+  # `projectExtensionsDir` is a STORE PATH, not a module and not a flake ref. That is a trust boundary,
+  # not a style choice: devbox builds this home as ROOT (devboxd runs at uid 0, `up.rs:2044`), while a
+  # project's own flake is deliberately evaluated unprivileged as `sandbox` because the cage occupant can
+  # write it. Taking a module here would put occupant-authored Nix into root's evaluator; taking a path
+  # cannot. Whoever passes this must have realised it on the unprivileged side first.
+  #
+  # `null` — the normal case — places nothing, so every project that declares no extensions keeps sharing
+  # ONE generation with all the others.
+  #
+  # The subdirectory is appended HERE, matching `mkServerExtensions`, so the caller stays free of VS Code's
+  # layout. Immutable by construction: one symlink to a store directory that carries its own
+  # `extensions.json`. That manifest is load-bearing rather than garnish — the server trusts it OVER the
+  # directory and never reconciles it, so per-entry symlinks make a declarative REMOVAL silently fail
+  # (measured: dir 7, cache 8, cold server enumerated 8 including the removed one), while replacing the
+  # directory and its manifest together means that state cannot arise.
   flake.modules.homeManager.devbox-cage =
-    { pkgs, ... }:
+    {
+      pkgs,
+      lib,
+      projectExtensionsDir,
+      ...
+    }:
     let
       # Pinned server + CLI, same expression the node home uses. Placing them is what stops Remote-SSH
       # fetching ~635MB into this cage's `$HOME`, and the wrapper it installs also suppresses the
@@ -23,6 +33,10 @@
       r = config.flake.lib.vscodeRemote pkgs;
     in
     {
+      # `mkDefault`, so a caller extending this home overrides it. A lambda default (`? null`) does NOT
+      # survive home-manager's module wrapping — it falls through to `_module.args` and fails "missing".
+      _module.args.projectExtensionsDir = lib.mkDefault null;
+
       imports = with config.flake.modules.homeManager; [
         happygopher-identity
         dev-direnv # loads the project devshell on cd — why anything else is on PATH
@@ -40,7 +54,11 @@
         username = "dev";
         homeDirectory = "/home/dev";
         stateVersion = "24.11";
-        file = r.serverFiles;
+        file = lib.attrsets.unionOfDisjoint r.serverFiles (
+          lib.optionalAttrs (projectExtensionsDir != null) {
+            ".vscode-server/extensions".source = "${projectExtensionsDir}/share/vscode/extensions";
+          }
+        );
       };
 
       # The cage's login shell is bash and stays that way — devbox's security floor carries no user
