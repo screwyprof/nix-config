@@ -1,27 +1,32 @@
-# A NATIVE devbox project's home. Its own file so `flake.lib` and `flake.homeConfigurations` are not
-# interleaved under one `flake` key, which statix flags.
+# A home at an ARBITRARY PATH on the host. Its own file so `flake.lib` and `flake.homeConfigurations` are
+# not interleaved under one `flake` key, which statix flags.
 { config, lib, ... }:
 {
-  # A NATIVE project's home, derived from `devbox-host` so it IS the operator's environment rather
-  # than a second copy of it — only `homeDirectory` moves.
+  # The operator's own environment, relocated — derived from `devbox-host` so it IS that environment
+  # rather than a second copy of it. Only `homeDirectory` moves.
   #
-  # Parameterised because `home-files` is NOT relocatable: `.zshenv`, `.config/zsh/{.zshenv,.zshrc,.zimrc}`
-  # bake the home path, so reusing the login generation points ZDOTDIR, HISTFILE and the completion
-  # cache back at `/home/happygopher.guest`. Verified by building both and diffing.
+  # PARAMETERISED BY PATH, NOT BY PROJECT, and that is the whole point of this file. It used to take
+  # `{ project }` and compute `/work/projects/${project}/home`, which put a consumer's directory layout
+  # inside this repo — and that consumer resolves the layout through its own settings chain
+  # (`DEVBOX_PROJECTS_DIR` is a BASE; projects live at `<base>/projects`; unset means somewhere else
+  # entirely), so the literal was a DEFAULT written down as a fact. Point that setting elsewhere and this
+  # built a home at a path that does not exist. The caller already knows the path: an occupant has it in
+  # `$HOME`, an operator types it.
   #
-  # A FUNCTION, not an attrset of configurations: the set of native projects is runtime state on the
-  # node, not something this flake can enumerate. `nix-rebuild-native` applies it per project.
+  # It also removes the only reason this repo shelled out to another tool to ask where a directory was.
   #
-  # NAMED arguments rather than a bare `project:` string, because there are now two of them and the second
-  # is optional. The old positional form has one caller, `nix-rebuild-native`, updated with it.
-  # The CONFIG, so a caller can extend it further. `nativeProjectHome` below stays the
-  # activationPackage wrapper `nix-rebuild-native` already calls.
+  # Parameterised at all because `home-files` is NOT relocatable: `.zshenv`, `.config/zsh/{.zshenv,.zshrc,
+  # .zimrc}` bake the home path, so reusing the login generation points ZDOTDIR, HISTFILE and the
+  # completion cache back at `/home/happygopher.guest`. Verified by building both and diffing.
   #
-  # `placeVscodeExtensions = false` lives HERE, not in the caller: `devbox-host` places the operator's
-  # own `base ++ rust` pick for their LOGIN home, which is right for a Rust repo and wrong for a Go one.
-  # A project home must never inherit it — the project declares what the repo is written in.
-  flake.lib.nativeProjectHomeConfig =
-    { project }:
+  # THE CONFIG, so a caller can extend it further — that is what lets a home be composed with something
+  # else without this repo knowing what the something else is.
+  #
+  # `placeVscodeExtensions = false` lives HERE, not in the caller: `devbox-host` places the operator's own
+  # `base ++ rust` pick for their LOGIN home, which is right for a Rust repo and wrong for a Go one. A
+  # relocated home must never inherit it — whoever owns that home declares what it needs.
+  flake.lib.homeAtConfig =
+    { homeDirectory }:
     config.flake.homeConfigurations."devbox-host".extendModules {
       modules = [
         {
@@ -34,12 +39,13 @@
         (
           { lib, ... }:
           {
-            home.homeDirectory = lib.mkForce "/work/projects/${project}/home";
+            home.homeDirectory = lib.mkForce homeDirectory;
           }
         )
       ];
     };
 
-  flake.lib.nativeProjectHome =
-    { project }: (config.flake.lib.nativeProjectHomeConfig { inherit project; }).activationPackage;
+  # The activation package, for a caller that wants to build and run it rather than extend it.
+  flake.lib.homeAt =
+    { homeDirectory }: (config.flake.lib.homeAtConfig { inherit homeDirectory; }).activationPackage;
 }

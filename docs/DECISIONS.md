@@ -243,6 +243,44 @@ crashing — then mutable's one remaining argument disappears too.
 
 ---
 
+## 012: the third builder takes a PATH, not a project — and this repo stops knowing what a project is
+
+This repo is the operator's own config, and it should be buildable in **three placements**: the host login
+home, a cage's `/home/dev`, and a home at an arbitrary path. In each one the occupant rebuilds it from
+inside, or the operator from outside. Nothing about that requires knowing who the consumer is.
+
+The third builder broke it. `nativeProjectHomeConfig { project }` computed
+`home.homeDirectory = "/work/projects/${project}/home"`, and `nix-rebuild-native` shelled out to
+`devbox sandbox status <project> --json` to resolve which project that was. So the operator's config
+modelled a consumer's directory layout **and** invoked that consumer's CLI to interpret it.
+
+**That path is a DEFAULT, not a fact.** devbox resolves its projects root through its own chain — an env
+override that is a BASE with `projects` appended, then a build-time value, then a platform data dir, then
+a literal. Point it at `/home/<user>/myprojects` and this repo built a home at a path that does not exist,
+silently.
+
+**Resolved: `homeAtConfig { homeDirectory }` / `homeAt { homeDirectory }`.** The caller already knows the
+path — inside a session it is `$HOME`, from outside you type it. Nothing here asks anyone where anything
+is, and the same builder serves every placement.
+
+`nix-rebuild-native` becomes **`nix-rebuild-home [dir]`**, defaulting to `$HOME` so it is the same command
+in a cage, in a session, or on the host. **`nix-rebuild-cage` is deleted outright** — devbox applies the
+cage config itself on every `up` (its own #316 Track B), so the manual verb was a second way to do
+something already done.
+
+**MANUAL ONLY, and the reason is measured rather than cultural.** `activate` runs `nix-build`, and `$HOME`
+is a CONFIGURATION INPUT to every nix client it invokes: `plugin-files` is read from
+`$HOME/.config/nix/nix.conf`, is client-side, and is `dlopen`ed before any daemon trust negotiation, so
+`trusted-users` does not contain it (screwyprof/devbox#395). Run it against a home you own; never wire it
+into an automated path that could aim it at someone else's ground.
+
+**Verified by positive control, not by a green build.** `homeAt { homeDirectory = "/tmp/probe-home"; }`
+yields a generation whose `activate` names `/tmp/probe-home` six times and `happygopher.guest` zero times,
+and a different path yields a different store path — so the parameter is load-bearing rather than
+decorative. The built host generation contains `nix-rebuild-home` and zero occurrences of
+`nix-rebuild-native` or `nix-rebuild-cage`.
+
+
 ## 009: WITHDRAWN — `projectExtensionsDir` on the project bases (superseded by 011)
 
 Entries 009 and 010 described a `projectExtensionsDir` store-path argument on `devbox-cage` and
@@ -278,7 +316,7 @@ one, and never right for a project).
 
 **`nativeProjectHomeConfig`** exposes the config rather than the activationPackage so a project can extend
 it, with `placeVscodeExtensions = false` kept inside. `nativeProjectHome` derives from it, so they cannot
-drift.
+drift. *(Renamed to `homeAtConfig` / `homeAt` in 012 — same shape, parameterised by PATH.)*
 
 **PROVEN END TO END, 2026-08-08, with no devbox involved beyond the initial bootstrap.** Two projects,
 `spike-cage` and `spike-native`, each declaring its own devShell and editor set, built PURE and activated
