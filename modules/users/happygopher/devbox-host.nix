@@ -151,45 +151,77 @@
             # A HELD flake is refused, not applied: the hold marks a flake authored while the project was
             # CAGED, and running it now is the `cage → native` escalation devbox prompts about. Clearing
             # it is `devbox sandbox up`'s job, deliberately, so the operator sees that prompt.
-            local flake sys ref err
+            # FAIL CLOSED on the hold: `jq -r` prints the string `null` for an absent field, so testing
+            # `== "true"` would PROCEED against any devbox predating it — and what proceeds is a flake a
+            # CAGED agent authored, run at the operator's uid. Require the explicit negative.
+            local flake sys ref everr
             flake=$(printf %s "$st" | jq -r .session_flake)
-            if [[ "$(printf %s "$st" | jq -r .session_flake_held)" == "true" ]]; then
-              echo "nix-rebuild-native: $project's session flake is HELD —" \
-                   "run \`devbox sandbox up $project\` first" >&2
+            if [[ "$(printf %s "$st" | jq -r .session_flake_held)" != "false" ]]; then
+              echo "nix-rebuild-native: $project's session flake is HELD (or this devbox does not report" \
+                   "the hold) — run \`devbox sandbox up $project\` first" >&2
               return 1
             fi
 
             # The node's operator ref beats the project's pin, exactly as devbox's own `up` does it
             # (devbox#501/#506) — a pin is the project's guess at authoring time, this file is what the
-            # node actually runs. World-readable by design; absent means no ref has been applied.
+            # node actually runs. ABSENT and UNREADABLE are distinguished: the first is a node that has
+            # never had `vm apply --home-flake`, the second is a fault worth naming, and both otherwise
+            # look like "silently use whatever rev the project wrote down".
             sys="$(uname -m)-linux"
-            ref=$(cat /var/lib/devbox/operator-profile 2>/dev/null)
+            ref=""
+            if [[ -e /var/lib/devbox/operator-profile ]]; then
+              ref=$(cat /var/lib/devbox/operator-profile) || {
+                echo "nix-rebuild-native: cannot read the node's operator ref — refusing rather than" \
+                     "building $project against its own pin" >&2
+                return 1
+              }
+            else
+              echo "nix-rebuild-native: no operator ref on this node; $project builds against its own" \
+                   "pin" >&2
+            fi
 
-            # THIS FLAKE as a store path — not a checkout, not the operator's cwd, so there is no writer
-            # to guard. The path is frozen into the shell's function table when the zshrc is sourced, so
-            # a config change needs `nix-rebuild-devbox` AND A NEW SHELL before it reaches a project home.
-            #
-            # DECLARES NOTHING and DECLARES SOMETHING BROKEN are different, and the exit code conflates
-            # them — the same distinction devbox draws at `up.rs`. Only the first falls back to the base;
-            # a broken home is reported and stops here, rather than silently downgrading a project that
+            local -a args evalargs
+            evalargs=()
+            [[ -n "$ref" ]] && evalargs+=(--override-input operator "$ref")
+            args=(--no-link --print-out-paths "''${evalargs[@]}")
+
+            # DECLARES NOTHING and DECLARES SOMETHING BROKEN are different and the exit code conflates
+            # them, so the question is asked by a separate EVAL whose stderr alone is captured
+            # (`2>&1 >/dev/null` — stderr to the pipe, stdout discarded). Only "declares nothing" falls
+            # back to the base; a broken home stops here rather than silently downgrading a project that
             # HAS extensions to one that does not.
+            #
+            # NEVER parse the store path out of a merged stream. `builtins.trace` writes attacker-chosen
+            # lines to stderr during eval, so a flake emitting a bare `/nix/store/…` line captures `$out`
+            # and `activate` then runs a path this invocation never built — while a FAILED build still
+            # leaves `$out` set, skipping the refusal below. `nix build`'s stdout carries the out-paths
+            # and nothing else.
             out=""
+            local declared=0
             if [[ -n "$flake" && "$flake" != "null" ]]; then
-              local -a args
-              args=(--no-link --print-out-paths)
-              [[ -n "$ref" ]] && args+=(--override-input operator "$ref")
-              # Streams MERGED and split by shape, rather than stderr to a temp file: this shell sets
-              # NO_CLOBBER, so `2>"$(mktemp)"` fails on the file mktemp just created — measured, and it
-              # made the build never run while the failure read as "the project's home is broken".
-              # `--print-out-paths` is the only thing that writes a bare store path at line start;
-              # nix's own progress is `building '/nix/store/….drv'…`, which is not.
-              err=$(nix build "''${args[@]}" -- "$flake#devbox.$sys.home" 2>&1) || true
-              out=$(printf %s\\n "$err" | grep -m1 '^/nix/store/') || out=""
-              if [[ -z "$out" ]] && ! printf %s "$err" | grep -q "does not provide attribute"; then
-                printf %s\\n "$err" >&2
-                echo "nix-rebuild-native: $project declares a home that does not build — refusing" >&2
+              # An EXPLICIT flag, not "was stderr empty": a successful eval that merely WARNS (nix reports
+              # a non-matching `--override-input` on stderr and still exits 0) would otherwise read as
+              # "declares nothing" and install the base over a project that has a working home.
+              if everr=$(nix eval --raw "''${evalargs[@]}" -- "$flake#devbox.$sys.home.drvPath" 2>&1 >/dev/null); then
+                declared=1
+              elif printf %s "$everr" | grep -q "does not provide attribute"; then
+                echo "nix-rebuild-native: $project declares no home — installing the base" >&2
+              else
+                printf %s\\n "$everr" >&2
+                echo "nix-rebuild-native: $project declares a home that does not evaluate — refusing" >&2
                 return 1
               fi
+              if (( declared )); then
+                echo "nix-rebuild-native: building $project's declared home (minutes, first time)" >&2
+                # stderr stays on the TERMINAL: this build takes minutes, and a foreign flake's
+                # `nixConfig` makes nix PROMPT on stdin — captured, the operator answers a question
+                # they cannot see.
+                out=$(nix build "''${args[@]}" -- "$flake#devbox.$sys.home") || return 1
+              fi
+            else
+              echo "nix-rebuild-native: $project has no session flake registered — installing the base." \
+                   "If it has one, register it: devbox sandbox up $project --flake \$(dirname" \
+                   "$(printf %s "$st" | jq -r .code))/session" >&2
             fi
             if [[ -z "$out" ]]; then
               out=$(nix build --no-link --print-out-paths --impure \
@@ -215,17 +247,33 @@
             # four HIGH findings, for a threat that only exists on the promotion path. A promoted home
             # should be reset before its first activate; a never-caged project has no exposure at all,
             # because the agent working there already holds the operator's uid.
+            # The guard's own precondition is asserted: `for d in $(cd ... && find ...)` yields an EMPTY
+            # list when the `cd` fails, so a bad `$out` disabled the guard instead of erroring. Read with
+            # NUL separators, because zsh field-splits on whitespace and a top-level name containing one
+            # would otherwise be checked as two wrong paths.
+            [[ -d "$out/home-files" ]] || {
+              echo "nix-rebuild-native: $out/home-files is missing — refusing" >&2
+              return 1
+            }
             local d
-            for d in $(cd "$out/home-files" && find . -maxdepth 1 -type d ! -name . -printf '%P\n'); do
+            while IFS= read -r -d "" d; do
               if [[ -L "$home/$d" ]]; then
                 echo "nix-rebuild-native: $home/$d is a symlink — refusing, reset this home first" >&2
                 return 1
               fi
-            done
+            done < <(cd "$out/home-files" && find . -maxdepth 1 -type d ! -name . -printf '%P\0')
 
-            # M2: re-read the tier. The build takes minutes and the guard above is that old by now.
-            if [[ "$(devbox sandbox status "$project" --json 2>/dev/null | jq -r .tier)" != "native" ]]; then
+            # M2: re-read the tier AND the hold. The build takes minutes and both guards above are that
+            # old by now — and the `up` that promotes cage -> native sets the hold in the SAME act, so
+            # re-reading only the tier passes a project whose flake was just marked cage-authored.
+            local st2
+            st2=$(devbox sandbox status "$project" --json 2>/dev/null)
+            if [[ "$(printf %s "$st2" | jq -r .tier)" != "native" ]]; then
               echo "nix-rebuild-native: $project is no longer native — refusing" >&2
+              return 1
+            fi
+            if [[ "$(printf %s "$st2" | jq -r .session_flake_held)" != "false" ]]; then
+              echo "nix-rebuild-native: $project's session flake became HELD during the build — refusing" >&2
               return 1
             fi
             # `env -u XDG_*`: home-manager derives the profile and its gcroots from
@@ -237,17 +285,24 @@
             # `plugin-files` there is dlopen'd before any trust negotiation. Verified: nix tries to load
             # the named plugin without this, and does not with it. Nothing is lost — that file is the
             # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
-            # `HOME_MANAGER_BACKUP_EXT`: any home that has been OPENED holds a real
-            # `.vscode-server/extensions` directory, and `checkLinkTargets` refuses to clobber a
-            # directory — it aborts the WHOLE activation before any write, so the home stalls on its
-            # last generation while the command still looks like it ran. `check-link-targets.sh` uses
-            # `mv`, so with this set the old tree is preserved beside the new one and nothing is lost.
+            # NO `HOME_MANAGER_BACKUP_EXT`, deliberately, and this is a SECURITY property rather than a
+            # preference. The collision abort above is the promoted-home fail-safe: without the variable
+            # a colliding regular file or directory lands in `collisionErrors` and activation exits 1
+            # BEFORE any write. Set it and `link` instead runs `mv` then `ln -Tsf`, both of which follow
+            # a symlinked DIRECTORY COMPONENT — which the depth-1 guard above cannot see. Demonstrated:
+            # `.config/nix` pointed at another home renames that home's `nix.conf` aside and replaces it
+            # with a generation symlink, at the operator's uid, driven by whoever wrote the project home.
+            #
+            # The cost is that a home holding a real `.vscode-server/extensions` aborts instead of
+            # migrating, which is loud and recoverable — remove that directory and re-run. A home already
+            # on a managed generation has a symlink there and never collides.
+            #
             # `USER` is SET explicitly, not inherited: it is unset in a non-interactive shell and
             # `activate` dies `USER: unbound variable` at its line 54 — so the command would work when
             # typed and fail from a script or an `ssh <host> <cmd>`. `activate` also checks it against
             # the generation's baked username, which is this account.
             env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
-              NIX_USER_CONF_FILES= HOME_MANAGER_BACKUP_EXT=hmbak USER="$(id -un)" \
+              NIX_USER_CONF_FILES= USER="$(id -un)" \
               HOME="$home" "$out/activate"
           }
         '';
