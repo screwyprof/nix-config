@@ -192,10 +192,9 @@
                    "pin" >&2
             fi
 
-            local -a args evalargs
+            local -a evalargs
             evalargs=()
             [[ -n "$ref" ]] && evalargs+=(--override-input operator "$ref")
-            args=(--no-link --print-out-paths "''${evalargs[@]}")
 
             # ONE RESOLUTION, OF EXACTLY THE PATH THAT GETS BUILT. Nix searches `packages.<sys>.`,
             # `legacyPackages.<sys>.` and then the bare path for EVERY installable, so asking about
@@ -219,13 +218,16 @@
               errf=$(mktemp) || return 1
               # `2>|` overrides this shell's NO_CLOBBER, which is why stderr goes to a file rather than a
               # merged stream. It is DISPLAYED on the error path and never parsed.
-              drv=$(nix eval --json "''${evalargs[@]}" --apply 'x: x.drvPath' \
+              drv=$(nix eval --json "''${evalargs[@]}" --apply 'x: assert (x.type or "") == "derivation"; x.drvPath' \
                     -- "$flake#devbox.$sys.home" 2>|"$errf") || drv=""
               everr=$(<"$errf"); command rm -f "$errf"
+              # SHOWN UNCONDITIONALLY, not only on failure. `--override-input` against a flake that does
+              # not name the input `operator` is rc=0 plus a warning, so routing this to a file the
+              # success path never printed made "the node's ref beats the project's pin" fail open in
+              # SILENCE — the guarantee stated above, unenforced and unobservable. Displayed, never
+              # parsed; control characters stripped because the text is the flake's.
+              [[ -n "$everr" ]] && printf %s\\n "$everr" | tr -d '\000-\010\013\014\016-\037' >&2
               if [[ -z "$drv" ]]; then
-                # Control characters STRIPPED: this text is the flake's, it reaches a terminal, and nix
-                # does not filter escapes.
-                printf %s\\n "$everr" | tr -d '\000-\010\013\014\016-\037' >&2
                 echo "nix-rebuild-native: $project's flake does not provide a usable" \
                      "devbox.$sys.home — refusing. Declare one, or clear the registration with an" \
                      "empty --flake on devbox sandbox up $project" >&2
@@ -244,7 +246,9 @@
               #
               # The DERIVATION is built, not the attribute path — already resolved above, so there is no
               # second search for a flake to steer and no window between deciding and building.
-              out=$(nix build --no-link --print-out-paths -- "$drv^*") || return 1
+              # `^out`, not `^*`: `*` builds EVERY output and `--print-out-paths` prints one line each,
+              # in output-name order, so `$out` became multi-line and failed later with the wrong cause.
+              out=$(nix build --no-link --print-out-paths -- "$drv^out") || return 1
             else
               # Computed into a variable first: split across a line continuation, `$(dirname` and its
               # argument become separate echo words and the hint printed a bare `/session`.
@@ -344,20 +348,30 @@
             # `activate` dies `USER: unbound variable` at its line 54 — so the command would work when
             # typed and fail from a script or an `ssh <host> <cmd>`. `activate` also checks it against
             # the generation's baked username, which is this account.
-            # THE BACKUP VARS ARE UNSET, NOT MERELY UNSET-BY-US. home-manager reads them from the
-            # ENVIRONMENT, and this function runs in the operator's interactive shell — which, inside a
-            # native session, has SOURCED that project's `<slug>.env` (`nix print-dev-env` output, ending
-            # in `eval "$shellHook"`). So project A's session flake can export
-            # `HOME_MANAGER_BACKUP_EXT` and the operator's next `nix-rebuild-native B` writes through
-            # symlinked components in B's home — the attack the block above says is prevented.
-            # `HOME_MANAGER_BACKUP_COMMAND` is worse: `link` runs it UNQUOTED as `run $CMD "$target"`,
-            # i.e. an argv slot. `SKIP_SANITY_CHECKS` disables the `checkPathEq HOME` this function
-            # relies on for the wrong-project case, and `DRY_RUN` makes activation a silent no-op.
-            env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
-              -u HOME_MANAGER_BACKUP_EXT -u HOME_MANAGER_BACKUP_COMMAND -u HOME_MANAGER_BACKUP_OVERWRITE \
-              -u SKIP_SANITY_CHECKS -u DRY_RUN \
-              NIX_USER_CONF_FILES= USER="$(id -un)" \
-              HOME="$home" "$out/activate"
+            # `env -i`: an ALLOWLIST, because the previous `-u` list was a blacklist over an environment
+            # the attacker chooses, and it lost. This function runs in the operator's interactive shell,
+            # which inside a native session has SOURCED that project's `<slug>.env` — `nix print-dev-env`
+            # output ending in `eval "$shellHook"` — so a project exports a variable and the operator's
+            # next rebuild of ANOTHER project carries it into activation.
+            #
+            # What the blacklist missed, found by review after five vars had been enumerated: `NIX_CONFIG`
+            # sets `plugin-files`, which `activate`'s `nix-env`/`nix-build`/`nix-store` calls `dlopen`
+            # BEFORE any daemon trust negotiation — the same vector `NIX_USER_CONF_FILES=` closes for the
+            # file, reopened through the variable. Also `NIX_STATE_DIR`, which redirects the profile that
+            # `migrateProfile` then `rm`s. And `activate` resolves its own `nix*` binaries from `PATH`.
+            # Enumerating the next one is a game with no end; naming what may pass has one.
+            #
+            # PATH is the system profile explicitly, not the operator's: it is what `nix-rebuild-cage`
+            # already hands a cage, and it carries nix and coreutils. TERM only so activation output is
+            # readable. NIX_USER_CONF_FILES= still empty — an allowlist would drop it, and it must be SET
+            # and EMPTY to override the project home's `nix.conf`, not merely absent.
+            env -i \
+              HOME="$home" \
+              USER="$(id -un)" \
+              TERM="''${TERM:-dumb}" \
+              PATH=/run/current-system/sw/bin:/run/wrappers/bin \
+              NIX_USER_CONF_FILES= \
+              "$out/activate"
           }
         '';
 
