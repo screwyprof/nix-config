@@ -237,7 +237,12 @@
                             -- "$flake" 2>|"$errf"); then
                   printf %s\\n "$(<"$errf")" | tr -d '\000-\010\013\014\016-\037' >&2
                   command rm -f "$errf"
-                  echo "nix-rebuild-native: $project's flake could not be read — refusing" >&2
+                  # Attribution names BOTH inputs, because this call takes two: the flake and the
+                  # node's ref. A garbage `operator-profile` — the fifth state, after absent, dangling,
+                  # unreadable and empty — fails here and would otherwise be reported as the project's
+                  # fault. The error above names which.
+                  echo "nix-rebuild-native: could not read $project's flake with the node's operator" \
+                       "ref ($ref) — refusing. The error above says which of the two is at fault" >&2
                   return 1
                 fi
                 if ! printf %s "$meta" | jq -e '.locks.nodes.root.inputs.operator' >/dev/null; then
