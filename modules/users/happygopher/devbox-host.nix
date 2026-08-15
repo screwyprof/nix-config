@@ -115,8 +115,11 @@
             fi
             # A NAME, not a path: `devbox sandbox status` accepts both, and a path would build a home at
             # `/work/projects//work/projects/<x>/home`.
-            if [[ "$project" == */* ]]; then
-              echo "nix-rebuild-native: pass a project NAME, not a path" >&2
+            # A NAME, and a CONSERVATIVE one: `$project` is interpolated into a Nix string in the
+            # `--expr` fallback below, where `"` and `''${` are live — so the charset is the guard, not
+            # the `/` check alone.
+            if [[ "$project" == *[!A-Za-z0-9_.-]* || "$project" != [A-Za-z0-9]* ]]; then
+              echo "nix-rebuild-native: '$project' is not a plain project name" >&2
               return 2
             fi
 
@@ -154,7 +157,7 @@
             # FAIL CLOSED on the hold: `jq -r` prints the string `null` for an absent field, so testing
             # `== "true"` would PROCEED against any devbox predating it — and what proceeds is a flake a
             # CAGED agent authored, run at the operator's uid. Require the explicit negative.
-            local flake sys ref everr
+            local flake sys ref
             flake=$(printf %s "$st" | jq -r .session_flake)
             if [[ "$(printf %s "$st" | jq -r .session_flake_held)" != "false" ]]; then
               echo "nix-rebuild-native: $project's session flake is HELD (or this devbox does not report" \
@@ -194,53 +197,60 @@
             [[ -n "$ref" ]] && evalargs+=(--override-input operator "$ref")
             args=(--no-link --print-out-paths "''${evalargs[@]}")
 
-            # NOTHING BRANCHES ON STDERR. `builtins.trace` writes attacker-chosen lines there during
-            # eval, so any decision taken from stderr text is the flake's to make: a home whose value is
-            # `trace "error: … does not provide attribute …" (throw …)` talked an earlier version of this
-            # function into "declares no home" and installed the base over a project that has one —
-            # verbatim the silent downgrade this code exists to prevent. Anchoring the match does not
-            # help, because `trace` prefixes only its FIRST line.
+            # ONE RESOLUTION, OF EXACTLY THE PATH THAT GETS BUILT. Nix searches `packages.<sys>.`,
+            # `legacyPackages.<sys>.` and then the bare path for EVERY installable, so asking about
+            # `#devbox.<sys>` and building `#devbox.<sys>.home` are two searches that a flake can split:
+            # `packages.<sys>.devbox.<sys>` shadows the question (no `home` there) while the build falls
+            # through to the real one. Reproduced — the project declares a home and the base is installed
+            # over it. Naming the full path in both makes that unconstructable: whatever the search
+            # resolves, it resolves once and it is what runs.
             #
-            # The question is asked on STDOUT instead, where a trace cannot reach: `x: x ? home` yields a
-            # JSON `true`/`false`. `true` covers a home that is present but THROWS — which is right, it
-            # declares one and the build reports why it fails.
-            #
-            # A probe that ERRORS means the flake has no `devbox.<sys>` output at all, or one that throws.
-            # Both REFUSE rather than fall back: a session flake registered against this project is a
-            # statement that it configures the project, and quietly installing the base instead is the
-            # failure mode, not the safe default.
-            #
-            # `nix build`'s stdout carries the out-paths and nothing else, so `$out` is never parsed out
-            # of a merged stream.
+            # CONSEQUENCE, AND IT IS DELIBERATE: "declares no home" and "declares a broken home" are no
+            # longer distinguished, because distinguishing them means reading nix's stderr — which
+            # `builtins.trace` writes, so the flake would be choosing its own fate (an earlier version
+            # was talked into the base by a forged `does not provide attribute` line). Both REFUSE. A
+            # session flake registered against a project is a statement that it configures the project;
+            # quietly installing the base instead is the failure mode, not the safe default. The only
+            # base fallback left is keyed on the MANIFEST having no session flake at all, which no flake
+            # can influence.
             out=""
-            local declared=0 probe
+            local drv errf everr
             if [[ -n "$flake" && "$flake" != "null" ]]; then
-              if probe=$(nix eval --json "''${evalargs[@]}" --apply 'x: x ? home' \
-                         -- "$flake#devbox.$sys" 2>/dev/null); then
-                case "$probe" in
-                  true)  declared=1 ;;
-                  false) echo "nix-rebuild-native: $project's flake declares no home — installing the base" >&2 ;;
-                  *)     echo "nix-rebuild-native: unreadable probe result '$probe' — refusing" >&2; return 1 ;;
-                esac
-              else
-                nix eval --json "''${evalargs[@]}" --apply 'x: x ? home' -- "$flake#devbox.$sys" >/dev/null
-                echo "nix-rebuild-native: $project's flake has no devbox.$sys output, or it does not" \
-                     "evaluate — refusing" >&2
+              errf=$(mktemp) || return 1
+              # `2>|` overrides this shell's NO_CLOBBER, which is why stderr goes to a file rather than a
+              # merged stream. It is DISPLAYED on the error path and never parsed.
+              drv=$(nix eval --json "''${evalargs[@]}" --apply 'x: x.drvPath' \
+                    -- "$flake#devbox.$sys.home" 2>|"$errf") || drv=""
+              everr=$(<"$errf"); command rm -f "$errf"
+              if [[ -z "$drv" ]]; then
+                # Control characters STRIPPED: this text is the flake's, it reaches a terminal, and nix
+                # does not filter escapes.
+                printf %s\\n "$everr" | tr -d '\000-\010\013\014\016-\037' >&2
+                echo "nix-rebuild-native: $project's flake does not provide a usable" \
+                     "devbox.$sys.home — refusing. Declare one, or clear the registration with an" \
+                     "empty --flake on devbox sandbox up $project" >&2
                 return 1
               fi
-              if (( declared )); then
-                echo "nix-rebuild-native: building $project's declared home (minutes, first time)" >&2
-                # stderr stays on the TERMINAL because this build takes minutes and a captured stream
-                # is an unexplained hang. NOT for the reason an earlier version claimed: a flake's
-                # `nixConfig` does not PROMPT here — this account is an untrusted nix client
-                # (`trusted: false`), so nix warns `ignoring untrusted flake configuration setting` and
-                # continues. Measured under a pty.
-                out=$(nix build "''${args[@]}" -- "$flake#devbox.$sys.home") || return 1
-              fi
+              drv=$(printf %s "$drv" | jq -r .) || return 1
+              [[ "$drv" == /nix/store/*.drv ]] || {
+                echo "nix-rebuild-native: the home resolved to '$drv', not a derivation — refusing" >&2
+                return 1
+              }
+              echo "nix-rebuild-native: building $project's declared home (minutes, first time)" >&2
+              # stderr stays on the TERMINAL because this build takes minutes and a captured stream is an
+              # unexplained hang. NOT because of a `nixConfig` prompt, which an earlier version claimed:
+              # this account is an untrusted nix client (`trusted: false`), so nix warns `ignoring
+              # untrusted flake configuration setting` and continues. Measured under a pty.
+              #
+              # The DERIVATION is built, not the attribute path — already resolved above, so there is no
+              # second search for a flake to steer and no window between deciding and building.
+              out=$(nix build --no-link --print-out-paths -- "$drv^*") || return 1
             else
+              # Computed into a variable first: split across a line continuation, `$(dirname` and its
+              # argument become separate echo words and the hint printed a bare `/session`.
+              local hint="$(dirname "$(printf %s "$st" | jq -r .code)")/session"
               echo "nix-rebuild-native: $project has no session flake registered — installing the base." \
-                   "If it has one, register it: devbox sandbox up $project --flake \$(dirname" \
-                   "$(printf %s "$st" | jq -r .code))/session" >&2
+                   "If it has one, register it: devbox sandbox up $project --flake $hint" >&2
             fi
             if [[ -z "$out" ]]; then
               out=$(nix build --no-link --print-out-paths --impure \
@@ -266,10 +276,9 @@
             # four HIGH findings, for a threat that only exists on the promotion path. A promoted home
             # should be reset before its first activate; a never-caged project has no exposure at all,
             # because the agent working there already holds the operator's uid.
-            # The guard's own precondition is asserted: `for d in $(cd ... && find ...)` yields an EMPTY
-            # list when the `cd` fails, so a bad `$out` disabled the guard instead of erroring. Read with
-            # NUL separators, because zsh field-splits on whitespace and a top-level name containing one
-            # would otherwise be checked as two wrong paths.
+            # The guard's own precondition is asserted: an earlier form iterated `$(cd "$out/…" && find)`,
+            # which yields an EMPTY list when the `cd` fails — a bad `$out` disabled the guard rather
+            # than erroring.
             [[ -d "$out/home-files" ]] || {
               echo "nix-rebuild-native: $out/home-files is missing — refusing" >&2
               return 1
@@ -335,7 +344,18 @@
             # `activate` dies `USER: unbound variable` at its line 54 — so the command would work when
             # typed and fail from a script or an `ssh <host> <cmd>`. `activate` also checks it against
             # the generation's baked username, which is this account.
+            # THE BACKUP VARS ARE UNSET, NOT MERELY UNSET-BY-US. home-manager reads them from the
+            # ENVIRONMENT, and this function runs in the operator's interactive shell — which, inside a
+            # native session, has SOURCED that project's `<slug>.env` (`nix print-dev-env` output, ending
+            # in `eval "$shellHook"`). So project A's session flake can export
+            # `HOME_MANAGER_BACKUP_EXT` and the operator's next `nix-rebuild-native B` writes through
+            # symlinked components in B's home — the attack the block above says is prevented.
+            # `HOME_MANAGER_BACKUP_COMMAND` is worse: `link` runs it UNQUOTED as `run $CMD "$target"`,
+            # i.e. an argv slot. `SKIP_SANITY_CHECKS` disables the `checkPathEq HOME` this function
+            # relies on for the wrong-project case, and `DRY_RUN` makes activation a silent no-op.
             env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
+              -u HOME_MANAGER_BACKUP_EXT -u HOME_MANAGER_BACKUP_COMMAND -u HOME_MANAGER_BACKUP_OVERWRITE \
+              -u SKIP_SANITY_CHECKS -u DRY_RUN \
               NIX_USER_CONF_FILES= USER="$(id -un)" \
               HOME="$home" "$out/activate"
           }
