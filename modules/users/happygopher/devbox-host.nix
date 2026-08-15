@@ -142,11 +142,59 @@
             # `checkPathEq HOME` is what catches a mismatch, loudly.
             home="$(dirname "$(printf %s "$st" | jq -r .code)")/home"
 
+            # THE PROJECT'S OWN HOME, not this repo's base. The project declares its extensions and
+            # settings in its session flake; this function is the OPERATOR applying them, which is what
+            # keeps it out of devbox (devbox#395: devbox must not activate a native home brokered, as
+            # root, unattended). Building the base here instead REVERSED every migrated project — the
+            # base carries no extensions dir at all.
+            #
+            # A HELD flake is refused, not applied: the hold marks a flake authored while the project was
+            # CAGED, and running it now is the `cage → native` escalation devbox prompts about. Clearing
+            # it is `devbox sandbox up`'s job, deliberately, so the operator sees that prompt.
+            local flake sys ref err
+            flake=$(printf %s "$st" | jq -r .session_flake)
+            if [[ "$(printf %s "$st" | jq -r .session_flake_held)" == "true" ]]; then
+              echo "nix-rebuild-native: $project's session flake is HELD —" \
+                   "run \`devbox sandbox up $project\` first" >&2
+              return 1
+            fi
+
+            # The node's operator ref beats the project's pin, exactly as devbox's own `up` does it
+            # (devbox#501/#506) — a pin is the project's guess at authoring time, this file is what the
+            # node actually runs. World-readable by design; absent means no ref has been applied.
+            sys="$(uname -m)-linux"
+            ref=$(cat /var/lib/devbox/operator-profile 2>/dev/null)
+
             # THIS FLAKE as a store path — not a checkout, not the operator's cwd, so there is no writer
             # to guard. The path is frozen into the shell's function table when the zshrc is sourced, so
             # a config change needs `nix-rebuild-devbox` AND A NEW SHELL before it reaches a project home.
-            out=$(nix build --no-link --print-out-paths --impure \
-                  --expr "(builtins.getFlake \"${self}\").lib.nativeProjectHome { project = \"$project\"; }") || return
+            #
+            # DECLARES NOTHING and DECLARES SOMETHING BROKEN are different, and the exit code conflates
+            # them — the same distinction devbox draws at `up.rs`. Only the first falls back to the base;
+            # a broken home is reported and stops here, rather than silently downgrading a project that
+            # HAS extensions to one that does not.
+            out=""
+            if [[ -n "$flake" && "$flake" != "null" ]]; then
+              local -a args
+              args=(--no-link --print-out-paths)
+              [[ -n "$ref" ]] && args+=(--override-input operator "$ref")
+              # Streams MERGED and split by shape, rather than stderr to a temp file: this shell sets
+              # NO_CLOBBER, so `2>"$(mktemp)"` fails on the file mktemp just created — measured, and it
+              # made the build never run while the failure read as "the project's home is broken".
+              # `--print-out-paths` is the only thing that writes a bare store path at line start;
+              # nix's own progress is `building '/nix/store/….drv'…`, which is not.
+              err=$(nix build "''${args[@]}" -- "$flake#devbox.$sys.home" 2>&1) || true
+              out=$(printf %s\\n "$err" | grep -m1 '^/nix/store/') || out=""
+              if [[ -z "$out" ]] && ! printf %s "$err" | grep -q "does not provide attribute"; then
+                printf %s\\n "$err" >&2
+                echo "nix-rebuild-native: $project declares a home that does not build — refusing" >&2
+                return 1
+              fi
+            fi
+            if [[ -z "$out" ]]; then
+              out=$(nix build --no-link --print-out-paths --impure \
+                    --expr "(builtins.getFlake \"${self}\").lib.nativeProjectHome { project = \"$project\"; }") || return
+            fi
 
             # `activate`, not a hand-rolled placement. A native project runs UNCAGED AS THE OPERATOR, so
             # an agent working there already holds this uid and `wheel` — there is no boundary a
@@ -189,8 +237,17 @@
             # `plugin-files` there is dlopen'd before any trust negotiation. Verified: nix tries to load
             # the named plugin without this, and does not with it. Nothing is lost — that file is the
             # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
+            # `HOME_MANAGER_BACKUP_EXT`: any home that has been OPENED holds a real
+            # `.vscode-server/extensions` directory, and `checkLinkTargets` refuses to clobber a
+            # directory — it aborts the WHOLE activation before any write, so the home stalls on its
+            # last generation while the command still looks like it ran. `check-link-targets.sh` uses
+            # `mv`, so with this set the old tree is preserved beside the new one and nothing is lost.
+            # `USER` is SET explicitly, not inherited: it is unset in a non-interactive shell and
+            # `activate` dies `USER: unbound variable` at its line 54 — so the command would work when
+            # typed and fail from a script or an `ssh <host> <cmd>`. `activate` also checks it against
+            # the generation's baked username, which is this account.
             env -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME \
-              NIX_USER_CONF_FILES= \
+              NIX_USER_CONF_FILES= HOME_MANAGER_BACKUP_EXT=hmbak USER="$(id -un)" \
               HOME="$home" "$out/activate"
           }
         '';
