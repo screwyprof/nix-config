@@ -215,17 +215,34 @@
             out=""
             local drv errf everr
             if [[ -n "$flake" && "$flake" != "null" ]]; then
+              # THE OVERRIDE IS ENFORCED HERE, from `nix flake metadata`'s JSON on STDOUT — a stream the
+              # flake cannot write. `--override-input operator` against a flake that names the input
+              # anything else is rc=0 with a warning and NOTHING ELSE, so without this check the project
+              # keeps its own pin and the guarantee stated above is decoration. Refuses rather than
+              # warns: this is the operator applying their own config, and silently building against a
+              # rev they did not choose is the outcome the override exists to prevent.
+              if [[ -n "$ref" ]] && ! nix flake metadata --json -- "$flake" 2>/dev/null \
+                   | jq -e '.locks.nodes.root.inputs.operator' >/dev/null; then
+                echo "nix-rebuild-native: $project's flake declares no input named \`operator\`, so the" \
+                     "node's config cannot be applied to it — refusing rather than building against the" \
+                     "rev the flake pins itself" >&2
+                return 1
+              fi
               errf=$(mktemp) || return 1
               # `2>|` overrides this shell's NO_CLOBBER, which is why stderr goes to a file rather than a
               # merged stream. It is DISPLAYED on the error path and never parsed.
               drv=$(nix eval --json "''${evalargs[@]}" --apply 'x: assert (x.type or "") == "derivation"; x.drvPath' \
+                    `# A SANITY CHECK, not proof: a flake can set both attrs by hand and forge a path.` \
+                    `# What stands behind the result is the store-path shape below, the ^out build, the` \
+                    `# home-files assertion, and activate's own checkPathEq HOME.` \
                     -- "$flake#devbox.$sys.home" 2>|"$errf") || drv=""
               everr=$(<"$errf"); command rm -f "$errf"
-              # SHOWN UNCONDITIONALLY, not only on failure. `--override-input` against a flake that does
-              # not name the input `operator` is rc=0 plus a warning, so routing this to a file the
-              # success path never printed made "the node's ref beats the project's pin" fail open in
-              # SILENCE — the guarantee stated above, unenforced and unobservable. Displayed, never
-              # parsed; control characters stripped because the text is the flake's.
+              # Displayed, never parsed; control characters stripped because the text is the flake's.
+              # PRINTING IS NOT ENFORCEMENT — see the metadata check above. An earlier version made this
+              # print the only thing standing behind "the node's ref wins", which the flake defeats by
+              # burying it: nix emits the override warning at LOCK time, i.e. first, while
+              # `builtins.trace` fires at EVAL time, so 400 lines of trace push it off the screen and the
+              # last thing the operator reads is flake-authored text that can forge this tool's prefix.
               [[ -n "$everr" ]] && printf %s\\n "$everr" | tr -d '\000-\010\013\014\016-\037' >&2
               if [[ -z "$drv" ]]; then
                 echo "nix-rebuild-native: $project's flake does not provide a usable" \
@@ -361,15 +378,18 @@
             # `migrateProfile` then `rm`s. And `activate` resolves its own `nix*` binaries from `PATH`.
             # Enumerating the next one is a game with no end; naming what may pass has one.
             #
-            # PATH is the system profile explicitly, not the operator's: it is what `nix-rebuild-cage`
-            # already hands a cage, and it carries nix and coreutils. TERM only so activation output is
-            # readable. NIX_USER_CONF_FILES= still empty — an allowlist would drop it, and it must be SET
-            # and EMPTY to override the project home's `nix.conf`, not merely absent.
+            # PATH is the system profile explicitly, not the operator's, and WRAPPERS COME FIRST:
+            # `/run/current-system/sw/bin/sudo` is a store symlink and the store cannot carry setuid, so
+            # the system profile first shadows the real wrapper and any activation hook shelling out to
+            # `sudo`/`ping`/`fusermount` fails confusingly. The operator's own PATH has the same order.
+            # `activate` exports its own PATH at line 7 and uses the inherited one only to locate
+            # `nix-env`. TERM only so activation output is readable. NIX_USER_CONF_FILES= must be SET and
+            # EMPTY to override the project home's `nix.conf` — an allowlist would otherwise drop it.
             env -i \
               HOME="$home" \
               USER="$(id -un)" \
               TERM="''${TERM:-dumb}" \
-              PATH=/run/current-system/sw/bin:/run/wrappers/bin \
+              PATH=/run/wrappers/bin:/run/current-system/sw/bin \
               NIX_USER_CONF_FILES= \
               "$out/activate"
           }
