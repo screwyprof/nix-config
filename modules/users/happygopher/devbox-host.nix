@@ -167,14 +167,23 @@
             # node actually runs. ABSENT and UNREADABLE are distinguished: the first is a node that has
             # never had `vm apply --home-flake`, the second is a fault worth naming, and both otherwise
             # look like "silently use whatever rev the project wrote down".
+            # FOUR states, not two. `-e` alone is false for a DANGLING symlink, which would report the
+            # benign never-applied case for a broken link; and a present-but-EMPTY file reads as success
+            # from `cat`, passing no override and saying nothing — which a truncated `vm apply
+            # --home-flake` write would make permanent for every project.
             sys="$(uname -m)-linux"
             ref=""
-            if [[ -e /var/lib/devbox/operator-profile ]]; then
+            if [[ -e /var/lib/devbox/operator-profile || -L /var/lib/devbox/operator-profile ]]; then
               ref=$(cat /var/lib/devbox/operator-profile) || {
-                echo "nix-rebuild-native: cannot read the node's operator ref — refusing rather than" \
+                echo "nix-rebuild-native: the node's operator ref is unreadable — refusing rather than" \
                      "building $project against its own pin" >&2
                 return 1
               }
+              if [[ -z "$ref" ]]; then
+                echo "nix-rebuild-native: the node's operator ref is EMPTY — refusing rather than" \
+                     "building $project against its own pin" >&2
+                return 1
+              fi
             else
               echo "nix-rebuild-native: no operator ref on this node; $project builds against its own" \
                    "pin" >&2
@@ -185,37 +194,47 @@
             [[ -n "$ref" ]] && evalargs+=(--override-input operator "$ref")
             args=(--no-link --print-out-paths "''${evalargs[@]}")
 
-            # DECLARES NOTHING and DECLARES SOMETHING BROKEN are different and the exit code conflates
-            # them, so the question is asked by a separate EVAL whose stderr alone is captured
-            # (`2>&1 >/dev/null` — stderr to the pipe, stdout discarded). Only "declares nothing" falls
-            # back to the base; a broken home stops here rather than silently downgrading a project that
-            # HAS extensions to one that does not.
+            # NOTHING BRANCHES ON STDERR. `builtins.trace` writes attacker-chosen lines there during
+            # eval, so any decision taken from stderr text is the flake's to make: a home whose value is
+            # `trace "error: … does not provide attribute …" (throw …)` talked an earlier version of this
+            # function into "declares no home" and installed the base over a project that has one —
+            # verbatim the silent downgrade this code exists to prevent. Anchoring the match does not
+            # help, because `trace` prefixes only its FIRST line.
             #
-            # NEVER parse the store path out of a merged stream. `builtins.trace` writes attacker-chosen
-            # lines to stderr during eval, so a flake emitting a bare `/nix/store/…` line captures `$out`
-            # and `activate` then runs a path this invocation never built — while a FAILED build still
-            # leaves `$out` set, skipping the refusal below. `nix build`'s stdout carries the out-paths
-            # and nothing else.
+            # The question is asked on STDOUT instead, where a trace cannot reach: `x: x ? home` yields a
+            # JSON `true`/`false`. `true` covers a home that is present but THROWS — which is right, it
+            # declares one and the build reports why it fails.
+            #
+            # A probe that ERRORS means the flake has no `devbox.<sys>` output at all, or one that throws.
+            # Both REFUSE rather than fall back: a session flake registered against this project is a
+            # statement that it configures the project, and quietly installing the base instead is the
+            # failure mode, not the safe default.
+            #
+            # `nix build`'s stdout carries the out-paths and nothing else, so `$out` is never parsed out
+            # of a merged stream.
             out=""
-            local declared=0
+            local declared=0 probe
             if [[ -n "$flake" && "$flake" != "null" ]]; then
-              # An EXPLICIT flag, not "was stderr empty": a successful eval that merely WARNS (nix reports
-              # a non-matching `--override-input` on stderr and still exits 0) would otherwise read as
-              # "declares nothing" and install the base over a project that has a working home.
-              if everr=$(nix eval --raw "''${evalargs[@]}" -- "$flake#devbox.$sys.home.drvPath" 2>&1 >/dev/null); then
-                declared=1
-              elif printf %s "$everr" | grep -q "does not provide attribute"; then
-                echo "nix-rebuild-native: $project declares no home — installing the base" >&2
+              if probe=$(nix eval --json "''${evalargs[@]}" --apply 'x: x ? home' \
+                         -- "$flake#devbox.$sys" 2>/dev/null); then
+                case "$probe" in
+                  true)  declared=1 ;;
+                  false) echo "nix-rebuild-native: $project's flake declares no home — installing the base" >&2 ;;
+                  *)     echo "nix-rebuild-native: unreadable probe result '$probe' — refusing" >&2; return 1 ;;
+                esac
               else
-                printf %s\\n "$everr" >&2
-                echo "nix-rebuild-native: $project declares a home that does not evaluate — refusing" >&2
+                nix eval --json "''${evalargs[@]}" --apply 'x: x ? home' -- "$flake#devbox.$sys" >/dev/null
+                echo "nix-rebuild-native: $project's flake has no devbox.$sys output, or it does not" \
+                     "evaluate — refusing" >&2
                 return 1
               fi
               if (( declared )); then
                 echo "nix-rebuild-native: building $project's declared home (minutes, first time)" >&2
-                # stderr stays on the TERMINAL: this build takes minutes, and a foreign flake's
-                # `nixConfig` makes nix PROMPT on stdin — captured, the operator answers a question
-                # they cannot see.
+                # stderr stays on the TERMINAL because this build takes minutes and a captured stream
+                # is an unexplained hang. NOT for the reason an earlier version claimed: a flake's
+                # `nixConfig` does not PROMPT here — this account is an untrusted nix client
+                # (`trusted: false`), so nix warns `ignoring untrusted flake configuration setting` and
+                # continues. Measured under a pty.
                 out=$(nix build "''${args[@]}" -- "$flake#devbox.$sys.home") || return 1
               fi
             else
@@ -255,19 +274,25 @@
               echo "nix-rebuild-native: $out/home-files is missing — refusing" >&2
               return 1
             }
+            # A zsh GLOB, not `find`: there is no child whose failure could be swallowed, and a name
+            # containing a space or newline cannot split. `(ND/)` is nullglob + dotfiles + directories —
+            # dotfiles matter, since every interesting entry here is one.
             local d
-            while IFS= read -r -d "" d; do
-              if [[ -L "$home/$d" ]]; then
-                echo "nix-rebuild-native: $home/$d is a symlink — refusing, reset this home first" >&2
+            for d in "$out"/home-files/*(ND/); do
+              if [[ -L "$home/''${d:t}" ]]; then
+                echo "nix-rebuild-native: $home/''${d:t} is a symlink — refusing, reset this home first" >&2
                 return 1
               fi
-            done < <(cd "$out/home-files" && find . -maxdepth 1 -type d ! -name . -printf '%P\0')
+            done
 
             # M2: re-read the tier AND the hold. The build takes minutes and both guards above are that
             # old by now — and the `up` that promotes cage -> native sets the hold in the SAME act, so
             # re-reading only the tier passes a project whose flake was just marked cage-authored.
             local st2
-            st2=$(devbox sandbox status "$project" --json 2>/dev/null)
+            st2=$(devbox sandbox status "$project" --json) || {
+              echo "nix-rebuild-native: cannot re-read $project after the build — refusing" >&2
+              return 1
+            }
             if [[ "$(printf %s "$st2" | jq -r .tier)" != "native" ]]; then
               echo "nix-rebuild-native: $project is no longer native — refusing" >&2
               return 1
@@ -286,16 +311,25 @@
             # the named plugin without this, and does not with it. Nothing is lost — that file is the
             # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
             # NO `HOME_MANAGER_BACKUP_EXT`, deliberately, and this is a SECURITY property rather than a
-            # preference. The collision abort above is the promoted-home fail-safe: without the variable
-            # a colliding regular file or directory lands in `collisionErrors` and activation exits 1
-            # BEFORE any write. Set it and `link` instead runs `mv` then `ln -Tsf`, both of which follow
-            # a symlinked DIRECTORY COMPONENT — which the depth-1 guard above cannot see. Demonstrated:
-            # `.config/nix` pointed at another home renames that home's `nix.conf` aside and replaces it
-            # with a generation symlink, at the operator's uid, driven by whoever wrote the project home.
+            # preference. Without it a colliding regular file or directory lands in `collisionErrors` and
+            # `checkNewGenCollision` exits 1, so `link` never runs. Set it and `link` runs `mv` then
+            # `ln -Tsf`, both of which follow a symlinked DIRECTORY COMPONENT — which the depth-1 guard
+            # above cannot see. Demonstrated: `.config/nix` pointed at another home renames that home's
+            # `nix.conf` aside and replaces it with a generation symlink, at the operator's uid, driven
+            # by whoever wrote the project home.
+            #
+            # NOT "aborts before any write" — measured, that is false and an earlier version of this
+            # comment claimed it. `activate` has already run `nix-build`, `nix-env -q` and
+            # `nix-store --add-root` by then, creating `.nix-defexpr`, `.nix-profile` and
+            # `.local/state/**`, all with `mkdir -p`/`ln` that follow symlinked components. Those paths
+            # appear in NO generation's `home-files`, so neither guard can see them. What the variable
+            # changes is narrower and still worth having: whether the generation's own files are moved
+            # aside and replaced through such a component.
             #
             # The cost is that a home holding a real `.vscode-server/extensions` aborts instead of
-            # migrating, which is loud and recoverable — remove that directory and re-run. A home already
-            # on a managed generation has a symlink there and never collides.
+            # migrating — loud and recoverable, but home-manager's own abort message recommends
+            # `backupFileExtension`, i.e. the thing this deliberately withholds. Remove the directory and
+            # re-run. A home already on a managed generation has a symlink there and never collides.
             #
             # `USER` is SET explicitly, not inherited: it is unset in a non-interactive shell and
             # `activate` dies `USER: unbound variable` at its line 54 — so the command would work when
