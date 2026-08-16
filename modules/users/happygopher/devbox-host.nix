@@ -69,7 +69,14 @@
           function nix-rebuild-devbox() {
             local out
             out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-host.activationPackage") || return
-            "$out/activate"
+            # `USER` is SET, not inherited: it is unset in a NON-INTERACTIVE shell and `activate` dies
+            # `USER: unbound variable` at its line 54. That is not a corner case here — a devbox NATIVE
+            # session inherits sshd's environment rather than a login shell's, so this fails exactly
+            # where an operator is most likely to type it: a VS Code terminal on the node. Measured.
+            #
+            # `nix-rebuild-cage` needs no such guard: `machinectl shell` + `bash -lc` is a real login
+            # session and already reports `USER=dev`. `nix-rebuild-native` sets it for this same reason.
+            USER="$(id -un)" "$out/activate"
           }
 
           # STORE PATH, never ./result: a cage binds /nix/store but not this repo.
@@ -113,11 +120,10 @@
               echo "usage: nix-rebuild-native <project>" >&2
               return 2
             fi
-            # A NAME, not a path: `devbox sandbox status` accepts both, and a path would build a home at
-            # `/work/projects//work/projects/<x>/home`.
-            # A NAME, and a CONSERVATIVE one: `$project` is interpolated into a Nix string in the
-            # `--expr` fallback below, where `"` and `''${` are live — so the charset is the guard, not
-            # the `/` check alone.
+            # A NAME, not a path — `devbox sandbox status` accepts both, and a path would build a home
+            # at `/work/projects//work/projects/<x>/home` — and a CONSERVATIVE one: `$project` is
+            # interpolated into a Nix string in the `--expr` fallback below, where `"` and `''${` are
+            # live, so the charset is the guard rather than the `/` check alone.
             if [[ "$project" == *[!A-Za-z0-9_.-]* || "$project" != [A-Za-z0-9]* ]]; then
               echo "nix-rebuild-native: '$project' is not a plain project name" >&2
               return 2
