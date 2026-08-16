@@ -69,7 +69,34 @@
           function nix-rebuild-devbox() {
             local out
             out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-host.activationPackage") || return
-            "$out/activate"
+            # `env -i`, THE SAME ALLOWLIST `nix-rebuild-native` USES, and for the same measured reason:
+            # this runs in the operator's interactive shell, which inside a devbox NATIVE session has
+            # sourced that project's `<slug>.env` — `nix print-dev-env` output ending in
+            # `eval "$shellHook"`. So a project exports a variable and the operator's next rebuild of
+            # their OWN LOGIN HOME carries it into activation. `activate` invokes nix clients ~20 times
+            # and honours `NIX_STATE_DIR` at its line 53; `NIX_CONFIG` sets `plugin-files`, which those
+            # clients `dlopen` before daemon trust negotiation. Same uid, same vector, bigger target.
+            #
+            # `USER` is part of the allowlist rather than merely passed through: it is unset in a
+            # NON-INTERACTIVE shell and `activate` dies `USER: unbound variable` at its line 54, which is
+            # exactly where an operator types this — a VS Code terminal on the node inherits sshd's
+            # environment, not a login shell's.
+            #
+            # SAFE FOR THIS HOME, not merely assumed: the login generation's `activate` references an
+            # IDENTICAL set of environment variables to a native project's, and adds no activation
+            # script of its own, so the allowlist validated there covers this by construction.
+            #
+            # `nix-rebuild-cage` needs NEITHER guard, and not because its target is the cage's home —
+            # because the environment does not cross at all. Measured: `sudo` resets it and
+            # `machinectl shell` opens a fresh logind session, so a poisoned `NIX_CONFIG` arrives unset,
+            # with `USER=dev` and `HOME=/home/dev` from passwd.
+            env -i \
+              HOME="$HOME" \
+              USER="$(id -un)" \
+              TERM="''${TERM:-dumb}" \
+              PATH=/run/wrappers/bin:/run/current-system/sw/bin \
+              NIX_USER_CONF_FILES= \
+              "$out/activate"
           }
 
           # STORE PATH, never ./result: a cage binds /nix/store but not this repo.
@@ -113,11 +140,10 @@
               echo "usage: nix-rebuild-native <project>" >&2
               return 2
             fi
-            # A NAME, not a path: `devbox sandbox status` accepts both, and a path would build a home at
-            # `/work/projects//work/projects/<x>/home`.
-            # A NAME, and a CONSERVATIVE one: `$project` is interpolated into a Nix string in the
-            # `--expr` fallback below, where `"` and `''${` are live — so the charset is the guard, not
-            # the `/` check alone.
+            # A NAME, not a path — `devbox sandbox status` accepts both, and a path would build a home
+            # at `/work/projects//work/projects/<x>/home` — and a CONSERVATIVE one: `$project` is
+            # interpolated into a Nix string in the `--expr` fallback below, where `"` and `''${` are
+            # live, so the charset is the guard rather than the `/` check alone.
             if [[ "$project" == *[!A-Za-z0-9_.-]* || "$project" != [A-Za-z0-9]* ]]; then
               echo "nix-rebuild-native: '$project' is not a plain project name" >&2
               return 2
