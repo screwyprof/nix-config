@@ -170,24 +170,35 @@
             # node actually runs. ABSENT and UNREADABLE are distinguished: the first is a node that has
             # never had `vm apply --home-flake`, the second is a fault worth naming, and both otherwise
             # look like "silently use whatever rev the project wrote down".
-            # FOUR states, not two. `-e` alone is false for a DANGLING symlink, which would report the
-            # benign never-applied case for a broken link; and a present-but-EMPTY file reads as success
-            # from `cat`, passing no override and saying nothing — which a truncated `vm apply
-            # --home-flake` write would make permanent for every project.
+            # ASK DEVBOX, never read its state file. `/var/lib/devbox/operator-profile` is the LAST
+            # FALLBACK of `DEVBOX_HOME`'s resolution chain (env, then build-time baked, then XDG, then
+            # the literal) — a default, not a fact. devbox's own `devbox-vm/src/status.rs:20` says as
+            # much where it faces the same choice: the ref "lives under the NODE's baked `DEVBOX_HOME`,
+            # which a Mac-built binary does not resolve", so it runs the verb instead. Point
+            # `DEVBOX_HOME` elsewhere and reading the literal silently yields no ref, which builds every
+            # project against its own pin — the failure the override exists to remove.
+            #
+            # `vm home-flake` is the documented reader, unprivileged (knowing the ref is not a
+            # capability, per that same comment), and this function already shells out to `devbox`, so
+            # it costs no new dependency. Same defect class as #499: a default written down as a fact.
+            #
+            # THREE states, and the verb draws them for us: a non-zero exit is a node fault and refuses;
+            # `home_flake: null` (or empty) is a node that has never had `vm apply --home-flake`, which
+            # says so and proceeds on the project's own pin; a string is the ref.
             sys="$(uname -m)-linux"
-            ref=""
-            if [[ -e /var/lib/devbox/operator-profile || -L /var/lib/devbox/operator-profile ]]; then
-              ref=$(cat /var/lib/devbox/operator-profile) || {
-                echo "nix-rebuild-native: the node's operator ref is unreadable — refusing rather than" \
-                     "building $project against its own pin" >&2
-                return 1
-              }
-              if [[ -z "$ref" ]]; then
-                echo "nix-rebuild-native: the node's operator ref is EMPTY — refusing rather than" \
-                     "building $project against its own pin" >&2
-                return 1
-              fi
-            else
+            local hf
+            hf=$(devbox --json vm home-flake) || {
+              echo "nix-rebuild-native: cannot ask devbox for the node's operator ref — refusing rather" \
+                   "than building $project against its own pin" >&2
+              return 1
+            }
+            # A message, not a bare `|| return 1`: the verb exiting 0 with output `jq` cannot parse is a
+            # node fault, and a silent refusal after a `devbox` call reads as devbox having said nothing.
+            ref=$(printf %s "$hf" | jq -r '.home_flake // ""') || {
+              echo "nix-rebuild-native: devbox reported an unreadable operator ref — refusing" >&2
+              return 1
+            }
+            if [[ -z "$ref" ]]; then
               echo "nix-rebuild-native: no operator ref on this node; $project builds against its own" \
                    "pin" >&2
             fi
@@ -238,9 +249,9 @@
                   printf %s\\n "$(<"$errf")" | tr -d '\000-\010\013\014\016-\037' >&2
                   command rm -f "$errf"
                   # Attribution names BOTH inputs, because this call takes two: the flake and the
-                  # node's ref. A garbage `operator-profile` — the fifth state, after absent, dangling,
-                  # unreadable and empty — fails here and would otherwise be reported as the project's
-                  # fault. The error above names which.
+                  # node's ref. A ref devbox REPORTS but nix cannot resolve fails here rather than at
+                  # the read above, and would otherwise be reported as the project's fault. The error
+                  # above names which.
                   echo "nix-rebuild-native: could not read $project's flake with the node's operator" \
                        "ref ($ref) — refusing. The error above says which of the two is at fault" >&2
                   return 1
@@ -366,7 +377,11 @@
             # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
             # NO `HOME_MANAGER_BACKUP_EXT`, deliberately, and this is a SECURITY property rather than a
             # preference. Without it a colliding regular file or directory lands in `collisionErrors` and
-            # `checkNewGenCollision` exits 1, so `link` never runs. Set it and `link` runs `mv` then
+            # `checkNewGenCollision` exits 1, so `link` never runs — BUT ONLY WHERE SOMETHING COLLIDES.
+            # Point a depth-2 component at a directory in which the generation's file is ABSENT and
+            # `checkLinkTargets` finds nothing to report: `link` runs, and its `mkdir -p` + `ln -Tsf`
+            # write through the symlink. Not an escalation — this uid can already write there — but the
+            # abort is conditional in a way the rest of this paragraph is not. Set it and `link` runs `mv` then
             # `ln -Tsf`, both of which follow a symlinked DIRECTORY COMPONENT — which the depth-1 guard
             # above cannot see. Demonstrated: `.config/nix` pointed at another home renames that home's
             # `nix.conf` aside and replaces it with a generation symlink, at the operator's uid, driven
