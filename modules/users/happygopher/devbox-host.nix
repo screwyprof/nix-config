@@ -192,8 +192,13 @@
                    "than building $project against its own pin" >&2
               return 1
             }
-            # A message, not a bare `|| return 1`: the verb exiting 0 with output `jq` cannot parse is a
-            # node fault, and a silent refusal after a `devbox` call reads as devbox having said nothing.
+            # A message, not a bare `|| return 1` — and NOT because the failure would be silent, which is
+            # what an earlier version of this comment claimed. `$(…)` captures STDOUT only, so jq's own
+            # `parse error: Invalid numeric literal` reaches the terminal either way; the claim came from
+            # a probe whose grep discarded it. What jq cannot say is WHICH of this function's calls
+            # failed, or that the verb exiting 0 with unparseable output is a NODE fault rather than the
+            # project's. The same is true of the `jq -r .` below, which is left bare deliberately: two
+            # shapes, one branded where the attribution is ambiguous.
             ref=$(printf %s "$hf" | jq -r '.home_flake // ""') || {
               echo "nix-rebuild-native: devbox reported an unreadable operator ref — refusing" >&2
               return 1
