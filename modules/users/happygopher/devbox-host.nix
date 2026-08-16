@@ -69,14 +69,34 @@
           function nix-rebuild-devbox() {
             local out
             out=$(nix build --no-link --print-out-paths ".#homeConfigurations.devbox-host.activationPackage") || return
-            # `USER` is SET, not inherited: it is unset in a NON-INTERACTIVE shell and `activate` dies
-            # `USER: unbound variable` at its line 54. That is not a corner case here — a devbox NATIVE
-            # session inherits sshd's environment rather than a login shell's, so this fails exactly
-            # where an operator is most likely to type it: a VS Code terminal on the node. Measured.
+            # `env -i`, THE SAME ALLOWLIST `nix-rebuild-native` USES, and for the same measured reason:
+            # this runs in the operator's interactive shell, which inside a devbox NATIVE session has
+            # sourced that project's `<slug>.env` — `nix print-dev-env` output ending in
+            # `eval "$shellHook"`. So a project exports a variable and the operator's next rebuild of
+            # their OWN LOGIN HOME carries it into activation. `activate` invokes nix clients ~20 times
+            # and honours `NIX_STATE_DIR` at its line 53; `NIX_CONFIG` sets `plugin-files`, which those
+            # clients `dlopen` before daemon trust negotiation. Same uid, same vector, bigger target.
             #
-            # `nix-rebuild-cage` needs no such guard: `machinectl shell` + `bash -lc` is a real login
-            # session and already reports `USER=dev`. `nix-rebuild-native` sets it for this same reason.
-            USER="$(id -un)" "$out/activate"
+            # `USER` is part of the allowlist rather than merely passed through: it is unset in a
+            # NON-INTERACTIVE shell and `activate` dies `USER: unbound variable` at its line 54, which is
+            # exactly where an operator types this — a VS Code terminal on the node inherits sshd's
+            # environment, not a login shell's.
+            #
+            # SAFE FOR THIS HOME, not merely assumed: the login generation's `activate` references an
+            # IDENTICAL set of environment variables to a native project's, and adds no activation
+            # script of its own, so the allowlist validated there covers this by construction.
+            #
+            # `nix-rebuild-cage` needs NEITHER guard, and not because its target is the cage's home —
+            # because the environment does not cross at all. Measured: `sudo` resets it and
+            # `machinectl shell` opens a fresh logind session, so a poisoned `NIX_CONFIG` arrives unset,
+            # with `USER=dev` and `HOME=/home/dev` from passwd.
+            env -i \
+              HOME="$HOME" \
+              USER="$(id -un)" \
+              TERM="''${TERM:-dumb}" \
+              PATH=/run/wrappers/bin:/run/current-system/sw/bin \
+              NIX_USER_CONF_FILES= \
+              "$out/activate"
           }
 
           # STORE PATH, never ./result: a cage binds /nix/store but not this repo.
