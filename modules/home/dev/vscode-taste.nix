@@ -13,8 +13,12 @@ _: {
       editors.vscode = {
         extensions = [ pkgs.vscode-extensions.dracula-theme.theme-dracula ];
         settings = {
-          "workbench.colorTheme" = lib.mkDefault "Dracula";
-          "editor.fontSize" = lib.mkDefault 13;
+          # The LABEL the extension registers, measured from its package.json `contributes.themes`:
+          # "Dracula Theme" and "Dracula Theme Soft". There is no theme called "Dracula" — VS Code
+          # silently falls back to its own default when `colorTheme` names one that does not exist,
+          # which is why this read as "no theme applied" rather than as an error.
+          "workbench.colorTheme" = lib.mkDefault "Dracula Theme";
+          "editor.fontSize" = lib.mkDefault 20;
         };
       };
     };
