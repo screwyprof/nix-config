@@ -9,11 +9,14 @@
     {
       pkgs,
       lib,
-      # OFF for a native PROJECT home (see `flake.lib.nativeProjectHome`): there
-      # `.vscode-server/extensions` belongs to devbox, which materialises what the project's session
-      # flake declares and swaps the WHOLE directory. Two writers on one directory means an `up`
-      # erases these links and a rebuild re-injects them. A module arg rather than an option so this
-      # file needs no `options`/`config` split.
+      # OFF for a native PROJECT home (see `flake.lib.nativeProjectHome`). The ORIGINAL reason is
+      # gone: devbox owned `.vscode-server/extensions` and swapped the whole directory, so there were
+      # two writers — it deleted that machinery (devbox#497) and now reads nothing but
+      # `devShells.default` and the optional `devbox.<system>.home`. This file is the only writer.
+      # The flag is KEPT deliberately, on its own merits rather than the two-writer one: a native
+      # project home is per-project, and injecting the operator's whole catalogue into each is a
+      # choice, not a necessity. A module arg rather than an option so this file needs no
+      # `options`/`config` split.
       placeVscodeExtensions,
       ...
     }:
@@ -177,19 +180,14 @@
             # root, unattended). Building the base here instead REVERSED every migrated project — the
             # base carries no extensions dir at all.
             #
-            # A HELD flake is refused, not applied: the hold marks a flake authored while the project was
-            # CAGED, and running it now is the `cage → native` escalation devbox prompts about. Clearing
-            # it is `devbox sandbox up`'s job, deliberately, so the operator sees that prompt.
-            # FAIL CLOSED on the hold: `jq -r` prints the string `null` for an absent field, so testing
-            # `== "true"` would PROCEED against any devbox predating it — and what proceeds is a flake a
-            # CAGED agent authored, run at the operator's uid. Require the explicit negative.
+            # NO HOLD CHECK. It used to refuse a flake devbox reported as HELD — authored while the
+            # project was caged, so running it uncaged was the `cage → native` escalation. devbox
+            # ABOLISHED that flow (devbox#550): a caged project cannot become native, so no flake is
+            # ever occupant-authored-then-run-as-the-operator, `session_flake_held` is gone from the
+            # manifest and from `status --json`, and the guard's own fail-closed shape would now fire
+            # on EVERY project — `jq -r` prints `null` for the absent field and `null != "false"`.
             local flake sys ref
             flake=$(printf %s "$st" | jq -r .session_flake)
-            if [[ "$(printf %s "$st" | jq -r .session_flake_held)" != "false" ]]; then
-              echo "nix-rebuild-native: $project's session flake is HELD (or this devbox does not report" \
-                   "the hold) — run \`devbox sandbox up $project\` first" >&2
-              return 1
-            fi
 
             # The node's operator ref beats the project's pin, exactly as devbox's own `up` does it
             # (devbox#501/#506) — a pin is the project's guess at authoring time, this file is what the
@@ -351,7 +349,10 @@
             # profile, keeps generation bookkeeping, and roots the generation itself (a native home is a
             # node-real path, unlike a cage's `/home/dev` — devbox `decisions.md`, verified).
             #
-            # RESIDUAL, for a project PROMOTED from cage — its home was occupant-authored. TWO ways that
+            # PREMISE REMOVED (devbox#550) — kept as cheap depth, not as a live defence. It guarded a
+            # home PROMOTED from cage, i.e. occupant-authored; promotion is abolished, so a native
+            # home has no author but the operator. What follows is therefore belt-and-braces against
+            # a hand-made mess, not a threat model. TWO ways the old threat
             # bites, and `activate` stops neither: it runs `nix-env`, which reads nix config from `$HOME`;
             # and it writes THROUGH a symlinked path component. Measured: with `.config` pointing
             # elsewhere, activation populates the target and rc=0, and an existing home-manager link there
@@ -381,9 +382,10 @@
               fi
             done
 
-            # M2: re-read the tier AND the hold. The build takes minutes and both guards above are that
-            # old by now — and the `up` that promotes cage -> native sets the hold in the SAME act, so
-            # re-reading only the tier passes a project whose flake was just marked cage-authored.
+            # M2: re-read the TIER. The build takes minutes, so the guard above is that old by now, and
+            # a project can be DEMOTED mid-build — devbox#550 abolished promotion but left native -> cage
+            # frictionless, deliberately, so this direction is genuinely reachable. The hold half of this
+            # re-read went with the flow it guarded.
             local st2
             st2=$(devbox sandbox status "$project" --json) || {
               echo "nix-rebuild-native: cannot re-read $project after the build — refusing" >&2
@@ -393,19 +395,16 @@
               echo "nix-rebuild-native: $project is no longer native — refusing" >&2
               return 1
             fi
-            if [[ "$(printf %s "$st2" | jq -r .session_flake_held)" != "false" ]]; then
-              echo "nix-rebuild-native: $project's session flake became HELD during the build — refusing" >&2
-              return 1
-            fi
             # `env -u XDG_*`: home-manager derives the profile and its gcroots from
             # `''${XDG_STATE_HOME:-$HOME/.local/state}`, so with those set the project generation would be
             # installed into the OPERATOR's profile. Unset today, latent tomorrow.
-            # `NIX_USER_CONF_FILES=` closes the OTHER promotion-path vector structurally, rather than
-            # relying on the operator remembering to reset the home: `activate` runs `nix-env`, which
-            # would read `$HOME/.config/nix/nix.conf` — occupant-authored on a promoted home — and
-            # `plugin-files` there is dlopen'd before any trust negotiation. Verified: nix tries to load
-            # the named plugin without this, and does not with it. Nothing is lost — that file is the
-            # PROJECT's, not the operator's, and the system nix.conf and substituters still apply.
+            # `NIX_USER_CONF_FILES=`: `activate` runs `nix-env`, which would read
+            # `$HOME/.config/nix/nix.conf`, and `plugin-files` there is dlopen'd before any trust
+            # negotiation. The THREAT it closed was an occupant-authored home arriving by promotion,
+            # which devbox#550 abolished — so this is now hygiene rather than a boundary: that file is
+            # the PROJECT's, not the operator's, and reading it during an operator-run activation is
+            # still wrong. Verified: nix tries to load the named plugin without this, and does not with
+            # it. Nothing is lost — the system nix.conf and substituters still apply.
             # NO `HOME_MANAGER_BACKUP_EXT`, deliberately, and this is a SECURITY property rather than a
             # preference. Without it a colliding regular file or directory lands in `collisionErrors` and
             # `checkNewGenCollision` exits 1, so `link` never runs — BUT ONLY WHERE SOMETHING COLLIDES.

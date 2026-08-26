@@ -13,7 +13,10 @@
     let
       # Pinned server + CLI, same expression the node home uses. Placing them is what stops Remote-SSH
       # fetching ~635MB into this cage's `$HOME`, and the wrapper it installs also suppresses the
-      # agent-host server. Applied by `nix-rebuild-cage <project>` — nothing triggers it automatically yet.
+      # agent-host server. devbox ACTIVATES this at every cage `up`, from the ref `vm home-flake`
+      # persists (devbox#360) — unless the project declares its own `devbox.<system>.home`, which
+      # supersedes it (devbox#501). `nix-rebuild-cage <project>` is the manual path, for applying a
+      # change without an `up`.
       r = config.flake.lib.vscodeRemote pkgs;
     in
     {
