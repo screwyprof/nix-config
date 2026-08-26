@@ -44,6 +44,11 @@
 
       # sha256 per commit, per artifact.
       hashes = {
+        # 1.133.0 — refreshed from the update endpoint's `x-sha256` header, no artifact downloaded.
+        "a5b500951314efd502d07465bd138dfbd714a960" = {
+          server-linux-arm64 = "sha256-hZiHy1t19eYHipmaNZBY0sGyQi2xrTP3Mqx58ObRRto=";
+          cli-alpine-arm64 = "sha256-i2ef3DluuUGGIHf+FQ47/TxdW3ZnW5I6aNvyZpwjfVY=";
+        };
         "8a7abeba6e03ea3af87bfbce9a1b7e48fed567b8" = {
           server-linux-arm64 = "sha256-sHHHf55lTnAFqtRITrNHEl1GXeP/00Cdyw8Vtlt8KmY=";
           cli-alpine-arm64 = "sha256-q9bp7zF76Oy74lWVS7duXBdPFeGzfPmdgqPVm3mIEqY=";
