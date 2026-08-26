@@ -11,7 +11,7 @@ in
     })
     (
       final: prev:
-      lib.optionalAttrs prev.stdenv.isDarwin {
+      lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin {
         mysides = final.callPackage ../../pkgs/mysides { };
       }
     )
@@ -29,7 +29,7 @@ in
       packages = {
         inherit (pkgs) alias-teacher;
       }
-      // lib.optionalAttrs pkgs.stdenv.isDarwin {
+      // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
         inherit (pkgs) mysides;
       };
     };

@@ -58,7 +58,7 @@
           nix-store-size = "du -sh /nix/store";
         }
         // (
-          if pkgs.stdenv.isDarwin then
+          if pkgs.stdenv.hostPlatform.isDarwin then
             {
               nix-rebuild-host = "nix-rebuild macbook";
             }
