@@ -382,9 +382,10 @@
               fi
             done
 
-            # M2: re-read the tier AND the hold. The build takes minutes and both guards above are that
-            # old by now — and the `up` that promotes cage -> native sets the hold in the SAME act, so
-            # re-reading only the tier passes a project whose flake was just marked cage-authored.
+            # M2: re-read the TIER. The build takes minutes, so the guard above is that old by now, and
+            # a project can be DEMOTED mid-build — devbox#550 abolished promotion but left native -> cage
+            # frictionless, deliberately, so this direction is genuinely reachable. The hold half of this
+            # re-read went with the flow it guarded.
             local st2
             st2=$(devbox sandbox status "$project" --json) || {
               echo "nix-rebuild-native: cannot re-read $project after the build — refusing" >&2
