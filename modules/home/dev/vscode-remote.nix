@@ -160,9 +160,26 @@
       # editor server would otherwise be fetched from. If the hashes ever go stale, `serverFiles` is empty,
       # this wrapper is not placed at all, and VS Code downloads normally: the degradation is losing the
       # optimisation, never a broken editor.
+      # It also KILLS the previous agent host before starting this connect's, which is what stops them
+      # accumulating. `ensure_supervisor_running` gates on the lockfile plus a liveness check, so a new
+      # supervisor OVERWRITES the lock — and the process it named becomes untracked and immortal. Killing
+      # the tracked one first means there is never an untracked one to leak. Measured: 6 supervisors
+      # against 1 lockfile, i.e. 5 already past the gate, ~4MB idle each, one of them 18 days old.
+      #
+      # `agent kill` is the CLI's own verb for this ("Forcefully kill the running agent host process
+      # tree") and it resolves the target through that same lockfile — so it cannot reach orphans that are
+      # ALREADY untracked. Those need a one-off `pkill -f vscode-cli`; this prevents the next ones.
+      #
+      # Both redirections are load-bearing, and both were measured rather than assumed. With no supervisor
+      # running it exits **1** and prints "No running agent host found" to **STDOUT** — the stream the
+      # bootstrap parses. Unredirected that corrupts the connect; unguarded the `set -u` script would abort
+      # before `exec`. Killing an agent host a CONCURRENT window is using is acceptable here and only here:
+      # the update endpoint above denies it a server, so `agent ps` answers 503 and the feature it exists
+      # for cannot work in this home anyway.
       cliWrapper = pkgs.writeShellScript "vscode-cli-wrapper-${rev}" ''
         set -u
         export VSCODE_CLI_UPDATE_URL=http://127.0.0.1:1
+        ${cli} agent kill >/dev/null 2>&1 || true
         exec ${cli} "$@"
       '';
     };
