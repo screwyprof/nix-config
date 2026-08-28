@@ -167,8 +167,15 @@
       # against 1 lockfile, i.e. 5 already past the gate, ~4MB idle each, one of them 18 days old.
       #
       # `agent kill` is the CLI's own verb for this ("Forcefully kill the running agent host process
-      # tree") and it resolves the target through that same lockfile — so it cannot reach orphans that are
-      # ALREADY untracked. Those need a one-off `pkill -f vscode-cli`; this prevents the next ones.
+      # tree"). It does NOT depend on the lockfile being current: measured with the lock naming a pid dead
+      # since the previous day, it still found and killed the live supervisor.
+      #
+      # VERIFIED BY A REAL REMOTE-SSH CONNECT, which is the only thing that starts one — a synthetic
+      # `agent host` harness and a direct `command-shell` invocation both failed to. From a baseline of
+      # zero: connect, disconnect, connect ⇒ exactly ONE agent host, where the unfixed behaviour is one
+      # per connect. The two `command-shell` control servers that also appear are NOT leaks; both exited
+      # on their own within ~3 minutes of the client closing. The agent host is the one that reparents to
+      # `ppid=1` and stays.
       #
       # THE REDIRECTION is what matters, and it was measured rather than assumed: with no supervisor running
       # `agent kill` exits 1 and prints `error no agent host process is currently running` to STDOUT — the
