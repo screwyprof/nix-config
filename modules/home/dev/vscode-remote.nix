@@ -144,17 +144,29 @@
       # then executes it, so a script is as valid here as the binary, and `exec … "$@"` preserves argv
       # exactly — including the `--version` the install path evaluates.
       #
-      # Its whole job is to deny the CLI an update endpoint. On every connect the CLI unconditionally
-      # starts an "agent host" supervisor (`ensure_supervisor_running`, called from
-      # `cli/src/commands/tunnels.rs` before the workbench process exists, so no setting, flag or policy
-      # reaches it — microsoft/vscode#328397) which fetches its OWN ~635MB server resolved to
-      # channel-LATEST: a different commit from the editor, for a feature documented as opt-in.
+      # Its whole job is to deny the CLI an update endpoint. The CLI starts an "agent host" supervisor
+      # which fetches its OWN ~635MB server resolved to channel-LATEST — a different commit from the
+      # editor, for a feature documented as opt-in. All three `UpdateService` methods, including
+      # `get_download_stream`, build their URL from `get_update_endpoint()`, which honours this variable,
+      # so the supervisor starts, fails its version resolve once, and downloads nothing.
       #
-      # All three `UpdateService` methods — including `get_download_stream` — build their URL from
-      # `get_update_endpoint()`, which honours this variable. So the supervisor starts, fails its version
-      # resolve once, and downloads nothing. It then writes its own correct lockfile, so later connects
-      # reuse it rather than retrying. Measured: one `warn`, no retry storm, zero children (so the
-      # `code agent kill` → `kill_tree` path is a no-op), ~16MB idle.
+      # WHAT CHANGED IN 1.133.0, because the previous version of this comment is now wrong in two places
+      # and both were load-bearing. It said the spawn is UNCONDITIONAL and that "no setting, flag or
+      # policy reaches it (microsoft/vscode#328397)": in 1.133.0 `ensure_supervisor_running` sits behind a
+      # LAZY future whose own comment says "a tunnel that nobody connects to must not spawn a standalone
+      # supervisor by itself", with the protocol-v6 route consulting the registry directly. And it said
+      # the supervisor "writes its own correct lockfile": 1.129.1 kept that at
+      # `.vscode-server/cli/agent-host-<quality>.lock`, and 1.133.0 replaced it with a REGISTRY of
+      # `entries/<sha256>.json` under `resolve_user_data_path()` — on Linux `~/.config/Code/agent-host/`,
+      # a tree neither this module nor home-manager touches. A leftover 1.129.1 lockfile is inert debris.
+      #
+      # THAT REPLACEMENT FIXED AN ACCUMULATION BUG, and it is worth recording because devbox chased it for
+      # a day. Under 1.129.1 a stale lockfile classified as `SpawnFresh` on every connect, so supervisors
+      # piled up — screwyprof/devbox#482 measured 6 against 1 lockfile, one of them 18 days old. Measured
+      # on 1.133.0 from a nuked `.vscode-server` AND a nuked registry, vanilla wrapper, three connects with
+      # disconnects: ONE supervisor, ONE registry entry naming it (`type=standalone`). The registry reuse
+      # works, so nothing here needs to reap anything — an earlier attempt to add `agent kill` to this
+      # wrapper was withdrawn for exactly that reason.
       #
       # This is safe ONLY because the server and CLI are pinned above — that endpoint is the one the
       # editor server would otherwise be fetched from. If the hashes ever go stale, `serverFiles` is empty,
