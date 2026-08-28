@@ -170,12 +170,21 @@
       # tree") and it resolves the target through that same lockfile — so it cannot reach orphans that are
       # ALREADY untracked. Those need a one-off `pkill -f vscode-cli`; this prevents the next ones.
       #
-      # Both redirections are load-bearing, and both were measured rather than assumed. With no supervisor
-      # running it exits **1** and prints "No running agent host found" to **STDOUT** — the stream the
-      # bootstrap parses. Unredirected that corrupts the connect; unguarded the `set -u` script would abort
-      # before `exec`. Killing an agent host a CONCURRENT window is using is acceptable here and only here:
-      # the update endpoint above denies it a server, so `agent ps` answers 503 and the feature it exists
-      # for cannot work in this home anyway.
+      # THE REDIRECTION is what matters, and it was measured rather than assumed: with no supervisor running
+      # `agent kill` exits 1 and prints `error no agent host process is currently running` to STDOUT — the
+      # stream the bootstrap parses — so unredirected it corrupts a connect. `|| true` is belt: this script
+      # sets `-u`, not `-e`, so a non-zero command does not abort it (checked: `bash -c 'set -u; false;
+      # echo reached'` prints `reached`). It stays because the guard should not depend on that.
+      #
+      # Killing an agent host a CONCURRENT window is using is acceptable here and only here: the update
+      # endpoint above denies it a server, so it never becomes usable. Measured against the one that had
+      # been idling 19 days, token redacted:
+      #
+      #   $ code agent ps
+      #   error Failed to connect to agent host at ws://127.0.0.1:41609/?tkn=<redacted>:
+      #         HTTP error: 503 Service Unavailable
+      #
+      # — it was listening and not serving, which is the state this wrapper's own black hole produces.
       cliWrapper = pkgs.writeShellScript "vscode-cli-wrapper-${rev}" ''
         set -u
         export VSCODE_CLI_UPDATE_URL=http://127.0.0.1:1
