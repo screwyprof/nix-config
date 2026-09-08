@@ -263,15 +263,23 @@ in
           local -r hash=$(sha256sum ''${ZIM_CONFIG_FILE} 2>/dev/null || echo "none")
           local -r hash_file="''${ZIM_HOME}/.zimrc_hash"
           if [[ ! -e ''${ZIM_HOME}/init.zsh || ! -e $hash_file || "$hash" != "$(< $hash_file)" ]]; then
-            source ''${ZIM_HOME}/zimfw.zsh init -q
-            echo "$hash" > $hash_file
+            # RECORD THE HASH ONLY ON SUCCESS. `zimfw init` returns non-zero when it cannot do the
+            # work — no write permission to $ZIM_HOME, or a module fetch that failed — and writing
+            # the hash regardless made that permanent: init.zsh exists, the hash matches, so every
+            # later shell takes the fast path and the modules stay missing.
+            if source ''${ZIM_HOME}/zimfw.zsh init -q; then
+              echo "$hash" > $hash_file
+            else
+              print -u2 "zimfw: init did not complete; modules may be missing (retrying next shell)."
+            fi
           fi
         }
 
         mkdir -p "${completionsCacheDir}"
 
-        # Initialize modules
-        source ''${ZIM_HOME}/init.zsh
+        # Initialize modules. Guarded: a failed init leaves no init.zsh, and sourcing a missing file
+        # is the error the first terminal actually shows.
+        [[ -e ''${ZIM_HOME}/init.zsh ]] && source ''${ZIM_HOME}/init.zsh
 
         # Post-Zim initialization hook
         ${cfg.initAfterZim}
