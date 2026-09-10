@@ -34,6 +34,7 @@
         cli-bat
         cli-eza
         cli-fzf
+        cli-moor
         cli-zoxide
         cli-zsh
       ];
