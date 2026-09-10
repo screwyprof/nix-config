@@ -26,6 +26,10 @@
         happygopher-identity
         dev-direnv # loads the project devshell on cd — why anything else is on PATH
         dev-git
+        # UX only — the cage's container capability supplies `docker`/`docker-compose` itself, as a
+        # wrapper over rootless podman. Importing `dev-containers` instead would add a second client
+        # earlier on PATH with no daemon behind it.
+        dev-containers-shell
         core-vim
         cli-bat
         cli-eza
