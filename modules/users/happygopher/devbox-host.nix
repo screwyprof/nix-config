@@ -32,6 +32,7 @@
         happygopher-identity
         dev-direnv
         dev-git
+        dev-git-https-remotes
         # nix LSP + linters; nothing below depends on it.
         dev-nix
         core-vim
