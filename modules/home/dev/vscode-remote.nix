@@ -157,11 +157,22 @@ in
           '';
         };
 
-      placeable = builtins.filter (pin: pin.hashes ? ${plat.server} && pin.hashes ? ${plat.cli}) pins;
+      hasHashes = pin: pin.hashes ? ${plat.server} && pin.hashes ? ${plat.cli};
+      unhashed = builtins.filter (pin: !hasHashes pin) pins;
+      warnUnhashed =
+        pin:
+        lib.warn ''
+          vscodeRemote: VS Code ${pin.version} (${pin.commit}) has no ${system} hashes, so it is not placed and
+          Remote-SSH will download it (~635MB per home). No download needed to fill them in:
+            for a in ${plat.server} ${plat.cli}; do
+              curl -fsSI https://update.code.visualstudio.com/commit:${pin.commit}/$a/stable | grep -i x-sha256
+            done
+            nix hash convert --hash-algo sha256 --to sri <hex>
+        '';
     in
     {
-      serverFiles =
-        lib.warnIf (placeable != pins) "vscodeRemote: pins without ${system} hashes are not placed"
-          (lib.mergeAttrsList (map (pin: (forPin pin).files) placeable));
+      serverFiles = lib.foldr warnUnhashed (lib.mergeAttrsList (
+        map (pin: (forPin pin).files) (builtins.filter hasHashes pins)
+      )) unhashed;
     };
 }

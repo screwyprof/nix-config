@@ -22,7 +22,7 @@
     }:
     let
       b = config.flake.lib.vscode.bundles pkgs;
-      # The remote server + CLI, pinned to the same commit this editor negotiates. Placing them is what
+      # The remote server + CLI for every commit in `vscodeServerPins` (the Mac's client). Placing them is what
       # stops Remote-SSH fetching ~635MB into this home on every fresh connect: both of its install gates
       # are existence checks, and a store symlink satisfies them.
       r = config.flake.lib.vscodeRemote pkgs;

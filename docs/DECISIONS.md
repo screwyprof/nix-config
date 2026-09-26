@@ -310,8 +310,6 @@ in a module BOTH bases import, not in the cage base. And a session directory mus
 
 ---
 
----
-
 ## 012: The VS Code server is the operator's, pinned to the Mac's client
 
 **What sparked this:** Cages kept downloading a ~1.3 GB server with their home "applied". The server commit was
