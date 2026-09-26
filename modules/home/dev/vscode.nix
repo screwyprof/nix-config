@@ -315,6 +315,8 @@ in
               "makefile.configureOnOpen" = false;
 
               # Theme and icon settings
+              # Rounded floating panels: default true by 1.139.1 (was false in 1.133.0); an explicit value beats the experiment.
+              "workbench.experimental.modernUI" = false;
               "material-icon-theme.activeIconPack" = "nest";
               "material-icon-theme.files.color" = "#42a5f5";
               "material-icon-theme.folders.color" = "#6bc1ff";
