@@ -1,3 +1,7 @@
+{ config, ... }:
+let
+  inherit (config.flake.lib) zimfwModule;
+in
 {
   flake.modules.homeManager.cli-zsh =
     {
@@ -6,6 +10,9 @@
       pkgs,
       ...
     }:
+    let
+      zim = zimfwModule pkgs;
+    in
     {
       home = {
         sessionVariables = {
@@ -60,30 +67,29 @@
         };
 
         sessionVariables = {
-          ZSH_CACHE_DIR = "$XDG_CACHE_HOME/zsh";
-          ZSH_STATE_DIR = "$XDG_STATE_HOME/zsh";
+          ZSH_CACHE_DIR = "${config.xdg.cacheHome}/zsh";
+          ZSH_STATE_DIR = "${config.xdg.stateHome}/zsh";
         };
 
         zimfw = {
           enable = true;
-          degit = true;
           zimDir = "$HOME/.config/zsh/.zim";
           zimConfig = "$HOME/.config/zsh/.zimrc";
           zmodules = lib.mkMerge [
             # Early modules (environment, input, etc.)
             (lib.mkOrder 100 [
-              "zimfw/environment"
-              "zimfw/input"
+              (zim "zimfw/environment")
+              (zim "zimfw/input")
               #"zimfw/termtitle"
-              "zimfw/utility"
+              (zim "zimfw/utility")
               #"zimfw/magic-enter"
             ])
 
             # # Core functionality modules
             (lib.mkOrder 200 [
-              "zimfw/direnv"
+              "${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source direnv.zsh"
               #"zimfw/fzf"
-              "zimfw/git"
+              (zim "zimfw/git")
               #"zimfw/homebrew"
             ])
 

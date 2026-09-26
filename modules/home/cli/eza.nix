@@ -1,6 +1,13 @@
+{ config, ... }:
+let
+  inherit (config.flake.lib) zimfwModule;
+in
 {
   flake.modules.homeManager.cli-eza =
     { lib, pkgs, ... }:
+    let
+      zim = zimfwModule pkgs;
+    in
     {
       home = {
         packages = [ pkgs.eza ];
@@ -16,7 +23,7 @@
         };
 
         zimfw.zmodules = lib.mkOrder 200 [
-          "zimfw/exa"
+          (zim "zimfw/exa")
         ];
       };
     };
