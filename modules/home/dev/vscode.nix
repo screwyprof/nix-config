@@ -1,3 +1,7 @@
+{ config, ... }:
+let
+  inherit (config.flake.lib) codeRemoteCheck;
+in
 {
   flake.modules.homeManager.dev-vscode =
     { pkgs, ... }:
@@ -126,6 +130,9 @@
       };
     in
     {
+      # Wins over the `code` programs.vscode puts on PATH.
+      home.packages = [ (pkgs.lib.hiPrio (codeRemoteCheck pkgs "${pkgs.vscode}/bin/code")) ];
+
       programs.vscode = {
         enable = true;
         package = pkgs.vscode;
