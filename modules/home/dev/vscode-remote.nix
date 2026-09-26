@@ -111,8 +111,8 @@ in
           # and `exec … "$@"` keeps argv intact, including the `--version` the install path evaluates.
           #
           # Its job is to deny the CLI an update endpoint. On connect the CLI starts an "agent host" supervisor that
-          # fetches its OWN ~635MB server at channel-latest — a different commit, for an opt-in feature no setting
-          # disables (microsoft/vscode#328397; since 1.133.0 the spawn is lazy, but a Remote-SSH connect triggers it).
+          # fetches its OWN ~635MB server at channel-latest — a different commit, for an opt-in feature
+          # (microsoft/vscode#328397; since 1.133.0 the spawn is lazy, but a Remote-SSH connect still triggers it).
           # All three `UpdateService` methods build their URL from `get_update_endpoint()`, which honours this
           # variable, so the supervisor starts, fails its version resolve once, and downloads nothing. Safe only
           # because the editor's own server is placed above.
@@ -128,6 +128,8 @@ in
         };
 
       unhashed = builtins.filter (pin: !hasHashes plat pin) pins;
+      # Warn, never throw: this sits under `home.file`, so a throw makes the whole home unbuildable — shell and editor
+      # included, on the machine you would fix it from.
       warnUnhashed =
         pin:
         lib.warn ''
