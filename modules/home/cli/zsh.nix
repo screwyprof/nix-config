@@ -6,6 +6,16 @@
       pkgs,
       ...
     }:
+    let
+      # From the store, not fetched by zimfw at shell start: an interrupted fetch leaves a module dir
+      # holding only headers, which zimfw then counts as installed — silently, for good.
+      zimfwModule =
+        repo: rev: hash:
+        pkgs.fetchFromGitHub {
+          owner = "zimfw";
+          inherit repo rev hash;
+        };
+    in
     {
       home = {
         sessionVariables = {
@@ -72,18 +82,28 @@
           zmodules = lib.mkMerge [
             # Early modules (environment, input, etc.)
             (lib.mkOrder 100 [
-              "zimfw/environment"
-              "zimfw/input"
+              "${zimfwModule "environment" "d4bceaa3da89cd819843334dba1a5bf7dc137e14"
+                "sha256-B8Cki4uCcSce0xewZ91P9wCpA5+x/AlT1IwC+HVs6OI="
+              }"
+              "${zimfwModule "input" "bdec2b372f8bd16a072d30ebc447a22dad52cfb4"
+                "sha256-/tWks6oFH6/LK8u9SxsZIJ9uAonJ2T6l91BflDwog80="
+              }"
               #"zimfw/termtitle"
-              "zimfw/utility"
+              "${zimfwModule "utility" "e1d1c23f578420e285cbea41dbd5cef75b35ca5b"
+                "sha256-2V3GYtfEtHwU8ba7pd9gQykUjp+yI0UBmxSOnHQdXNM="
+              }"
               #"zimfw/magic-enter"
             ])
 
             # # Core functionality modules
             (lib.mkOrder 200 [
-              "zimfw/direnv"
+              "${zimfwModule "direnv" "5527c55eaa405036c5c4cab726817c48efb221e2"
+                "sha256-jiWYSME7utd3uXGsxSd70KC5lLu7QNZuromlGbYr6kU="
+              }"
               #"zimfw/fzf"
-              "zimfw/git"
+              "${zimfwModule "git" "7d38eb4d9e595241bbbcdd62f836d1ee668317fc"
+                "sha256-9GQYpvZAKyZwxuT+RFHxNWGapxc/5w9/+TExQZhIDWk="
+              }"
               #"zimfw/homebrew"
             ])
 
