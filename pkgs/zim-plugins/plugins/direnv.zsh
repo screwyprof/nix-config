@@ -2,7 +2,7 @@
 # direnv hook
 #
 # Fork of zimfw/direnv with one deviation:
-# - The hook cache lives in $ZSH_CACHE_DIR, not beside this file: the store is read-only.
+# - The hook cache lives in $ZSH_CACHE_DIR (created if missing), not beside this file: the store is read-only.
 #
 
 () {

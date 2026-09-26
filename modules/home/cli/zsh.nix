@@ -67,8 +67,8 @@ in
         };
 
         sessionVariables = {
-          ZSH_CACHE_DIR = "$XDG_CACHE_HOME/zsh";
-          ZSH_STATE_DIR = "$XDG_STATE_HOME/zsh";
+          ZSH_CACHE_DIR = "${config.xdg.cacheHome}/zsh";
+          ZSH_STATE_DIR = "${config.xdg.stateHome}/zsh";
         };
 
         zimfw = {
