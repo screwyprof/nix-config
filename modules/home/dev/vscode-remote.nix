@@ -2,6 +2,10 @@
 let
   # Newest first. Keep the previous commit until every cage has restarted, so the Mac and the servers can move
   # in either order without a download.
+  #
+  # Hashes WITHOUT downloading — the update service returns the digest in a HEAD header:
+  #   curl -fsSI https://update.code.visualstudio.com/commit:<commit>/<artifact>/stable | grep -i x-sha256
+  #   nix hash convert --hash-algo sha256 --to sri <hex>
   pins = [
     {
       version = "1.139.1";
