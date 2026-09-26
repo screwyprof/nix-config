@@ -1,6 +1,6 @@
 { config, ... }:
 let
-  inherit (config.flake.lib) codeRemoteCheck;
+  inherit (config.flake.lib) codeRemoteCheck vscodePlacedCommits;
 in
 {
   flake.modules.homeManager.dev-vscode =
@@ -132,6 +132,14 @@ in
     {
       # Wins over the `code` programs.vscode puts on PATH.
       home.packages = [ (pkgs.lib.hiPrio (codeRemoteCheck pkgs "${pkgs.vscode}/bin/code")) ];
+
+      # Remote homes place only these servers; a client outside them downloads one into every home.
+      assertions = [
+        {
+          assertion = builtins.elem pkgs.vscode.rev vscodePlacedCommits;
+          message = "VS Code ${pkgs.vscode.version} (${pkgs.vscode.rev}) has no hashed pin in modules/home/dev/vscode-remote.nix";
+        }
+      ];
 
       programs.vscode = {
         enable = true;

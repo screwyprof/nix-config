@@ -44,21 +44,10 @@
         };
       };
 
-      # Every remote home places only `vscodeServerPins` that carry the fleet's (aarch64-linux) hashes, so the
-      # Mac's client must be one of those.
-      checks.vscode-client-pinned =
-        let
-          client =
-            self.darwinConfigurations.macbook.config.home-manager.users.happygopher.programs.vscode.package;
-          placed = builtins.filter (
-            pin: pin.hashes ? server-linux-arm64 && pin.hashes ? cli-alpine-arm64
-          ) self.lib.vscodeServerPins;
-          commits = map (pin: pin.commit) placed;
-        in
-        if builtins.elem client.rev commits then
-          pkgs.runCommand "vscode-client-pinned" { } "touch $out"
-        else
-          throw "vscode-client-pinned: the Mac's VS Code ${client.version} (${client.rev}) has no hashed pin in vscodeServerPins (modules/home/dev/vscode-remote.nix)";
+      # Evaluation only (no build): surfaces the Mac's assertions and eval errors in `nix flake check`.
+      checks.macbook-evaluates = pkgs.runCommand "macbook-evaluates" {
+        drv = builtins.unsafeDiscardStringContext self.darwinConfigurations.macbook.config.system.build.toplevel.drvPath;
+      } "touch $out";
 
       devShells.default = pkgs.mkShell {
         buildInputs = [ pkgs.pre-commit ] ++ config.pre-commit.settings.enabledPackages;

@@ -13,7 +13,10 @@ let
   ];
 in
 {
-  flake.lib.vscodeServerPins = pins;
+  # The commits every fleet (aarch64-linux) home actually places — a pin without those hashes is skipped.
+  flake.lib.vscodePlacedCommits = map (pin: pin.commit) (
+    builtins.filter (pin: pin.hashes ? server-linux-arm64 && pin.hashes ? cli-alpine-arm64) pins
+  );
 
   # The VS Code REMOTE server + CLI, fetched from Microsoft and pinned.
   #
@@ -24,7 +27,7 @@ in
   #
   # THE COMMITS ARE DECLARED, NOT DERIVED. A server must match the CLIENT, and the client is the Mac's; a cage home
   # is evaluated with its SESSION's nixpkgs (`operator.inputs.nixpkgs.follows`), so `pkgs.vscode.rev` there named
-  # whatever VS Code that session happened to lock. `checks.vscode-client-pinned` keeps the Mac's commit in `pins`.
+  # whatever VS Code that session happened to lock. The Mac's `dev-vscode` asserts its commit is in `pins`.
   #
   # Upgrade without a download: add the new commit FIRST (keep the old), `vm apply`, let cages `up`, then move the
   # Mac, then drop the old one.
