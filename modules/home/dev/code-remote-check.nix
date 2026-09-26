@@ -50,7 +50,8 @@
         fi
 
         version=$("$real" --version) || exec "$real" "$@"
-        commit=$(sed -n 2p <<<"$version")
+        commit=''${version#*$'\n'}
+        commit=''${commit%%$'\n'*}
         if ! [[ $commit =~ ^[0-9a-f]{40}$ ]]; then
           exec "$real" "$@"
         fi
@@ -61,20 +62,21 @@
             echo "code: refusing remote host '$host'." >&2
             exit 1
           fi
-          rc=0
-          ssh -o BatchMode=yes -o ConnectTimeout=10 -- "$host" \
-            "test -x ~/.vscode-server/cli/servers/Stable-$commit/server/bin/code-server" </dev/null >/dev/null 2>&1 || rc=$?
-          case $rc in
-            0) ;;
-            1) missing+=("$host") ;;
-            *) echo "code: could not check '$host' for a placed server (ssh exit $rc); opening anyway." >&2 ;;
+          answer=$(ssh -o BatchMode=yes -o ConnectTimeout=10 -- "$host" \
+            "if test -x ~/.vscode-server/cli/servers/Stable-$commit/server/bin/code-server; then echo present; else echo absent; fi" \
+            </dev/null 2>/dev/null) || true
+          answer=''${answer##*$'\n'}
+          case "$answer" in
+            present) ;;
+            absent) missing+=("$host") ;;
+            *) echo "code: could not check '$host' for a placed server; opening anyway." >&2 ;;
           esac
         done
         if [ ''${#missing[@]} -eq 0 ]; then
           exec "$real" "$@"
         fi
 
-        msg="code: no VS Code server for this client ($(head -1 <<<"$version"), ''${commit:0:7}) on: ''${missing[*]} — opening downloads one (~1.3 GB) into each home."
+        msg="code: no VS Code server for this client (''${version%%$'\n'*}, ''${commit:0:7}) on: ''${missing[*]} — opening downloads one (~1.3 GB) into each home."
         if [ -t 0 ] && [ -t 2 ]; then
           printf '%s\nOpen anyway? [y/N] ' "$msg" >&2
           read -r answer || answer=""
