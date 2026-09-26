@@ -1,7 +1,7 @@
 { lib, ... }:
 let
-  # Newest first. Keep the previous commit until every cage has restarted, so the Mac and the servers can move
-  # in either order without a download.
+  # Newest first. Upgrade servers first: add the new commit (keep the old), `vm apply`, let every cage `up`, THEN move
+  # the Mac, then drop the old commit. The Mac moving first leaves un-restarted cages without its server.
   #
   # Hashes WITHOUT downloading — the update service returns the digest in a HEAD header:
   #   curl -fsSI https://update.code.visualstudio.com/commit:<commit>/<artifact>/stable | grep -i x-sha256
@@ -111,8 +111,9 @@ in
           # and `exec … "$@"` keeps argv intact, including the `--version` the install path evaluates.
           #
           # Its job is to deny the CLI an update endpoint. On connect the CLI starts an "agent host" supervisor that
-          # fetches its OWN ~635MB server at channel-latest — a different commit, for an opt-in feature
-          # (microsoft/vscode#328397; since 1.133.0 the spawn is lazy, but a Remote-SSH connect still triggers it).
+          # fetches its OWN ~635MB server at channel-latest — a different commit, for an opt-in feature no
+          # setting disables (microsoft/vscode#328397). Since 1.133.0 the spawn is lazy, but `handle_serve` awaits it on
+          # every editor connect.
           # All three `UpdateService` methods build their URL from `get_update_endpoint()`, which honours this
           # variable, so the supervisor starts, fails its version resolve once, and downloads nothing. Safe only
           # because the editor's own server is placed above.
