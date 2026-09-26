@@ -94,8 +94,9 @@ in
             install -Dm755 "$TMPDIR/x/code" "$out"
           '';
 
-          # `force`: a home that ever connected has real files at these paths, which home-manager otherwise refuses
-          # to replace, and `code prune` can delete them again later.
+          # `force`: home-manager's `checkLinkTargets` aborts the whole activation on a real file at a managed path.
+          # Any home that connected before has one, and so does one where `code prune` removed the link and
+          # Remote-SSH re-downloaded — so this is needed on every switch, not just the first.
           files = {
             ".vscode-server/code-${rev}" = {
               source = cliWrapper;
@@ -113,7 +114,7 @@ in
           # Its job is to deny the CLI an update endpoint. On connect the CLI starts an "agent host" supervisor that
           # fetches its OWN ~635MB server at channel-latest — a different commit, for an opt-in feature no
           # setting disables (microsoft/vscode#328397). Since 1.133.0 the spawn is lazy, but `handle_serve` awaits it on
-          # every editor connect.
+          # every editor connect (checked in the source through 1.139.1).
           # All three `UpdateService` methods build their URL from `get_update_endpoint()`, which honours this
           # variable, so the supervisor starts, fails its version resolve once, and downloads nothing. Safe only
           # because the editor's own server is placed above.
@@ -143,7 +144,8 @@ in
         '';
     in
     {
-      serverFiles = lib.foldr warnUnhashed (lib.mergeAttrsList (
+      # `unionOfDisjoint`: a commit pinned twice is an eval error, not a silent last-one-wins.
+      serverFiles = lib.foldr warnUnhashed (lib.foldl' lib.attrsets.unionOfDisjoint { } (
         map (pin: (forPin pin).files) (builtins.filter (hasHashes plat) pins)
       )) unhashed;
     };

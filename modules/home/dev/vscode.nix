@@ -71,12 +71,13 @@ in
         # THESE DO NOT STOP THE REMOTE AGENT-HOST DOWNLOAD. Tested 2026-07-31 with both set false and
         # verified present in settings.json, VS Code fully quit, remote ~/.vscode-server wiped: the ~635MB
         # agent-host server was fetched anyway. The client log shows why — it is fetched by the CLI
-        # bootstrap ~4s BEFORE the workbench process exists, and `ensure_supervisor_running` is called
-        # unconditionally from `cli/src/commands/tunnels.rs:165`. vscode PR #316701 gates the CONNECT paths
-        # behind the setting, not the INSTALL. Filed upstream as microsoft/vscode#328397.
+        # bootstrap ~4s BEFORE the workbench process exists. The CLI starts the supervisor itself, reading no
+        # setting: unconditionally in 1.129.1 (`cli/src/commands/tunnels.rs:165`), and since 1.133.0 lazily but
+        # awaited by `handle_serve` on every connect (unchanged in 1.139.1). vscode PR #316701 gates the CONNECT
+        # paths behind the setting, not the INSTALL. Filed upstream as microsoft/vscode#328397.
         #
         # Kept because they are the correct ids and AutoConnect does stop unprompted outbound connections to
-        # configured remote agent hosts. The download is handled elsewhere, not by configuration.
+        # configured remote agent hosts. The download is stopped by the CLI wrapper in `vscode-remote.nix`.
         # Undocumented and tagged experimental upstream — re-check after a VS Code update.
         "chat.remoteAgentHostsAutoConnect" = false;
         "chat.remoteAgentHostsEnabled" = false;
