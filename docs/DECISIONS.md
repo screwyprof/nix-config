@@ -309,3 +309,17 @@ in a module BOTH bases import, not in the cage base. And a session directory mus
 `git init` there makes a root-owned repo that libgit2 refuses to the operator.
 
 ---
+
+---
+
+## 012: The VS Code server is the operator's, pinned to the Mac's client
+
+**What sparked this:** Cages kept downloading a ~1.3 GB server with their home "applied". The server commit was
+`pkgs.vscode.rev`, and a cage home is evaluated with its SESSION's nixpkgs (`operator.inputs.nixpkgs.follows`), so
+each project's lock picked it — testy placed nothing (1.137.0, no pins), archon placed 1.133.0 for a 1.139.1 client.
+
+**Outcome:** The server must match the CLIENT, which only the operator knows, so it belongs to the host configs
+(`devbox-host`, `devbox-cage`), never to a project; projects own extensions (nix-devx). `vscodeServerPins` in
+`modules/home/dev/vscode-remote.nix` declares the commits; `checks.vscode-client-pinned` keeps the Mac's in it.
+Sessions keep their own nixpkgs. Upgrades add the new commit first and drop the old one after cages converge, so
+neither side moving first causes a download; the Mac's `code` wrapper warns when a step is skipped.
