@@ -41,7 +41,11 @@ in
   # suppresses the download, one copy shared by all homes.
   #
   # The commits are declared rather than `pkgs.vscode.rev`: a server must match the Mac's client, and a cage home
-  # is evaluated with its session's nixpkgs, which can carry any VS Code.
+  # is evaluated with its session's nixpkgs, which can carry any VS Code. The Mac's `dev-vscode` asserts its client
+  # is among `vscodePlacedCommits`.
+  #
+  # A pin without this platform's hashes is not placed, wrapper included, and VS Code downloads as usual: the
+  # worst case is losing the optimisation, never a broken editor.
   flake.lib.vscodeRemote =
     pkgs:
     let
@@ -58,7 +62,8 @@ in
           hash = pin.hashes.${artifact};
         };
 
-      # `runCommand` runs no fixup phase: the binaries stay as shipped and run via nix-ld, like downloaded copies.
+      # `runCommand` runs no fixup phase: the binaries stay as shipped and run via nix-ld, like downloaded copies —
+      # patching them would change the bytes the client negotiated for.
       unpack =
         pin: name: artifact: extra:
         pkgs.runCommand "vscode-${name}-${pin.commit}" {
@@ -102,11 +107,19 @@ in
             };
           };
 
-          # The CLI's agent-host supervisor fetches its own ~635MB server at channel-latest, a different commit from
-          # the editor, and no setting turns it off (microsoft/vscode#328397). All three `UpdateService` methods build
-          # their URL from `get_update_endpoint()`, which honours this variable, so pointing it nowhere stops that;
-          # safe only because the editor's own server is placed above. No reaping needed: since 1.133.0 a registry
-          # reuses one supervisor (the 1.129.1 pile-up, screwyprof/devbox#482, is gone).
+          # `$CLI_PATH` is a wrapper, not the binary: the bootstrap only tests `[ -f "$CLI_PATH" ]` and executes it,
+          # and `exec … "$@"` keeps argv intact, including the `--version` the install path evaluates.
+          #
+          # Its job is to deny the CLI an update endpoint. On connect the CLI starts an "agent host" supervisor that
+          # fetches its OWN ~635MB server at channel-latest — a different commit, for an opt-in feature no setting
+          # disables (microsoft/vscode#328397; since 1.133.0 the spawn is lazy, but a Remote-SSH connect triggers it).
+          # All three `UpdateService` methods build their URL from `get_update_endpoint()`, which honours this
+          # variable, so the supervisor starts, fails its version resolve once, and downloads nothing. Safe only
+          # because the editor's own server is placed above.
+          #
+          # Nothing to reap: since 1.133.0 one supervisor is reused through a registry under
+          # `~/.config/Code/agent-host/` (untouched here), which ended the 1.129.1 pile-up (screwyprof/devbox#482).
+          # Adding `agent kill` to this wrapper was tried and withdrawn for that reason.
           cliWrapper = pkgs.writeShellScript "vscode-cli-wrapper-${rev}" ''
             set -u
             export VSCODE_CLI_UPDATE_URL=http://127.0.0.1:1
