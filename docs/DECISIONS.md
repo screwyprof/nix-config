@@ -320,5 +320,5 @@ each project's lock picked it — testy placed nothing (1.137.0, no pins), archo
 (`devbox-host`, `devbox-cage`), never to a project; projects own extensions (nix-devx). `pins` in
 `modules/home/dev/vscode-remote.nix` declares the commits; an assertion on the Mac's `dev-vscode` keeps its client
 among them, surfaced by `checks.macbook-evaluates`.
-Sessions keep their own nixpkgs. Upgrades add the new commit first and drop the old one after cages converge, so
-neither side moving first causes a download; the Mac's `code` wrapper warns when a step is skipped.
+Sessions keep their own nixpkgs. Upgrades go servers first — add the new commit, apply, let cages `up`, then move the
+Mac, then drop the old commit; the Mac's `code` wrapper warns when a step is skipped.
