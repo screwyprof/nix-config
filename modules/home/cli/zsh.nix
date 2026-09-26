@@ -87,14 +87,7 @@ in
 
             # # Core functionality modules
             (lib.mkOrder 200 [
-              # Not zimfw/direnv: it caches its hook beside itself, which is read-only in the store.
-              {
-                cachedInit = [
-                  "${config.programs.direnv.package}/bin/direnv"
-                  "hook"
-                  "zsh"
-                ];
-              }
+              "${pkgs.zim-plugins}/share/zsh/plugins/zim-plugins --source direnv.zsh"
               #"zimfw/fzf"
               (zim "zimfw/git")
               #"zimfw/homebrew"
@@ -139,9 +132,6 @@ in
           if [[ -r "''${XDG_CACHE_HOME:-''$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
             source "''${XDG_CACHE_HOME:-''$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
           fi
-
-          # Was set by zimfw/direnv, which the cachedInit hook replaces.
-          if [[ -z ''${NO_COLOR} && ''${+DIRENV_LOG_FORMAT} -eq 0 ]] export DIRENV_LOG_FORMAT=$'\E[2mdirenv: %s\E[0m'
 
           # Disable zsh built-in log command to allow macOS log tool
           disable log
