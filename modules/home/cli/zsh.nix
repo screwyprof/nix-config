@@ -140,6 +140,9 @@ in
             source "''${XDG_CACHE_HOME:-''$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
           fi
 
+          # Was set by zimfw/direnv, which the cachedInit hook replaces.
+          if [[ -z ''${NO_COLOR} && ''${+DIRENV_LOG_FORMAT} -eq 0 ]] export DIRENV_LOG_FORMAT=$'\E[2mdirenv: %s\E[0m'
+
           # Disable zsh built-in log command to allow macOS log tool
           disable log
 
