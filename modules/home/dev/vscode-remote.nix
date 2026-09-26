@@ -1,6 +1,7 @@
 { lib, ... }:
 let
-  # Newest first.
+  # Newest first. Keep the previous commit until every cage has restarted, so the Mac and the servers can move
+  # in either order without a download.
   pins = [
     {
       version = "1.139.1";
@@ -11,45 +12,36 @@ let
       };
     }
   ];
+
+  platforms = {
+    aarch64-linux = {
+      server = "server-linux-arm64";
+      cli = "cli-alpine-arm64";
+    };
+    x86_64-linux = {
+      server = "server-linux-x64";
+      cli = "cli-alpine-x64";
+    };
+  };
+
+  hasHashes = plat: pin: pin.hashes ? ${plat.server} && pin.hashes ? ${plat.cli};
 in
 {
-  # The commits every fleet (aarch64-linux) home actually places — a pin without those hashes is skipped.
+  # The fleet is aarch64-linux.
   flake.lib.vscodePlacedCommits = map (pin: pin.commit) (
-    builtins.filter (pin: pin.hashes ? server-linux-arm64 && pin.hashes ? cli-alpine-arm64) pins
+    builtins.filter (hasHashes platforms.aarch64-linux) pins
   );
 
-  # The VS Code REMOTE server + CLI, fetched from Microsoft and pinned.
+  # Remote-SSH downloads ~635MB of server into every home it connects to, and its install gates are existence
+  # checks (`[ -f "$CLI_PATH" ]` for the CLI, `target_dir.exists()` for the server) — so placing both from the store
+  # suppresses the download, one copy shared by all homes.
   #
-  # Remote-SSH downloads ~635MB of server into every remote `$HOME` it connects to, and the install gates
-  # are pure existence checks — `[ -f "$CLI_PATH" ]` for the CLI, `target_dir.exists()` for the server. So
-  # placing these from the store suppresses both downloads entirely: one copy per commit, shared by every
-  # home, instead of one copy per home.
-  #
-  # THE COMMITS ARE DECLARED, NOT DERIVED. A server must match the CLIENT, and the client is the Mac's; a cage home
-  # is evaluated with its SESSION's nixpkgs (`operator.inputs.nixpkgs.follows`), so `pkgs.vscode.rev` there named
-  # whatever VS Code that session happened to lock. The Mac's `dev-vscode` asserts its commit is in `pins`.
-  #
-  # Upgrade without a download: add the new commit FIRST (keep the old), `vm apply`, let cages `up`, then move the
-  # Mac, then drop the old one.
-  #
-  # Refresh a hash WITHOUT downloading — the update service returns the digest in a HEAD header:
-  #   curl -fsSI https://update.code.visualstudio.com/commit:<rev>/<platform>/stable | grep -i x-sha256
-  #   nix hash convert --hash-algo sha256 --to sri <hex>
+  # The commits are declared rather than `pkgs.vscode.rev`: a server must match the Mac's client, and a cage home
+  # is evaluated with its session's nixpkgs, which can carry any VS Code.
   flake.lib.vscodeRemote =
     pkgs:
     let
       inherit (pkgs.stdenv.hostPlatform) system;
-
-      platforms = {
-        aarch64-linux = {
-          server = "server-linux-arm64";
-          cli = "cli-alpine-arm64";
-        };
-        x86_64-linux = {
-          server = "server-linux-x64";
-          cli = "cli-alpine-x64";
-        };
-      };
 
       plat =
         platforms.${system}
@@ -62,10 +54,7 @@ in
           hash = pin.hashes.${artifact};
         };
 
-      # Microsoft's binaries are used AS SHIPPED — `runCommand` runs no fixup/strip/patchelf phase at all
-      # (stdenv's `genericBuild` returns early for `buildCommand`), which is what we want: they run via
-      # nix-ld exactly as the downloaded copies did, and rewriting them would change bytes the client
-      # negotiated for.
+      # `runCommand` runs no fixup phase: the binaries stay as shipped and run via nix-ld, like downloaded copies.
       unpack =
         pin: name: artifact: extra:
         pkgs.runCommand "vscode-${name}-${pin.commit}" {
@@ -79,14 +68,8 @@ in
           rev = pin.commit;
         in
         rec {
-
-          # The server tree. Placed at `<home>/.vscode-server/cli/servers/Stable-<rev>/server`, which is the
-          # exact path the CLI's `target_dir.exists()` check consults.
-          #
-          # The layout check is NOT belt-and-braces. `tar --strip-components=1` against a flat tarball throws
-          # everything away and still exits 0, and the CLI's gate only tests that the PARENT directory exists —
-          # so a wrong-shaped tree is never re-downloaded and the editor stays broken with no recovery path.
-          # Fail here, at build time, instead.
+          # The layout check is load-bearing: `--strip-components=1` on a flat tarball exits 0 with nothing kept,
+          # and the CLI only tests that the parent dir exists, so a wrong tree would never be re-downloaded.
           server = unpack pin "server" plat.server ''
             mkdir -p "$out"
             tar -xf "$src" -C "$out" --strip-components=1
@@ -95,7 +78,6 @@ in
             done
           '';
 
-          # The CLI. Placed at `<home>/.vscode-server/code-<rev>`, gated by `[ -f "$CLI_PATH" ]`.
           cli = unpack pin "cli" plat.cli ''
             mkdir -p "$TMPDIR/x"
             tar -xf "$src" -C "$TMPDIR/x"
@@ -103,13 +85,8 @@ in
             install -Dm755 "$TMPDIR/x/code" "$out"
           '';
 
-          # `home.file` entries placing the two artifacts where the bootstrap looks. Symlinks, so a home costs
-          # ~0 bytes and every home shares one store path.
-          #
-          # `force`: a home that has ever connected already has REAL files at both paths — home-manager's
-          # `checkLinkTargets` aborts the whole activation on those rather than replacing them. The CLI can
-          # also reclaim either path later (`code prune` removes the server dir for any server it thinks is
-          # stopped), so this must survive being clobbered, not just the first switch.
+          # `force`: a home that ever connected has real files at these paths, which home-manager otherwise refuses
+          # to replace, and `code prune` can delete them again later.
           files = {
             ".vscode-server/code-${rev}" = {
               source = cliWrapper;
@@ -121,38 +98,11 @@ in
             };
           };
 
-          # `$CLI_PATH` is a thin WRAPPER, not the binary. The bootstrap only tests `[ -f "$CLI_PATH" ]` and
-          # then executes it, so a script is as valid here as the binary, and `exec … "$@"` preserves argv
-          # exactly — including the `--version` the install path evaluates.
-          #
-          # Its whole job is to deny the CLI an update endpoint. The CLI starts an "agent host" supervisor
-          # which fetches its OWN ~635MB server resolved to channel-LATEST — a different commit from the
-          # editor, for a feature documented as opt-in. All three `UpdateService` methods, including
-          # `get_download_stream`, build their URL from `get_update_endpoint()`, which honours this variable,
-          # so the supervisor starts, fails its version resolve once, and downloads nothing.
-          #
-          # WHAT CHANGED IN 1.133.0, because the previous version of this comment is now wrong in two places
-          # and both were load-bearing. It said the spawn is UNCONDITIONAL and that "no setting, flag or
-          # policy reaches it (microsoft/vscode#328397)": in 1.133.0 `ensure_supervisor_running` sits behind a
-          # LAZY future whose own comment says "a tunnel that nobody connects to must not spawn a standalone
-          # supervisor by itself", with the protocol-v6 route consulting the registry directly. And it said
-          # the supervisor "writes its own correct lockfile": 1.129.1 kept that at
-          # `.vscode-server/cli/agent-host-<quality>.lock`, and 1.133.0 replaced it with a REGISTRY of
-          # `entries/<sha256>.json` under `resolve_user_data_path()` — on Linux `~/.config/Code/agent-host/`,
-          # a tree neither this module nor home-manager touches. A leftover 1.129.1 lockfile is inert debris.
-          #
-          # THAT REPLACEMENT FIXED AN ACCUMULATION BUG, and it is worth recording because devbox chased it for
-          # a day. Under 1.129.1 a stale lockfile classified as `SpawnFresh` on every connect, so supervisors
-          # piled up — screwyprof/devbox#482 measured 6 against 1 lockfile, one of them 18 days old. Measured
-          # on 1.133.0 from a nuked `.vscode-server` AND a nuked registry, vanilla wrapper, three connects with
-          # disconnects: ONE supervisor, ONE registry entry naming it (`type=standalone`). The registry reuse
-          # works, so nothing here needs to reap anything — an earlier attempt to add `agent kill` to this
-          # wrapper was withdrawn for exactly that reason.
-          #
-          # This is safe ONLY because the server and CLI are pinned above — that endpoint is the one the
-          # editor server would otherwise be fetched from. A pin without this platform's hashes is not placed,
-          # wrapper included, and VS Code downloads normally: the degradation is losing the optimisation, never
-          # a broken editor.
+          # The CLI's agent-host supervisor fetches its own ~635MB server at channel-latest, a different commit from
+          # the editor, and no setting turns it off (microsoft/vscode#328397). All three `UpdateService` methods build
+          # their URL from `get_update_endpoint()`, which honours this variable, so pointing it nowhere stops that;
+          # safe only because the editor's own server is placed above. No reaping needed: since 1.133.0 a registry
+          # reuses one supervisor (the 1.129.1 pile-up, screwyprof/devbox#482, is gone).
           cliWrapper = pkgs.writeShellScript "vscode-cli-wrapper-${rev}" ''
             set -u
             export VSCODE_CLI_UPDATE_URL=http://127.0.0.1:1
@@ -160,8 +110,7 @@ in
           '';
         };
 
-      hasHashes = pin: pin.hashes ? ${plat.server} && pin.hashes ? ${plat.cli};
-      unhashed = builtins.filter (pin: !hasHashes pin) pins;
+      unhashed = builtins.filter (pin: !hasHashes plat pin) pins;
       warnUnhashed =
         pin:
         lib.warn ''
@@ -175,7 +124,7 @@ in
     in
     {
       serverFiles = lib.foldr warnUnhashed (lib.mergeAttrsList (
-        map (pin: (forPin pin).files) (builtins.filter hasHashes pins)
+        map (pin: (forPin pin).files) (builtins.filter (hasHashes plat) pins)
       )) unhashed;
     };
 }
