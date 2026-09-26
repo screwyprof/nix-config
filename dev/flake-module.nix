@@ -44,6 +44,11 @@
         };
       };
 
+      # Evaluation only (no build): surfaces the Mac's assertions and eval errors in `nix flake check`.
+      checks.macbook-evaluates = pkgs.runCommand "macbook-evaluates" {
+        drv = builtins.unsafeDiscardStringContext self.darwinConfigurations.macbook.config.system.build.toplevel.drvPath;
+      } "touch $out";
+
       devShells.default = pkgs.mkShell {
         buildInputs = [ pkgs.pre-commit ] ++ config.pre-commit.settings.enabledPackages;
         shellHook = config.pre-commit.installationScript;
