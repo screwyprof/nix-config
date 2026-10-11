@@ -70,6 +70,13 @@ First-time setup on a fresh Mac. I only do this 2-3 times a year, so it's writte
    cd ~/nix-config
    ```
 
+5. **Grant the terminal App Management** (System Settings → Privacy & Security → App Management; Full Disk Access also covers it) and restart it. Casks that modify app bundles in `/Applications` (Parallels Desktop) need it, and macOS denies it silently, with no prompt, to command-line tools.
+
+6. **Restore the age key** to `~/.config/sops/age/keys.txt` (mode 600). sops-nix decrypts secrets at login; without the key it fails once and stays failed until re-run:
+   ```bash
+   launchctl kickstart -k gui/$(id -u)/org.nix-community.home.sops-nix
+   ```
+
 ### First Build
 
 nix-darwin needs to take over the shell rc files, so move the defaults aside first:
@@ -90,6 +97,7 @@ nix-rebuild-host      # darwin-rebuild switch --flake .#macbook
 
 ### Post-Install
 
+- **Nix cache ownership**: the `sudo` bootstrap leaves `~/.cache/nix` owned by root, so unprivileged `nix build`/`nix eval` fail with "attempt to write a readonly database". Fix once: `sudo chown -R $USER ~/.cache/nix`.
 - **Projects symlink**: the build creates `~/Projects → ~/Documents/Projects`. It starts working once that folder exists (and iCloud finishes syncing, if you sync Documents).
 - **Safari extensions**: enable **Noir** and **AdGuard for Safari** in Safari → Settings → Extensions. The build installs them from the App Store, but macOS requires toggling them on by hand.
 
