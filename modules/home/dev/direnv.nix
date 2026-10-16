@@ -14,9 +14,18 @@
 
       # Load the directory's env BEFORE p10k's instant prompt (cli-zsh, mkBefore = 500): output here is allowed,
       # while the hook's `direnv: loading …` at the first prompt trips p10k's console-output warning. The hook
-      # (zim) then finds the env loaded and stays quiet. p10k's documented recipe for direnv.
+      # (zim) then finds the env loaded and stays quiet. p10k's documented recipe for direnv, with two guards:
+      # not for `zsh -i -c` (tools: no prompt follows, so the hook never loaded the env there either), and a
+      # Ctrl-C during a slow `use flake` skips only this load — unguarded it aborts the rest of .zshrc.
       programs.zsh.initContent = lib.mkOrder 400 ''
-        (( ''${+commands[direnv]} )) && emulate zsh -c "$(direnv export zsh)"
+        if (( ''${+commands[direnv]} )) && [[ -z $ZSH_EXECUTION_STRING ]]; then
+          () {
+            setopt local_traps
+            trap 'print -u2 "direnv: interrupted, env not loaded"; return 130' INT
+            local env
+            env=$(direnv export zsh) && emulate zsh -c "$env"
+          }
+        fi
       '';
     };
 }
