@@ -22,8 +22,7 @@
           () {
             setopt local_traps
             trap 'print -u2 "direnv: interrupted, env not loaded"; return 130' INT
-            local env
-            env=$(direnv export zsh) && emulate zsh -c "$env"
+            emulate zsh -c "$(direnv export zsh)"
           }
         fi
       '';
