@@ -50,7 +50,20 @@
       } "touch $out";
 
       devShells.default = pkgs.mkShell {
-        buildInputs = [ pkgs.pre-commit ] ++ config.pre-commit.settings.enabledPackages;
+        buildInputs = [
+          pkgs.pre-commit
+          (pkgs.writeShellApplication {
+            name = "vscode-pin";
+            runtimeInputs = [
+              pkgs.curl
+              pkgs.jq
+              pkgs.git
+              config.treefmt.programs.nixfmt.package
+            ];
+            text = builtins.readFile ./vscode-pin.sh;
+          })
+        ]
+        ++ config.pre-commit.settings.enabledPackages;
         shellHook = config.pre-commit.installationScript;
       };
     };

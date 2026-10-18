@@ -317,8 +317,9 @@ in a module BOTH bases import, not in the cage base. And a session directory mus
 each project's lock picked it — testy placed nothing (1.137.0, no pins), archon placed 1.133.0 for a 1.139.1 client.
 
 **Outcome:** The server must match the CLIENT, which only the operator knows, so it belongs to the host configs
-(`devbox-host`, `devbox-cage`), never to a project; projects own extensions (nix-devx). `pins` in
-`modules/home/dev/vscode-remote.nix` declares the commits; an assertion on the Mac's `dev-vscode` keeps its client
-among them, surfaced by `checks.macbook-evaluates`.
+(`devbox-host`, `devbox-cage`), never to a project; projects own extensions (nix-devx).
+`modules/home/dev/_vscode-pins.nix` declares the commits, maintained by `vscode-pin` in the dev shell (it never
+commits — it shows the diff); an assertion on the Mac's `dev-vscode` keeps its client among them, surfaced by
+`checks.macbook-evaluates`.
 Sessions keep their own nixpkgs. Upgrades go servers first — add the new commit, apply, let cages `up`, then move the
 Mac, then drop the old commit; the Mac's `code` wrapper warns when a step is skipped.
