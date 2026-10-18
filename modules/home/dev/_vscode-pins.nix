@@ -1,4 +1,4 @@
-# Maintained by `vscode-pin` (dev shell) — newest first. Hand edits survive only until its next run.
+# Maintained by vscode-pin (dev shell) — newest first. Hand edits survive only until its next run.
 [
   {
     commit = "07f806f999227108933c2e30515b26eecc1fda74";

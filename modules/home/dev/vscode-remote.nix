@@ -1,8 +1,6 @@
 { lib, ... }:
 let
-  # Newest first, maintained by `vscode-pin` (nix-config's dev shell): it pins the Mac's client, or `--prune`s to the
-  # newest. Upgrade servers first: pin the new commit (keep the old), `vm apply`, let every cage `up`, THEN move the
-  # Mac, then prune. The Mac moving first leaves un-restarted cages without its server.
+  # Maintained by `vscode-pin` (dev shell). Upgrade order — servers before the Mac: DECISIONS 012.
   pins = import ./_vscode-pins.nix;
 
   platforms = {
@@ -16,13 +14,16 @@ let
     };
   };
 
+  # The fleet is aarch64-linux.
+  fleet = platforms.aarch64-linux;
+
   hasHashes = plat: pin: pin.hashes ? ${plat.server} && pin.hashes ? ${plat.cli};
 in
 {
-  # The fleet is aarch64-linux.
-  flake.lib.vscodePlacedCommits = map (pin: pin.commit) (
-    builtins.filter (hasHashes platforms.aarch64-linux) pins
-  );
+  flake.lib.vscodePlacedCommits = map (pin: pin.commit) (builtins.filter (hasHashes fleet) pins);
+
+  # What `vscode-pin` hashes — one list, so the tool cannot pin artifacts the module never looks up.
+  flake.lib.vscodeFleetArtifacts = builtins.attrValues fleet;
 
   # Remote-SSH downloads ~635MB of server into every home it connects to, and its install gates are existence
   # checks (`[ -f "$CLI_PATH" ]` for the CLI, `target_dir.exists()` for the server) — so placing both from the store
@@ -124,11 +125,7 @@ in
         pin:
         lib.warn ''
           vscodeRemote: VS Code ${pin.version} (${pin.commit}) has no ${system} hashes, so it is not placed and
-          Remote-SSH will download it (~635MB per home). No download needed to fill them in:
-            for a in ${plat.server} ${plat.cli}; do
-              curl -fsSI https://update.code.visualstudio.com/commit:${pin.commit}/$a/stable | grep -i x-sha256
-            done
-            nix hash convert --hash-algo sha256 --to sri <hex>
+          Remote-SSH will download it (~635MB per home). Run `vscode-pin` in nix-config's dev shell.
         '';
     in
     {

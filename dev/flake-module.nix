@@ -58,7 +58,7 @@
               pkgs.curl
               pkgs.jq
               pkgs.git
-              pkgs.nixfmt
+              config.treefmt.programs.nixfmt.package
             ];
             text = builtins.readFile ./vscode-pin.sh;
           })
