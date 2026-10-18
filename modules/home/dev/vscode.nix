@@ -138,7 +138,7 @@ in
       assertions = [
         {
           assertion = builtins.elem pkgs.vscode.rev vscodePlacedCommits;
-          message = "VS Code ${pkgs.vscode.version} (${pkgs.vscode.rev}) has no hashed pin in modules/home/dev/vscode-remote.nix";
+          message = "VS Code ${pkgs.vscode.version} (${pkgs.vscode.rev}) has no hashed pin: run `vscode-pin` in nix-config's dev shell (modules/home/dev/_vscode-pins.nix)";
         }
       ];
 

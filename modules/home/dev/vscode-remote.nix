@@ -1,29 +1,9 @@
 { lib, ... }:
 let
-  # Newest first. Upgrade servers first: add the new commit (keep the old), `vm apply`, let every cage `up`, THEN move
-  # the Mac, then drop the old commit. The Mac moving first leaves un-restarted cages without its server.
-  #
-  # Hashes WITHOUT downloading — the update service returns the digest in a HEAD header:
-  #   curl -fsSI https://update.code.visualstudio.com/commit:<commit>/<artifact>/stable | grep -i x-sha256
-  #   nix hash convert --hash-algo sha256 --to sri <hex>
-  pins = [
-    {
-      version = "1.140.0";
-      commit = "07f806f999227108933c2e30515b26eecc1fda74";
-      hashes = {
-        server-linux-arm64 = "sha256-kc96hZjRhZTC3f8T1w8n8CTXnyqMI9LUq01qQ0TAcsY=";
-        cli-alpine-arm64 = "sha256-YgXYtHh+oKTn9+fxUrRW2y/vX8/Qv/PxMBUOvyiGvIY=";
-      };
-    }
-    {
-      version = "1.139.1";
-      commit = "04c0d99f4fb0d8afe6ce4f0c58e31e183ac3e4b1";
-      hashes = {
-        server-linux-arm64 = "sha256-v/SzY7hIIFXfg9jmifRVmJrdX+gW9UOW5RfTLf9bisI=";
-        cli-alpine-arm64 = "sha256-8HO6UuChUUaMdhskF5P4pJWqXsIVNOdx2Ns1Fd1H2B4=";
-      };
-    }
-  ];
+  # Newest first, maintained by `vscode-pin` (nix-config's dev shell): it pins the Mac's client, or `--prune`s to the
+  # newest. Upgrade servers first: pin the new commit (keep the old), `vm apply`, let every cage `up`, THEN move the
+  # Mac, then prune. The Mac moving first leaves un-restarted cages without its server.
+  pins = import ./_vscode-pins.nix;
 
   platforms = {
     aarch64-linux = {
@@ -122,7 +102,7 @@ in
           # Its job is to deny the CLI an update endpoint. On connect the CLI starts an "agent host" supervisor that
           # fetches its OWN ~635MB server at channel-latest — a different commit, for an opt-in feature no
           # setting disables (microsoft/vscode#328397). Since 1.133.0 the spawn is lazy, but `handle_serve` awaits it on
-          # every editor connect (checked in the source through 1.139.1).
+          # every editor connect (checked in the source through 1.140.0).
           # All three `UpdateService` methods build their URL from `get_update_endpoint()`, which honours this
           # variable, so the supervisor starts, fails its version resolve once, and downloads nothing. Safe only
           # because the editor's own server is placed above.
