@@ -1,7 +1,14 @@
 # Pin the VS Code server + CLI for the Mac's client (newest first), or `--prune` to the newest pin only.
 root=$(git rev-parse --show-toplevel)
 file="$root/modules/home/dev/_vscode-pins.nix"
-mapfile -t artifacts < <(nix eval --json "$root#lib.vscodeFleetArtifacts" | jq -r '.[]')
+# Captured into variables, never `< <(…)`: errexit cannot see a failing process substitution.
+artifacts_json=$(nix eval --json "$root#lib.vscodeFleetArtifacts")
+mapfile -t artifacts < <(jq -r '.[]' <<<"$artifacts_json")
+if ((${#artifacts[@]} == 0)); then
+  echo "vscode-pin: lib.vscodeFleetArtifacts is empty" >&2
+  exit 1
+fi
+trap 'rm -f "$file.tmp"' EXIT
 
 write() {
   {
@@ -27,11 +34,14 @@ case "${1:-}" in
     ;;
 esac
 
-read -r version commit <<<"$(nix eval --raw \
+client=$(nix eval --raw \
   "$root#darwinConfigurations.macbook.config.home-manager.users.happygopher.programs.vscode.package" \
-  --apply 'p: p.version + " " + p.rev')"
+  --apply 'p: p.version + " " + p.rev')
+read -r version commit <<<"$client"
 
-if jq -e --arg c "$commit" 'any(.commit == $c)' <<<"$current" >/dev/null; then
+# The module's own rule for "pinned" (a commit with every fleet artifact hashed), shared with the Mac's assertion.
+placed=$(nix eval --json "$root#lib.vscodePlacedCommits")
+if jq -e --arg c "$commit" 'any(. == $c)' <<<"$placed" >/dev/null; then
   echo "vscode-pin: VS Code $version ($commit) is already pinned"
   exit 0
 fi
@@ -48,4 +58,4 @@ for a in "${artifacts[@]}"; do
 done
 
 write "$(jq --arg v "$version" --arg c "$commit" --argjson h "$(jq -n "${hashes[@]}" '$ARGS.named')" \
-  '[{ version: $v, commit: $c, hashes: $h }] + .' <<<"$current")" "pinned VS Code $version ($commit)"
+  '[{ version: $v, commit: $c, hashes: $h }] + map(select(.commit != $c))' <<<"$current")" "pinned VS Code $version ($commit)"
