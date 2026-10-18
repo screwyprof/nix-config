@@ -1,4 +1,4 @@
-# Pin the VS Code server + CLI for the Mac's client (newest first), or `--prune` to the newest pin only.
+# Pin the VS Code server + CLI for the Mac's client (newest first), or `--prune` to that client's pin only.
 root=$(git rev-parse --show-toplevel)
 file="$root/modules/home/dev/_vscode-pins.nix"
 # Captured into variables, never `< <(…)`: errexit cannot see a failing process substitution.
@@ -21,10 +21,19 @@ write() {
 }
 
 current=$(nix eval --json --file "$file")
+client=$(nix eval --raw \
+  "$root#darwinConfigurations.macbook.config.home-manager.users.happygopher.programs.vscode.package" \
+  --apply 'p: p.version + " " + p.rev')
+read -r version commit <<<"$client"
+
 
 case "${1:-}" in
   --prune)
-    write "$(jq '.[:1]' <<<"$current")" "kept only VS Code $(jq -r '.[0].version' <<<"$current")"
+    if ! jq -e --arg c "$commit" 'any(.commit == $c)' <<<"$current" >/dev/null; then
+      echo "vscode-pin: the Mac's VS Code $version ($commit) is not pinned; nothing to keep" >&2
+      exit 1
+    fi
+    write "$(jq --arg c "$commit" 'map(select(.commit == $c))' <<<"$current")" "kept only VS Code $version, the Mac's client"
     exit 0
     ;;
   "") ;;
@@ -33,11 +42,6 @@ case "${1:-}" in
     exit 2
     ;;
 esac
-
-client=$(nix eval --raw \
-  "$root#darwinConfigurations.macbook.config.home-manager.users.happygopher.programs.vscode.package" \
-  --apply 'p: p.version + " " + p.rev')
-read -r version commit <<<"$client"
 
 # The module's own rule for "pinned" (a commit with every fleet artifact hashed), shared with the Mac's assertion.
 placed=$(nix eval --json "$root#lib.vscodePlacedCommits")
